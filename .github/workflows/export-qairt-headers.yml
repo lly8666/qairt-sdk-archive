@@ -12,32 +12,63 @@ jobs:
     if: startsWith(github.event.issue.title, '[sdk-export-headers]')
     runs-on: ubuntu-latest
     steps:
-      - name: Download and verify QAIRT 2.42 SDK
+      - name: Select SDK version
+        shell: bash
+        env:
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+        run: |
+          set -euo pipefail
+          if [[ "$ISSUE_TITLE" == *"2.48"* ]]; then
+            echo 'SDK_VERSION=2.48.40.260702' >> "$GITHUB_ENV"
+            echo 'SDK_ZIP=qairt-2.48.40.260702.zip' >> "$GITHUB_ENV"
+          else
+            echo 'SDK_VERSION=2.42.0.251225' >> "$GITHUB_ENV"
+            echo 'SDK_ZIP=qairt-2.42.0.251225.zip' >> "$GITHUB_ENV"
+          fi
+
+      - name: Download and verify SDK
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          asset_id=512699984
-          expected=1A744ED72A813FC9DD4A29E31B1685F784786102FD45414D74915BB3351AE321
-          api="https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/assets/${asset_id}"
-          curl -fL \
-            -H "Authorization: Bearer ${GH_TOKEN}" \
-            -H 'Accept: application/octet-stream' \
-            -H 'X-GitHub-Api-Version: 2022-11-28' \
-            "$api" -o qairt-2.42.0.251225.zip
-          actual="$(sha256sum qairt-2.42.0.251225.zip | awk '{print toupper($1)}')"
+          headers=(
+            -H "Authorization: Bearer ${GH_TOKEN}"
+            -H 'Accept: application/octet-stream'
+            -H 'X-GitHub-Api-Version: 2022-11-28'
+          )
+          api_root="https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/assets"
+
+          if [[ "$SDK_VERSION" == "2.42.0.251225" ]]; then
+            curl -fL "${headers[@]}" "$api_root/512699984" -o "$SDK_ZIP"
+            expected=1A744ED72A813FC9DD4A29E31B1685F784786102FD45414D74915BB3351AE321
+            actual="$(sha256sum "$SDK_ZIP" | awk '{print toupper($1)}')"
+            test "$actual" = "$expected"
+          else
+            ids=(512706038 512710818 512714869)
+            names=(qairt-2.48.40.260702.zip.part-00 qairt-2.48.40.260702.zip.part-01 qairt-2.48.40.260702.zip.part-02)
+            sums=(8D2B6A9684069E4838BEE5052BCFFC5CAE4358EFE845B7C9BE8487AE768D3E36 EBEA49F038D264E7D1A783F4224125E0E5833EC6DD4ECB6387C576521E34C8F2 8CC1EF6252820A3CB6C8D60D70D287DC7E759914DC610EBFE68EDF32F056C35B)
+            for i in 0 1 2; do
+              curl -fL "${headers[@]}" "$api_root/${ids[$i]}" -o "${names[$i]}"
+              actual="$(sha256sum "${names[$i]}" | awk '{print toupper($1)}')"
+              test "$actual" = "${sums[$i]}"
+            done
+            cat "${names[@]}" > "$SDK_ZIP"
+            expected=72BF9FBB177E65D05483B5CFC1E10A2864307FB031BCD7B9943B9C32693757B8
+            actual="$(sha256sum "$SDK_ZIP" | awk '{print toupper($1)}')"
+            test "$actual" = "$expected"
+          fi
+
           echo "FULL_ZIP_SHA256=$actual"
-          test "$actual" = "$expected"
-          echo "FULL_ZIP_BYTES=$(stat -c %s qairt-2.42.0.251225.zip)"
+          echo "FULL_ZIP_BYTES=$(stat -c %s "$SDK_ZIP")"
 
       - name: Extract include tree
         shell: bash
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          import os, zipfile
-          src='qairt-2.42.0.251225.zip'
+          python3 - "$SDK_ZIP" <<'PY'
+          import os, sys, zipfile
+          src=sys.argv[1]
           dst='exported-headers'
           os.makedirs(dst, exist_ok=True)
           count=0
@@ -58,7 +89,7 @@ jobs:
       - name: Upload headers artifact
         uses: actions/upload-artifact@v4
         with:
-          name: qairt-2.42.0.251225-headers
+          name: qairt-${{ env.SDK_VERSION }}-headers
           path: exported-headers
           compression-level: 9
           retention-days: 1
