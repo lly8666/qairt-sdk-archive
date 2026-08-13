@@ -53,7 +53,7 @@ jobs:
             -H 'Accept: application/vnd.github+json' \
             "${api_root}/releases/tags/${RELEASE_TAG}" > "$release_json"
 
-          printf 'BROKER_VERSION=2\n'
+          printf 'BROKER_VERSION=3\n'
           printf 'RELEASE_TAG=%s\n' "$RELEASE_TAG"
           printf 'REASSEMBLE qairt-2.48.40.260702.zip from .part-00, .part-01, .part-02\n'
           printf 'REASSEMBLED_SHA256 qairt-2.48.40.260702.zip=72BF9FBB177E65D05483B5CFC1E10A2864307FB031BCD7B9943B9C32693757B8\n'
@@ -83,12 +83,27 @@ jobs:
               "$asset_api_url")"
             location="$(awk 'tolower($1) == "location:" { $1=""; sub(/^[[:space:]]+/, ""); sub(/\r$/, ""); print }' "$header_file" | tail -n 1)"
 
-            if [[ "$status" == 3* && -n "$location" ]]; then
-              printf 'QAIRT_ASSET name=%s id=%s size=%s sha256=%s url_type=signed_redirect url=%s\n' \
-                "$name" "$asset_id" "$size" "$expected" "$location"
-            else
+            if [[ "$status" != 3* || -z "$location" ]]; then
               echo "Could not obtain a signed redirect for $name (HTTP $status)" >&2
               sed -n '1,20p' "$header_file" >&2
               exit 1
             fi
+
+            clean_url="$(python3 - "$location" <<'PY'
+import sys
+from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
+u=urlsplit(sys.argv[1])
+q=[(k,v) for k,v in parse_qsl(u.query, keep_blank_values=True) if k.lower()!='jwt']
+print(urlunsplit((u.scheme,u.netloc,u.path,urlencode(q),u.fragment)))
+PY
+)"
+
+            probe_status="$(curl -sS -I -o /dev/null -w '%{http_code}' "$clean_url")"
+            if [[ "$probe_status" != 2* ]]; then
+              echo "JWT-free signed URL probe failed for $name (HTTP $probe_status)" >&2
+              exit 1
+            fi
+
+            printf 'QAIRT_ASSET name=%s id=%s size=%s sha256=%s url_type=signed_redirect_without_jwt url=%s\n' \
+              "$name" "$asset_id" "$size" "$expected" "$clean_url"
           done
