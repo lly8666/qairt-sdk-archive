@@ -1,0 +1,65 @@
+name: Export QAIRT headers
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    if: startsWith(github.event.issue.title, '[sdk-export-headers]')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download and verify QAIRT 2.42 SDK
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          asset_id=512699984
+          expected=1A744ED72A813FC9DD4A29E31B1685F784786102FD45414D74915BB3351AE321
+          api="https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/assets/${asset_id}"
+          curl -fL \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H 'Accept: application/octet-stream' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "$api" -o qairt-2.42.0.251225.zip
+          actual="$(sha256sum qairt-2.42.0.251225.zip | awk '{print toupper($1)}')"
+          echo "FULL_ZIP_SHA256=$actual"
+          test "$actual" = "$expected"
+          echo "FULL_ZIP_BYTES=$(stat -c %s qairt-2.42.0.251225.zip)"
+
+      - name: Extract include tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, zipfile
+          src='qairt-2.42.0.251225.zip'
+          dst='exported-headers'
+          os.makedirs(dst, exist_ok=True)
+          count=0
+          with zipfile.ZipFile(src) as z:
+              for info in z.infolist():
+                  n=info.filename.replace('\\','/')
+                  if info.is_dir():
+                      continue
+                  if n.startswith('include/') or '/include/' in n:
+                      z.extract(info, dst)
+                      count += 1
+          print(f'EXTRACTED_HEADER_TREE_FILES={count}')
+          if count == 0:
+              raise SystemExit('No include/ files found')
+          PY
+          find exported-headers -type f \( -name 'QnnInterface.h' -o -name 'QnnTypes.h' -o -name 'QnnBackend.h' -o -name 'QnnDevice.h' \) -print
+
+      - name: Upload headers artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: qairt-2.42.0.251225-headers
+          path: exported-headers
+          compression-level: 9
+          retention-days: 1
+          if-no-files-found: error
