@@ -1,0 +1,88 @@
+name: Broker QAIRT Release asset URLs
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Private Release tag containing the QAIRT assets
+        required: true
+        default: qairt-sdk-archive-v1
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  broker:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Resolve temporary Release asset URLs
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          set -euo pipefail
+
+          api_root="https://api.github.com/repos/${GITHUB_REPOSITORY}"
+          api_headers=(
+            -H "Accept: application/vnd.github+json"
+            -H "Authorization: Bearer ${GH_TOKEN}"
+            -H "X-GitHub-Api-Version: 2022-11-28"
+          )
+
+          declare -A expected_sha=(
+            [qairt-2.42.0.251225.zip]=1A744ED72A813FC9DD4A29E31B1685F784786102FD45414D74915BB3351AE321
+            [qairt-2.48.40.260702.zip.part-00]=8D2B6A9684069E4838BEE5052BCFFC5CAE4358EFE845B7C9BE8487AE768D3E36
+            [qairt-2.48.40.260702.zip.part-01]=EBEA49F038D264E7D1A783F4224125E0E5833EC6DD4ECB6387C576521E34C8F2
+            [qairt-2.48.40.260702.zip.part-02]=8CC1EF6252820A3CB6C8D60D70D287DC7E759914DC610EBFE68EDF32F056C35B
+          )
+
+          assets=(
+            qairt-2.42.0.251225.zip
+            qairt-2.48.40.260702.zip.part-00
+            qairt-2.48.40.260702.zip.part-01
+            qairt-2.48.40.260702.zip.part-02
+          )
+
+          release_json="$(mktemp)"
+          curl --fail-with-body -sS "${api_headers[@]}" \
+            "${api_root}/releases/tags/${RELEASE_TAG}" > "$release_json"
+
+          printf 'RELEASE_TAG=%s\n' "$RELEASE_TAG"
+          printf 'REASSEMBLE qairt-2.48.40.260702.zip from .part-00, .part-01, .part-02\n'
+          printf 'REASSEMBLED_SHA256 qairt-2.48.40.260702.zip=72BF9FBB177E65D05483B5CFC1E10A2864307FB031BCD7B9943B9C32693757B8\n'
+
+          for name in "${assets[@]}"; do
+            row="$(jq -r --arg name "$name" '.assets[] | select(.name == $name) | [.id, .size, (.digest // "")] | @tsv' "$release_json")"
+            if [[ -z "$row" ]]; then
+              echo "Missing Release asset: $name" >&2
+              exit 1
+            fi
+
+            IFS=$'\t' read -r asset_id size api_digest <<< "$row"
+            expected="${expected_sha[$name]}"
+            api_digest="${api_digest#sha256:}"
+            if [[ -n "$api_digest" && "${api_digest^^}" != "$expected" ]]; then
+              echo "Checksum mismatch in Release metadata for $name" >&2
+              echo "expected: $expected" >&2
+              echo "actual:   $api_digest" >&2
+              exit 1
+            fi
+
+            header_file="$(mktemp)"
+            status="$(curl -sS -D "$header_file" -o /dev/null -w '%{http_code}' \
+              "${api_headers[@]}" \
+              -H 'Accept: application/octet-stream' \
+              "${api_root}/releases/assets/${asset_id}")"
+            location="$(awk 'tolower($1) == "location:" { $1=""; sub(/^[[:space:]]+/, ""); sub(/\r$/, ""); print }' "$header_file" | tail -n 1)"
+
+            if [[ "$status" != 3* || -z "$location" ]]; then
+              echo "Release asset did not return a temporary redirect: $name (HTTP $status)" >&2
+              exit 1
+            fi
+
+            printf 'QAIRT_ASSET name=%s size=%s sha256=%s url=%s\n' \
+              "$name" "$size" "$expected" "$location"
+          done
