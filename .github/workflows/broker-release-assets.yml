@@ -53,7 +53,7 @@ jobs:
             -H 'Accept: application/vnd.github+json' \
             "${api_root}/releases/tags/${RELEASE_TAG}" > "$release_json"
 
-          printf 'BROKER_VERSION=3\n'
+          printf 'BROKER_VERSION=4\n'
           printf 'RELEASE_TAG=%s\n' "$RELEASE_TAG"
           printf 'REASSEMBLE qairt-2.48.40.260702.zip from .part-00, .part-01, .part-02\n'
           printf 'REASSEMBLED_SHA256 qairt-2.48.40.260702.zip=72BF9FBB177E65D05483B5CFC1E10A2864307FB031BCD7B9943B9C32693757B8\n'
@@ -70,8 +70,6 @@ jobs:
             api_digest="${api_digest#sha256:}"
             if [[ -n "$api_digest" && "${api_digest^^}" != "$expected" ]]; then
               echo "Checksum mismatch in Release metadata for $name" >&2
-              echo "expected: $expected" >&2
-              echo "actual:   $api_digest" >&2
               exit 1
             fi
 
@@ -84,19 +82,18 @@ jobs:
             location="$(awk 'tolower($1) == "location:" { $1=""; sub(/^[[:space:]]+/, ""); sub(/\r$/, ""); print }' "$header_file" | tail -n 1)"
 
             if [[ "$status" != 3* || -z "$location" ]]; then
-              echo "Could not obtain a signed redirect for $name (HTTP $status)" >&2
-              sed -n '1,20p' "$header_file" >&2
+              echo "Could not obtain signed redirect for $name (HTTP $status)" >&2
               exit 1
             fi
 
-            clean_url="$(python3 -c 'import sys; from urllib.parse import urlsplit,urlunsplit,parse_qsl,urlencode; u=urlsplit(sys.argv[1]); q=[(k,v) for k,v in parse_qsl(u.query, keep_blank_values=True) if k.lower() != "jwt"]; print(urlunsplit((u.scheme,u.netloc,u.path,urlencode(q),u.fragment)))' "$location")"
-
-            probe_status="$(curl -sS -I -o /dev/null -w '%{http_code}' "$clean_url")"
+            probe_status="$(curl -sS -I -o /dev/null -w '%{http_code}' "$location")"
             if [[ "$probe_status" != 2* ]]; then
-              echo "JWT-free signed URL probe failed for $name (HTTP $probe_status)" >&2
+              echo "Signed URL probe failed for $name (HTTP $probe_status)" >&2
               exit 1
             fi
 
-            printf 'QAIRT_ASSET name=%s id=%s size=%s sha256=%s url_type=signed_redirect_without_jwt url=%s\n' \
-              "$name" "$asset_id" "$size" "$expected" "$clean_url"
+            expires="$(python3 -c 'import sys; from urllib.parse import urlsplit,parse_qs; print(parse_qs(urlsplit(sys.argv[1]).query).get("se",[""])[0])' "$location")"
+            url_b64="$(printf '%s' "$location" | base64 -w0)"
+            printf 'QAIRT_ASSET name=%s id=%s size=%s sha256=%s expires=%s url_encoding=base64 url_b64=%s\n' \
+              "$name" "$asset_id" "$size" "$expected" "$expires" "$url_b64"
           done
