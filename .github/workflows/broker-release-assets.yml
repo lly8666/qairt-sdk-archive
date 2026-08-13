@@ -89,14 +89,7 @@ jobs:
               exit 1
             fi
 
-            clean_url="$(python3 - "$location" <<'PY'
-import sys
-from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
-u=urlsplit(sys.argv[1])
-q=[(k,v) for k,v in parse_qsl(u.query, keep_blank_values=True) if k.lower()!='jwt']
-print(urlunsplit((u.scheme,u.netloc,u.path,urlencode(q),u.fragment)))
-PY
-)"
+            clean_url="$(python3 -c 'import sys; from urllib.parse import urlsplit,urlunsplit,parse_qsl,urlencode; u=urlsplit(sys.argv[1]); q=[(k,v) for k,v in parse_qsl(u.query, keep_blank_values=True) if k.lower() != "jwt"]; print(urlunsplit((u.scheme,u.netloc,u.path,urlencode(q),u.fragment)))' "$location")"
 
             probe_status="$(curl -sS -I -o /dev/null -w '%{http_code}' "$clean_url")"
             if [[ "$probe_status" != 2* ]]; then
