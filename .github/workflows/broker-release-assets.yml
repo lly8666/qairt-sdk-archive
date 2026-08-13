@@ -17,18 +17,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Resolve temporary Release asset URLs
+      - name: Resolve Release asset download URLs
         shell: bash
         env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ inputs.release_tag }}
+          GH_TOKEN: \${{ github.token }}
+          RELEASE_TAG: \${{ inputs.release_tag }}
         run: |
           set -euo pipefail
 
-          api_root="https://api.github.com/repos/${GITHUB_REPOSITORY}"
+          api_root="https://api.github.com/repos/\${GITHUB_REPOSITORY}"
           api_headers=(
             -H "Accept: application/vnd.github+json"
-            -H "Authorization: Bearer ${GH_TOKEN}"
+            -H "Authorization: Bearer \${GH_TOKEN}"
             -H "X-GitHub-Api-Version: 2022-11-28"
           )
 
@@ -47,24 +47,24 @@ jobs:
           )
 
           release_json="$(mktemp)"
-          curl --fail-with-body -sS "${api_headers[@]}" \
-            "${api_root}/releases/tags/${RELEASE_TAG}" > "$release_json"
+          curl --fail-with-body -sS "\${api_headers[@]}" \
+            "\${api_root}/releases/tags/\${RELEASE_TAG}" > "$release_json"
 
           printf 'RELEASE_TAG=%s\n' "$RELEASE_TAG"
           printf 'REASSEMBLE qairt-2.48.40.260702.zip from .part-00, .part-01, .part-02\n'
           printf 'REASSEMBLED_SHA256 qairt-2.48.40.260702.zip=72BF9FBB177E65D05483B5CFC1E10A2864307FB031BCD7B9943B9C32693757B8\n'
 
-          for name in "${assets[@]}"; do
-            row="$(jq -r --arg name "$name" '.assets[] | select(.name == $name) | [.id, .size, (.digest // "")] | @tsv' "$release_json")"
+          for name in "\${assets[@]}"; do
+            row="$(jq -r --arg name "$name" '.assets[] | select(.name == $name) | [.id, .size, (.digest // ""), .browser_download_url] | @tsv' "$release_json")"
             if [[ -z "$row" ]]; then
               echo "Missing Release asset: $name" >&2
               exit 1
             fi
 
-            IFS=$'\t' read -r asset_id size api_digest <<< "$row"
-            expected="${expected_sha[$name]}"
-            api_digest="${api_digest#sha256:}"
-            if [[ -n "$api_digest" && "${api_digest^^}" != "$expected" ]]; then
+            IFS=$'\t' read -r asset_id size api_digest download_url <<< "$row"
+            expected="\${expected_sha[$name]}"
+            api_digest="\${api_digest#sha256:}"
+            if [[ -n "$api_digest" && "\${api_digest^^}" != "$expected" ]]; then
               echo "Checksum mismatch in Release metadata for $name" >&2
               echo "expected: $expected" >&2
               echo "actual:   $api_digest" >&2
@@ -72,17 +72,23 @@ jobs:
             fi
 
             header_file="$(mktemp)"
-            status="$(curl -sS -D "$header_file" -o /dev/null -w '%{http_code}' \
-              "${api_headers[@]}" \
+            status="$(curl --fail-with-body -sS -D "$header_file" -o /dev/null -w '%{http_code}' \
+              "\${api_headers[@]}" \
               -H 'Accept: application/octet-stream' \
-              "${api_root}/releases/assets/${asset_id}")"
+              "$download_url")"
             location="$(awk 'tolower($1) == "location:" { $1=""; sub(/^[[:space:]]+/, ""); sub(/\r$/, ""); print }' "$header_file" | tail -n 1)"
 
-            if [[ "$status" != 3* || -z "$location" ]]; then
-              echo "Release asset did not return a temporary redirect: $name (HTTP $status)" >&2
+            if [[ "$status" == 3* && -n "$location" ]]; then
+              resolved_url="$location"
+              url_type="signed_redirect"
+            elif [[ "$status" == 2* ]]; then
+              resolved_url="$download_url"
+              url_type="browser_download_url"
+            else
+              echo "Release asset URL could not be resolved: $name (HTTP $status)" >&2
               exit 1
             fi
 
-            printf 'QAIRT_ASSET name=%s size=%s sha256=%s url=%s\n' \
-              "$name" "$size" "$expected" "$location"
+            printf 'QAIRT_ASSET name=%s size=%s sha256=%s url_type=%s url=%s\n' \
+              "$name" "$size" "$expected" "$url_type" "$resolved_url"
           done
