@@ -1,0 +1,237 @@
+name: Publish Gate0D host toolchain Release
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  publish:
+    if: github.event.issue.title == '[publish-gate0d-host-toolchain-release]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      RELEASE_TAG: gate0d-host-toolchain-v1
+      QAIRT_VERSION: 2.42.0.251225
+      QAIRT_ASSET_ID: '512699984'
+      QAIRT_ZIP_BYTES: '1543955191'
+      QAIRT_ZIP_SHA256: 1a744ed72a813fc9dd4a29e31b1685f784786102fd45414d74915bb3351ae321
+      PY_STANDALONE_NAME: cpython-3.10.20+20260807-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz
+      PY_STANDALONE_BYTES: '29446769'
+      PY_STANDALONE_SHA256: 213ad831a580c186804f91c41cd6712f8ac8cd765ad7a517161c09606a48b588
+      LIBCXX_VERSION: '1:18.0-59~exp2'
+      LIBCXXABI_VERSION: '1:18.0-59~exp2'
+      LIBUNWIND_VERSION: '1:18.1.3-1ubuntu1'
+      LIBCXX_SHA256: 465b54c395f9a227554e653cdf0e2742686f891eb278e8d0b630d0229084c0df
+      LIBCXXABI_SHA256: 40cb6e2e548b61e53d4e3fb07c537dbc4f23900f465ae584f141eda9c92b1585
+      LIBUNWIND_SHA256: b9b34fb09f6c86778dd8a73f11715d09bb89efafbb4331bc76905b75cf1fb892
+      HOST_ASSET: qairt-2.42.0.251225-host-tools.tar.gz
+      PY_ASSET: gate0d-cpython310-runtime.tar.gz
+
+    steps:
+      - name: Refuse to mutate an existing dependency release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $RELEASE_TAG already exists; refusing to clobber immutable dependency authority." >&2
+            exit 2
+          fi
+
+      - name: Download and verify pinned QAIRT 2.42 source Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl -fL \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H 'Accept: application/octet-stream' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/assets/${QAIRT_ASSET_ID}" \
+            -o qairt.zip
+          echo "${QAIRT_ZIP_SHA256}  qairt.zip" | sha256sum -c -
+          test "$(stat -c %s qairt.zip)" = "$QAIRT_ZIP_BYTES"
+
+      - name: Recreate the already-qualified QAIRT Linux x64 host subset
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, zipfile
+          version=os.environ['QAIRT_VERSION']
+          dst='qairt-host-tools'
+          markers=(
+              ('bin','x86_64-linux-clang'),
+              ('lib','x86_64-linux-clang'),
+              ('lib','python'),
+              ('include',),
+              ('share',),
+          )
+          os.makedirs(dst, exist_ok=True)
+          selected=[]
+          with zipfile.ZipFile('qairt.zip') as z:
+              for info in z.infolist():
+                  if info.is_dir():
+                      continue
+                  parts=[p for p in info.filename.replace('\\','/').split('/') if p]
+                  hit=None
+                  for marker in markers:
+                      n=len(marker)
+                      for i in range(len(parts)-n+1):
+                          if tuple(parts[i:i+n]) == marker:
+                              hit=i
+                              break
+                      if hit is not None:
+                          break
+                  if hit is None:
+                      continue
+                  rel='/'.join(parts[hit:])
+                  target=os.path.join(dst,rel)
+                  os.makedirs(os.path.dirname(target),exist_ok=True)
+                  with z.open(info) as r, open(target,'wb') as w:
+                      while True:
+                          b=r.read(1<<20)
+                          if not b: break
+                          w.write(b)
+                  selected.append((rel,info.file_size))
+          required=[
+              'bin/x86_64-linux-clang/qnn-onnx-converter',
+              'bin/x86_64-linux-clang/qnn-model-lib-generator',
+              'bin/x86_64-linux-clang/qnn-net-run',
+              'bin/x86_64-linux-clang/qnn-context-binary-generator',
+              'lib/x86_64-linux-clang/libQnnCpu.so',
+              'lib/x86_64-linux-clang/libQnnHtp.so',
+              'lib/x86_64-linux-clang/libQnnSystem.so',
+          ]
+          for rel in required:
+              if not os.path.isfile(os.path.join(dst,rel)):
+                  raise SystemExit(f'missing required QAIRT host dependency: {rel}')
+          print('QAIRT_HOST_FILES',len(selected))
+          print('QAIRT_HOST_BYTES',sum(x[1] for x in selected))
+          PY
+          cat > qairt-host-tools/SOURCE_PROVENANCE.txt <<EOF
+          source_repository=${GITHUB_REPOSITORY}
+          source_release=qairt-sdk-archive-v1
+          source_asset=qairt-${QAIRT_VERSION}.zip
+          source_asset_id=${QAIRT_ASSET_ID}
+          source_bytes=${QAIRT_ZIP_BYTES}
+          source_sha256=${QAIRT_ZIP_SHA256}
+          extracted_for=SimAdmin MeanVC2 Gate0D Linux x64 host qualification
+          EOF
+          (cd qairt-host-tools && find . -type f ! -name HOST_TOOLS_SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > HOST_TOOLS_SHA256SUMS.txt)
+
+      - name: Recreate pinned portable CPython 3.10 and exact C++ runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          url="https://github.com/astral-sh/python-build-standalone/releases/download/20260807/cpython-3.10.20%2B20260807-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz"
+          curl -fL "$url" -o "$PY_STANDALONE_NAME"
+          echo "${PY_STANDALONE_SHA256}  ${PY_STANDALONE_NAME}" | sha256sum -c -
+          test "$(stat -c %s "$PY_STANDALONE_NAME")" = "$PY_STANDALONE_BYTES"
+          mkdir -p gate0d-py310/python gate0d-py310/cxx
+          tar -xzf "$PY_STANDALONE_NAME" -C gate0d-py310/python --strip-components=1
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            "libc++1=${LIBCXX_VERSION}" \
+            "libc++abi1=${LIBCXXABI_VERSION}" \
+            "libunwind-18=${LIBUNWIND_VERSION}"
+          for spec in \
+            "libc++.so.1:${LIBCXX_SHA256}" \
+            "libc++abi.so.1:${LIBCXXABI_SHA256}" \
+            "libunwind.so.1:${LIBUNWIND_SHA256}"; do
+            name="${spec%%:*}"; expected="${spec#*:}"; src=""
+            for p in "/usr/lib/x86_64-linux-gnu/${name}" /usr/lib/llvm-*/lib/"${name}"; do
+              [ -e "$p" ] || continue
+              src="$p"; break
+            done
+            test -n "$src"
+            cp -L "$src" "gate0d-py310/cxx/$name"
+            echo "$expected  gate0d-py310/cxx/$name" | sha256sum -c -
+          done
+          dpkg-query -W -f='${Package}=${Version}\n' libc++1 libc++abi1 libunwind-18 | sort > gate0d-py310/APT_VERSIONS.txt
+          cat > gate0d-py310/SOURCE_PROVENANCE.txt <<EOF
+          python_source_repository=astral-sh/python-build-standalone
+          python_release=20260807
+          python_asset=${PY_STANDALONE_NAME}
+          python_bytes=${PY_STANDALONE_BYTES}
+          python_sha256=${PY_STANDALONE_SHA256}
+          libcxx_version=${LIBCXX_VERSION}
+          libcxx_sha256=${LIBCXX_SHA256}
+          libcxxabi_version=${LIBCXXABI_VERSION}
+          libcxxabi_sha256=${LIBCXXABI_SHA256}
+          libunwind_version=${LIBUNWIND_VERSION}
+          libunwind_sha256=${LIBUNWIND_SHA256}
+          EOF
+          find gate0d-py310 -type d -name __pycache__ -prune -exec rm -rf {} +
+          find gate0d-py310 -type f -name '*.pyc' -delete
+          (cd gate0d-py310 && find . -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS.txt)
+
+      - name: Smoke the exact recovered tools before freezing archives
+        shell: bash
+        run: |
+          set -euo pipefail
+          gate0d-py310/python/bin/python3.10 --version
+          test "$(sha256sum qairt-host-tools/bin/x86_64-linux-clang/qnn-net-run | awk '{print $1}')" = f06fa0d82931e630386db82062032e4d59097a9de8aa361613ceecf35a244569
+          test "$(sha256sum qairt-host-tools/bin/x86_64-linux-clang/qnn-model-lib-generator | awk '{print $1}')" = be751c726210013cc4fee4fbe18e9cd67ab3a7f508bd8cd2bd33772a1e144a00
+          test "$(sha256sum qairt-host-tools/bin/x86_64-linux-clang/qnn-onnx-converter | awk '{print $1}')" = c267c36b2e4a0ad8f6a5e8b4b98457d0aa9d4c3e5168b5cf5b913297e0ff1225
+          export LD_LIBRARY_PATH="$PWD/gate0d-py310/cxx:$PWD/qairt-host-tools/lib/x86_64-linux-clang"
+          qairt-host-tools/bin/x86_64-linux-clang/qnn-net-run --help >/dev/null
+
+      - name: Create deterministic dependency assets and global manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar --sort=name --mtime='UTC 2026-08-14 00:00:00' --owner=0 --group=0 --numeric-owner -cf - qairt-host-tools | gzip -n -9 > "$HOST_ASSET"
+          tar --sort=name --mtime='UTC 2026-08-14 00:00:00' --owner=0 --group=0 --numeric-owner -cf - gate0d-py310 | gzip -n -9 > "$PY_ASSET"
+          sha256sum "$HOST_ASSET" "$PY_ASSET" > SHA256SUMS.txt
+          stat -c '%n %s' "$HOST_ASSET" "$PY_ASSET" > BYTES.txt
+          python3 - <<'PY'
+          import hashlib,json,os,pathlib
+          assets=[]
+          for n in (os.environ['HOST_ASSET'],os.environ['PY_ASSET']):
+              p=pathlib.Path(n)
+              h=hashlib.sha256(p.read_bytes()).hexdigest()
+              assets.append({'name':n,'bytes':p.stat().st_size,'sha256':h})
+          manifest={
+              'schema':1,
+              'release':'gate0d-host-toolchain-v1',
+              'purpose':'Pre-extracted reusable Linux x64 host tools/dependencies already qualified during SimAdmin MeanVC2 Gate0D; future fresh Agents must not rediscover them from large archives.',
+              'assets':assets,
+              'qairt':{'version':os.environ['QAIRT_VERSION'],'source_asset_id':int(os.environ['QAIRT_ASSET_ID']),'source_bytes':int(os.environ['QAIRT_ZIP_BYTES']),'source_sha256':os.environ['QAIRT_ZIP_SHA256']},
+              'python':{'version':'3.10.20','standalone_release':'20260807','source_bytes':int(os.environ['PY_STANDALONE_BYTES']),'source_sha256':os.environ['PY_STANDALONE_SHA256']},
+              'cxx_runtime':{'libcxx_version':os.environ['LIBCXX_VERSION'],'libcxx_sha256':os.environ['LIBCXX_SHA256'],'libcxxabi_version':os.environ['LIBCXXABI_VERSION'],'libcxxabi_sha256':os.environ['LIBCXXABI_SHA256'],'libunwind_version':os.environ['LIBUNWIND_VERSION'],'libunwind_sha256':os.environ['LIBUNWIND_SHA256']},
+              'required_tools':['qnn-onnx-converter','qnn-model-lib-generator','qnn-net-run','qnn-context-binary-generator'],
+          }
+          pathlib.Path('GATE0D_HOST_TOOLCHAIN_MANIFEST.json').write_text(json.dumps(manifest,indent=2,sort_keys=True)+'\n')
+          PY
+          cat SHA256SUMS.txt
+          cat BYTES.txt
+          cat GATE0D_HOST_TOOLCHAIN_MANIFEST.json
+
+      - name: Publish immutable private dependency Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          notes='Pre-extracted reusable Gate0D Linux x64 host dependencies. This is dependency storage, not a SimAdmin/MeanVC2 software release. It replaces repeated extraction/search through the full QAIRT SDK and ad-hoc Python/C++ runtime discovery.'
+          gh release create "$RELEASE_TAG" \
+            "$HOST_ASSET" "$PY_ASSET" SHA256SUMS.txt BYTES.txt GATE0D_HOST_TOOLCHAIN_MANIFEST.json \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "$RELEASE_TAG" \
+            --notes "$notes"
+
+      - name: Record durable dependency identities
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          body="Gate0D host toolchain dependency Release ready.\n\n- release: \`${RELEASE_TAG}\`\n- repository: \`${GITHUB_REPOSITORY}\`\n\n\`\`\`text\n$(cat SHA256SUMS.txt)\n$(cat BYTES.txt)\n\`\`\`\n\nFuture Agents should use the dedicated broker and SimAdmin fresh-sandbox manifest; do not re-extract the full QAIRT SDK for these files."
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "$body"
