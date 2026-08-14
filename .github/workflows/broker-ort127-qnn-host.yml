@@ -66,4 +66,4 @@ jobs:
         run: |
           set -euo pipefail
           meta="$(cat transport/BROKER_META.txt)"
-          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "ORT/QNN host transport created.\n\n- release: \`${RELEASE_TAG}\`\n- artifact id: \`${ARTIFACT_ID}\`\n- artifact: \`ort-qnn-host-1.27.0-qnn2.42-transport-${GITHUB_RUN_ID}\`\n\n\`\`\`text\n${meta}\`\`\`\n\nAfter connector download + SHA/byte verification, create cleanup issue: \`[sdk-artifact-cleanup] ${ARTIFACT_ID}\`."
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "ORT/QNN host transport created.\n\n- release: \`${RELEASE_TAG}\`\n- artifact id: \`${ARTIFACT_ID}\`\n- artifact: \`ort-qnn-host-1.27.0-qnn2.42-transport-${GITHUB_RUN_ID}\`\n\n\`\`\`text\n${meta}\`\`\`\n\nAfter connector download + SHA/byte verification, create cleanup issue: \`[sdk-export-gate0d-cleanup] ${ARTIFACT_ID}\`."
