@@ -1,0 +1,191 @@
+name: Build ORT 1.27 QNN host Release
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  build-release:
+    if: github.event.issue.title == '[build-ort127-qnn-host-release]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      ORT_TAG: v1.27.0
+      ORT_COMMIT: 8f0278c77bf44b0cc83c098c6c722b92a36ac4b5
+      QAIRT_VERSION: 2.42.0.251225
+      QAIRT_ASSET_ID: '512699984'
+      QAIRT_ZIP_SHA256: 1a744ed72a813fc9dd4a29e31b1685f784786102fd45414d74915bb3351ae321
+      QAIRT_ZIP_BYTES: '1543955191'
+      RELEASE_TAG: ort-qnn-host-1.27.0-qnn2.42-v1
+      PAYLOAD_NAME: ort-qnn-host-1.27.0-qnn2.42-v1.tar.gz
+
+    steps:
+      - name: Checkout exact ONNX Runtime source
+        uses: actions/checkout@v4
+        with:
+          repository: microsoft/onnxruntime
+          ref: 8f0278c77bf44b0cc83c098c6c722b92a36ac4b5
+          path: ort
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Verify ONNX Runtime identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(git -C ort rev-parse HEAD)"
+          test "$actual" = "$ORT_COMMIT"
+          echo "ORT_COMMIT=$actual"
+
+      - name: Download and verify pinned QAIRT 2.42
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl -fL \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H 'Accept: application/octet-stream' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/assets/${QAIRT_ASSET_ID}" \
+            -o qairt.zip
+          echo "${QAIRT_ZIP_SHA256}  qairt.zip" | sha256sum -c -
+          test "$(stat -c %s qairt.zip)" = "$QAIRT_ZIP_BYTES"
+
+      - name: Extract QNN host build/runtime subset
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, zipfile
+          version=os.environ['QAIRT_VERSION']
+          prefix=f'qairt/{version}/'
+          keep_prefixes=(
+              prefix+'include/QNN/',
+              prefix+'lib/x86_64-linux-clang/',
+              prefix+'share/QNN/',
+              prefix+'lib/python/',
+          )
+          keep_exact={prefix+'sdk.yaml'}
+          dst='qnn-sdk'
+          selected=[]
+          with zipfile.ZipFile('qairt.zip') as z:
+              for info in z.infolist():
+                  n=info.filename.replace('\\','/').lstrip('/')
+                  if info.is_dir():
+                      continue
+                  if n in keep_exact or any(n.startswith(p) for p in keep_prefixes):
+                      z.extract(info,dst)
+                      selected.append({'name':n,'bytes':info.file_size})
+          root=os.path.join(dst,'qairt',version)
+          required=[
+              os.path.join(root,'include','QNN','QnnInterface.h'),
+              os.path.join(root,'lib','x86_64-linux-clang','libQnnHtp.so'),
+              os.path.join(root,'lib','x86_64-linux-clang','libQnnSystem.so'),
+          ]
+          for p in required:
+              if not os.path.isfile(p):
+                  raise SystemExit(f'missing required QNN file: {p}')
+          with open('QNN_SELECTION.json','w') as f:
+              json.dump({'schema':1,'qairt_version':version,'files':selected},f,indent=2,sort_keys=True)
+          print('QNN_SELECTED_FILES',len(selected))
+          print('QNN_SELECTED_BYTES',sum(x['bytes'] for x in selected))
+          PY
+          echo "QNN_HOME=$PWD/qnn-sdk/qairt/$QAIRT_VERSION" >> "$GITHUB_ENV"
+
+      - name: Set up build Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install host build prerequisites
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ninja-build ccache patchelf
+          python -m pip install --upgrade 'pip<26' wheel packaging setuptools numpy==1.26.4
+          cmake --version
+          ninja --version
+          python --version
+
+      - name: Build ORT 1.27 Linux x64 QNN EP wheel
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd ort
+          ./build.sh \
+            --config Release \
+            --update \
+            --build \
+            --build_wheel \
+            --build_shared_lib \
+            --skip_tests \
+            --parallel 2 \
+            --cmake_generator Ninja \
+            --use_qnn \
+            --qnn_home "$QNN_HOME"
+
+      - name: Freeze reusable host payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p payload/wheel payload/qnn-lib payload/meta
+          wheel="$(find ort/build -type f -path '*/dist/*.whl' | head -n1)"
+          test -n "$wheel"
+          cp "$wheel" payload/wheel/
+          cp -a "$QNN_HOME/lib/x86_64-linux-clang/." payload/qnn-lib/
+          cp QNN_SELECTION.json payload/meta/
+          cat > payload/meta/BUILD_PROVENANCE.json <<EOF
+          {
+            "schema": 1,
+            "onnxruntime_tag": "${ORT_TAG}",
+            "onnxruntime_commit": "${ORT_COMMIT}",
+            "qairt_version": "${QAIRT_VERSION}",
+            "qairt_release_repository": "${GITHUB_REPOSITORY}",
+            "qairt_release_asset_id": ${QAIRT_ASSET_ID},
+            "qairt_release_zip_sha256": "${QAIRT_ZIP_SHA256}",
+            "workflow_run_id": ${GITHUB_RUN_ID}
+          }
+          EOF
+          find payload -type f ! -path '*/SHA256SUMS.txt' -print0 | sort -z | xargs -0 sha256sum > payload/SHA256SUMS.txt
+          tar -czf "$PAYLOAD_NAME" -C payload .
+          sha256sum "$PAYLOAD_NAME" > "${PAYLOAD_NAME}.sha256"
+          stat -c '%s' "$PAYLOAD_NAME" > "${PAYLOAD_NAME}.bytes"
+
+      - name: Validate wheel exposes QNNExecutionProvider
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m venv verify-venv
+          verify-venv/bin/pip install --no-deps payload/wheel/*.whl
+          export LD_LIBRARY_PATH="$PWD/payload/qnn-lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+          verify-venv/bin/python - <<'PY'
+          import onnxruntime as ort
+          print('ORT_VERSION', ort.__version__)
+          providers=ort.get_available_providers()
+          print('PROVIDERS', providers)
+          assert ort.__version__ == '1.27.0'
+          assert 'QNNExecutionProvider' in providers
+          PY
+
+      - name: Publish immutable private Release asset
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          notes="Pinned Linux x64 host qualification dependency: ONNX Runtime ${ORT_TAG} (${ORT_COMMIT}) built with QNN EP against QAIRT ${QAIRT_VERSION}. Generated by run ${GITHUB_RUN_ID}."
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "$PAYLOAD_NAME" "${PAYLOAD_NAME}.sha256" "${PAYLOAD_NAME}.bytes" --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$RELEASE_TAG" "$PAYLOAD_NAME" "${PAYLOAD_NAME}.sha256" "${PAYLOAD_NAME}.bytes" --repo "$GITHUB_REPOSITORY" --title "$RELEASE_TAG" --notes "$notes"
+          fi
+          asset_sha="$(sha256sum "$PAYLOAD_NAME" | awk '{print $1}')"
+          asset_bytes="$(stat -c %s "$PAYLOAD_NAME")"
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "Durable ORT/QNN host Release ready.\n\n- release: \`${RELEASE_TAG}\`\n- asset: \`${PAYLOAD_NAME}\`\n- bytes: \`${asset_bytes}\`\n- SHA256: \`${asset_sha}\`\n- ORT commit: \`${ORT_COMMIT}\`\n- QAIRT: \`${QAIRT_VERSION}\`\n- run id: \`${GITHUB_RUN_ID}\`"
