@@ -13,7 +13,7 @@ jobs:
     if: startsWith(github.event.issue.title, '[sdk-artifact-cleanup]')
     runs-on: ubuntu-latest
     steps:
-      - name: Validate and delete exact host-tools artifact
+      - name: Validate and delete exact approved transport artifact
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -30,6 +30,7 @@ jobs:
           name="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["name"])' <<<"$json")"
           case "$name" in
             qairt-2.42.0.251225-host-tools*) ;;
+            ort-qnn-host-1.27.0-qnn2.42-transport-*) ;;
             *) echo "refusing unrelated artifact: $name" >&2; exit 3 ;;
           esac
           gh api --method DELETE "$api"
