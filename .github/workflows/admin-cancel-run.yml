@@ -1,0 +1,26 @@
+name: Admin cancel workflow run
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  actions: write
+  issues: write
+
+jobs:
+  cancel:
+    if: startsWith(github.event.issue.title, '[admin-cancel-run] ')
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Cancel target workflow run
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          run_id="${{ github.event.issue.title }}"
+          run_id="${run_id#'[admin-cancel-run] '}"
+          [[ "$run_id" =~ ^[0-9]+$ ]]
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}/cancel"
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "Cancellation requested for workflow run \`${run_id}\`."
