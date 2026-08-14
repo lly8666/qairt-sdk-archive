@@ -1,0 +1,151 @@
+name: Finalize ORT 1.27 QNN host Release runtime
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  finalize-release:
+    if: github.event.issue.title == '[finalize-ort127-qnn-host-release]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      RELEASE_TAG: ort-qnn-host-1.27.0-qnn2.42-v1
+      PAYLOAD_NAME: ort-qnn-host-1.27.0-qnn2.42-v1.tar.gz
+      LIBCXX_VERSION: '1:18.0-59~exp2'
+      LIBCXXABI_VERSION: '1:18.0-59~exp2'
+      LIBUNWIND_VERSION: '1:18.1.3-1ubuntu1'
+      LIBCXX_SHA256: 465b54c395f9a227554e653cdf0e2742686f891eb278e8d0b630d0229084c0df
+      LIBCXXABI_SHA256: 40cb6e2e548b61e53d4e3fb07c537dbc4f23900f465ae584f141eda9c92b1585
+      LIBUNWIND_SHA256: b9b34fb09f6c86778dd8a73f11715d09bb89efafbb4331bc76905b75cf1fb892
+
+    steps:
+      - name: Download and verify current ORT QNN host Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir incoming
+          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
+            --pattern "$PAYLOAD_NAME" \
+            --pattern "$PAYLOAD_NAME.sha256" \
+            --pattern "$PAYLOAD_NAME.bytes" \
+            --dir incoming
+          cd incoming
+          sha256sum -c "$PAYLOAD_NAME.sha256"
+          expected_bytes="$(tr -d '[:space:]' < "$PAYLOAD_NAME.bytes")"
+          test "$(stat -c %s "$PAYLOAD_NAME")" = "$expected_bytes"
+
+      - name: Install exact QNN host C++ runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            "libc++1=${LIBCXX_VERSION}" \
+            "libc++abi1=${LIBCXXABI_VERSION}" \
+            "libunwind-18=${LIBUNWIND_VERSION}" \
+            python3-venv python3-numpy
+          dpkg-query -W -f='${Package}=${Version}\n' libc++1 libc++abi1 libunwind-18 | sort > CXX_APT_VERSIONS.txt
+          cat CXX_APT_VERSIONS.txt
+
+      - name: Add runtime, refreeze payload, and verify backend load
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf payload
+          mkdir payload
+          tar -xzf "incoming/$PAYLOAD_NAME" -C payload
+          test -f payload/meta/BUILD_PROVENANCE.json
+          test -f payload/qnn-lib/libQnnHtp.so
+          test -f payload/wheel/*.whl
+          cp CXX_APT_VERSIONS.txt payload/meta/
+          for spec in \
+            "libc++.so.1:${LIBCXX_SHA256}" \
+            "libc++abi.so.1:${LIBCXXABI_SHA256}" \
+            "libunwind.so.1:${LIBUNWIND_SHA256}"; do
+            name="${spec%%:*}"
+            expected="${spec#*:}"
+            src=""
+            for p in "/usr/lib/x86_64-linux-gnu/${name}" /usr/lib/llvm-*/lib/"${name}"; do
+              [ -e "$p" ] || continue
+              src="$p"
+              break
+            done
+            test -n "$src"
+            cp -L "$src" "payload/qnn-lib/$name"
+            echo "$expected  payload/qnn-lib/$name" | sha256sum -c -
+          done
+          python3 - <<'PY'
+          import json, os
+          p='payload/meta/BUILD_PROVENANCE.json'
+          d=json.load(open(p))
+          d['schema']=max(int(d.get('schema',1)),2)
+          d['release_runtime_finalizer']={
+            'workflow_run_id': int(os.environ['GITHUB_RUN_ID']),
+            'libcxx_package_version': os.environ['LIBCXX_VERSION'],
+            'libcxxabi_package_version': os.environ['LIBCXXABI_VERSION'],
+            'libunwind_package_version': os.environ['LIBUNWIND_VERSION'],
+            'libcxx_sha256': os.environ['LIBCXX_SHA256'],
+            'libcxxabi_sha256': os.environ['LIBCXXABI_SHA256'],
+            'libunwind_sha256': os.environ['LIBUNWIND_SHA256'],
+          }
+          with open(p,'w') as f: json.dump(d,f,indent=2,sort_keys=True); f.write('\n')
+          PY
+          rm -f payload/SHA256SUMS.txt
+          find payload -type f -print0 | sort -z | xargs -0 sha256sum > payload/SHA256SUMS.txt
+          (
+            cd .
+            sha256sum -c payload/SHA256SUMS.txt
+          )
+          rm -f "$PAYLOAD_NAME" "$PAYLOAD_NAME.sha256" "$PAYLOAD_NAME.bytes"
+          tar -czf "$PAYLOAD_NAME" -C payload .
+          sha256sum "$PAYLOAD_NAME" > "$PAYLOAD_NAME.sha256"
+          stat -c '%s' "$PAYLOAD_NAME" > "$PAYLOAD_NAME.bytes"
+          export LD_LIBRARY_PATH="$PWD/payload/qnn-lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+          python3 - <<'PY'
+          import ctypes
+          from pathlib import Path
+          backend=Path('payload/qnn-lib/libQnnHtp.so').resolve()
+          system=Path('payload/qnn-lib/libQnnSystem.so').resolve()
+          ctypes.CDLL(str(system), mode=ctypes.RTLD_GLOBAL)
+          ctypes.CDLL(str(backend), mode=ctypes.RTLD_GLOBAL)
+          print('QNN_SYSTEM_DLOPEN_PASS', system)
+          print('QNN_HTP_DLOPEN_PASS', backend)
+          PY
+
+      - name: Validate ORT wheel with packaged runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m venv --system-site-packages verify-venv
+          verify-venv/bin/pip install --no-deps payload/wheel/*.whl
+          export LD_LIBRARY_PATH="$PWD/payload/qnn-lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+          verify-venv/bin/python - <<'PY'
+          import ctypes
+          from pathlib import Path
+          import onnxruntime as ort
+          backend=Path('payload/qnn-lib/libQnnHtp.so').resolve()
+          ctypes.CDLL(str(backend), mode=ctypes.RTLD_GLOBAL)
+          providers=ort.get_available_providers()
+          print('ORT_VERSION', ort.__version__)
+          print('PROVIDERS', providers)
+          assert ort.__version__ == '1.27.0'
+          assert 'QNNExecutionProvider' in providers
+          PY
+
+      - name: Replace Release with finalized payload
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release upload "$RELEASE_TAG" "$PAYLOAD_NAME" "$PAYLOAD_NAME.sha256" "$PAYLOAD_NAME.bytes" --repo "$GITHUB_REPOSITORY" --clobber
+          asset_sha="$(sha256sum "$PAYLOAD_NAME" | awk '{print $1}')"
+          asset_bytes="$(stat -c %s "$PAYLOAD_NAME")"
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "Finalized ORT/QNN host Release runtime.\n\n- release: \`${RELEASE_TAG}\`\n- asset: \`${PAYLOAD_NAME}\`\n- bytes: \`${asset_bytes}\`\n- SHA256: \`${asset_sha}\`\n- bundled C++ runtime: libc++/libc++abi/libunwind exact versions + SHA verified\n- libQnnSystem/libQnnHtp dlopen: PASS\n- ORT 1.27.0 QNNExecutionProvider: PASS\n- finalizer run id: \`${GITHUB_RUN_ID}\`"
