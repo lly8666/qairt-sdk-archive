@@ -1,0 +1,127 @@
+name: Publish ORT 1.27 offline deps bundle
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  package-deps:
+    if: github.event.issue.title == '[publish-ort127-offline-deps]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      ORT_COMMIT: 8f0278c77bf44b0cc83c098c6c722b92a36ac4b5
+      RELEASE_TAG: ort-1.27.0-offline-deps-v1
+      BUNDLE_NAME: ort-1.27.0-offline-deps-v1.tar
+    steps:
+      - name: Checkout exact deps manifest only
+        uses: actions/checkout@v4
+        with:
+          repository: microsoft/onnxruntime
+          ref: 8f0278c77bf44b0cc83c098c6c722b92a36ac4b5
+          path: ort
+          fetch-depth: 1
+          sparse-checkout: |
+            cmake/deps.txt
+          sparse-checkout-cone-mode: false
+
+      - name: Download and SHA1-verify declared source archives only
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p offline-deps/files
+          cp ort/cmake/deps.txt offline-deps/deps.txt
+          python3 - <<'PY'
+          import hashlib, json, pathlib, subprocess, urllib.parse
+          src=pathlib.Path('ort/cmake/deps.txt')
+          out=pathlib.Path('offline-deps/files')
+          rows=[]
+          for raw in src.read_text().splitlines():
+              line=raw.strip()
+              if not line or line.startswith('#'):
+                  continue
+              name,url,expected=line.split(';')
+              base=pathlib.PurePosixPath(urllib.parse.urlparse(url).path).name or f'{name}.archive'
+              local=f'{name}__{base}'
+              target=out/local
+              subprocess.run(['curl','-fL','--retry','4','--retry-delay','2',url,'-o',str(target)],check=True)
+              h=hashlib.sha1(target.read_bytes()).hexdigest()
+              if h != expected:
+                  raise SystemExit(f'SHA1 mismatch {name}: {h} != {expected}')
+              rows.append({'name':name,'url':url,'sha1':expected,'local_name':local,'bytes':target.stat().st_size})
+              print(name,target.stat().st_size,h)
+          manifest={
+              'schema':1,
+              'purpose':'Offline source archives for sandbox-only ONNX Runtime 1.27 QNN EP compilation. Packaging/download only; no compilation performed.',
+              'onnxruntime_commit':'8f0278c77bf44b0cc83c098c6c722b92a36ac4b5',
+              'compilation_performed':False,
+              'entries':rows,
+              'total_bytes':sum(r['bytes'] for r in rows),
+          }
+          pathlib.Path('offline-deps/OFFLINE_DEPS_MANIFEST.json').write_text(json.dumps(manifest,indent=2,sort_keys=True)+'\n')
+          if len(rows) != 42:
+              raise SystemExit(f'expected 42 deps, got {len(rows)}')
+          PY
+
+      - name: Freeze source dependency bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar --sort=name --mtime='UTC 2026-08-14 00:00:00' --owner=0 --group=0 --numeric-owner -cf "$BUNDLE_NAME" offline-deps
+          sha256sum "$BUNDLE_NAME" > "${BUNDLE_NAME}.sha256"
+          stat -c '%s' "$BUNDLE_NAME" > "${BUNDLE_NAME}.bytes"
+          sha256sum offline-deps/OFFLINE_DEPS_MANIFEST.json > OFFLINE_DEPS_MANIFEST.sha256
+          cat "${BUNDLE_NAME}.sha256"
+          cat "${BUNDLE_NAME}.bytes"
+          python3 - <<'PY'
+          import json
+          d=json.load(open('offline-deps/OFFLINE_DEPS_MANIFEST.json'))
+          print('DEPENDENCY_COUNT',len(d['entries']))
+          print('DECLARED_SOURCE_BYTES',d['total_bytes'])
+          print('COMPILATION_PERFORMED',d['compilation_performed'])
+          PY
+
+      - name: Publish immutable private dependency Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $RELEASE_TAG already exists; refusing to overwrite immutable dependency authority." >&2
+            exit 2
+          fi
+          gh release create "$RELEASE_TAG" \
+            "$BUNDLE_NAME" "${BUNDLE_NAME}.sha256" "${BUNDLE_NAME}.bytes" \
+            offline-deps/OFFLINE_DEPS_MANIFEST.json OFFLINE_DEPS_MANIFEST.sha256 offline-deps/deps.txt \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "$RELEASE_TAG" \
+            --notes 'Offline ORT 1.27 cmake/deps.txt source archives for sandbox-only builds. Packaging/download only; no compilation occurred in Actions.'
+
+      - name: Upload one-day connector transport
+        uses: actions/upload-artifact@v4
+        with:
+          name: ort127-offline-deps-transport-${{ github.run_id }}
+          retention-days: 1
+          compression-level: 0
+          path: |
+            ${{ env.BUNDLE_NAME }}
+            ${{ env.BUNDLE_NAME }}.sha256
+            ${{ env.BUNDLE_NAME }}.bytes
+            offline-deps/OFFLINE_DEPS_MANIFEST.json
+            OFFLINE_DEPS_MANIFEST.sha256
+
+      - name: Record dependency identity
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          sha="$(sha256sum "$BUNDLE_NAME" | awk '{print $1}')"
+          bytes="$(stat -c %s "$BUNDLE_NAME")"
+          total="$(python3 -c "import json; print(json.load(open('offline-deps/OFFLINE_DEPS_MANIFEST.json'))['total_bytes'])")"
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "Offline ORT dependency Release ready. No compilation occurred.\n\n- release: \`${RELEASE_TAG}\`\n- bundle: \`${BUNDLE_NAME}\`\n- bytes: \`${bytes}\`\n- SHA256: \`${sha}\`\n- dependency count: \`42\`\n- declared source bytes: \`${total}\`\n- ORT commit: \`${ORT_COMMIT}\`\n- run: \`${GITHUB_RUN_ID}\`"
