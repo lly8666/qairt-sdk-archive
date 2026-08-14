@@ -1,0 +1,82 @@
+name: Export QAIRT Gate0D host tools
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    if: startsWith(github.event.issue.title, '[sdk-export-gate0d]')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download and verify QAIRT 2.42
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          zip=qairt-2.42.0.251225.zip
+          curl -fL \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H 'Accept: application/octet-stream' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/assets/512699984" \
+            -o "$zip"
+          expected=1A744ED72A813FC9DD4A29E31B1685F784786102FD45414D74915BB3351AE321
+          actual="$(sha256sum "$zip" | awk '{print toupper($1)}')"
+          test "$actual" = "$expected"
+          test "$(stat -c %s "$zip")" = 1543955191
+          echo "FULL_ZIP_SHA256=$actual"
+
+      - name: Extract minimal host capability toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - qairt-2.42.0.251225.zip <<'PY'
+          import json, os, sys, zipfile
+          src=sys.argv[1]
+          dst='gate0d-host'
+          os.makedirs(dst, exist_ok=True)
+          selected=[]
+          def keep(name):
+              n='/' + name.replace('\\','/').lstrip('/')
+              needles=(
+                  '/bin/x86_64-linux-clang/',
+                  '/lib/x86_64-linux-clang/',
+                  '/lib/python/',
+                  '/include/QNN/',
+                  '/share/QNN/',
+              )
+              return any(x in n for x in needles)
+          with zipfile.ZipFile(src) as z:
+              for info in z.infolist():
+                  if info.is_dir() or not keep(info.filename):
+                      continue
+                  z.extract(info, dst)
+                  selected.append({'name':info.filename,'bytes':info.file_size})
+          if not selected:
+              raise SystemExit('No Gate0D host files selected')
+          with open(f'{dst}/SELECTION_MANIFEST.json','w') as f:
+              json.dump({'schema':1,'sdk':'2.42.0.251225','files':selected},f,indent=2,sort_keys=True)
+          print('SELECTED_FILES',len(selected))
+          print('SELECTED_BYTES',sum(x['bytes'] for x in selected))
+          for pat in ('qnn-onnx-converter','qnn-net-run','libQnnCpu.so','libQnnHtp.so','QnnInterface.h'):
+              hits=[x['name'] for x in selected if x['name'].endswith(pat)]
+              print('REQUIRED',pat,hits[:8])
+              if not hits:
+                  raise SystemExit(f'missing required Gate0D host file: {pat}')
+          PY
+          find gate0d-host -type f -print0 | sort -z | xargs -0 sha256sum > gate0d-host/EXTRACTED_SHA256SUMS.txt
+          du -sh gate0d-host
+
+      - name: Upload short-lived Gate0D host artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: qairt-2.42.0.251225-gate0d-host
+          path: gate0d-host
+          compression-level: 6
+          retention-days: 1
+          if-no-files-found: error
