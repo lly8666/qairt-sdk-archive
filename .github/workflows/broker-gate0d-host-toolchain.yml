@@ -1,0 +1,76 @@
+name: Broker Gate0D host toolchain Release
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  broker:
+    if: github.event.issue.title == '[broker-gate0d-host-toolchain]'
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_TAG: gate0d-host-toolchain-v1
+      HOST_ASSET: qairt-2.42.0.251225-host-tools.tar.gz
+      PY_ASSET: gate0d-cpython310-runtime.tar.gz
+
+    steps:
+      - name: Download permanent dependency Release assets
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir transport
+          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
+            --pattern "$HOST_ASSET" \
+            --pattern "$PY_ASSET" \
+            --pattern 'SHA256SUMS.txt' \
+            --pattern 'BYTES.txt' \
+            --pattern 'GATE0D_HOST_TOOLCHAIN_MANIFEST.json' \
+            --dir transport
+
+      - name: Verify permanent dependency assets before transport
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd transport
+          sha256sum -c SHA256SUMS.txt
+          while read -r name bytes; do
+            test -f "$name"
+            test "$(stat -c %s "$name")" = "$bytes"
+          done < BYTES.txt
+          python3 - <<'PY'
+          import hashlib,json,pathlib
+          m=json.load(open('GATE0D_HOST_TOOLCHAIN_MANIFEST.json'))
+          assert m['release']=='gate0d-host-toolchain-v1'
+          for a in m['assets']:
+              p=pathlib.Path(a['name'])
+              assert p.stat().st_size==a['bytes']
+              h=hashlib.sha256(p.read_bytes()).hexdigest()
+              assert h==a['sha256'], (p,h,a['sha256'])
+          print('GATE0D_HOST_TOOLCHAIN_RELEASE_VERIFY_PASS')
+          PY
+
+      - name: Upload one-day connector transport
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: gate0d-host-toolchain-transport-${{ github.run_id }}
+          path: transport
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: Record transport identity and cleanup command
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_ID: ${{ steps.upload.outputs.artifact-id }}
+        run: |
+          set -euo pipefail
+          body="Gate0D host toolchain transport created from permanent Release \`${RELEASE_TAG}\`.\n\n- artifact id: \`${ARTIFACT_ID}\`\n- artifact: \`gate0d-host-toolchain-transport-${GITHUB_RUN_ID}\`\n\nAfter connector download and local SHA/byte verification, delete this temporary transport with Issue title: \`[sdk-export-gate0d-cleanup] ${ARTIFACT_ID}\`."
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "$body"
