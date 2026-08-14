@@ -115,6 +115,8 @@ jobs:
           print('QAIRT_HOST_FILES',len(selected))
           print('QAIRT_HOST_BYTES',sum(x[1] for x in selected))
           PY
+          chmod -R a+rX qairt-host-tools
+          chmod +x qairt-host-tools/bin/x86_64-linux-clang/*
           cat > qairt-host-tools/SOURCE_PROVENANCE.txt <<EOF
           source_repository=${GITHUB_REPOSITORY}
           source_release=qairt-sdk-archive-v1
