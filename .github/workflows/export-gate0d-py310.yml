@@ -1,0 +1,62 @@
+name: Export Gate0D CPython 3.10 runtime
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    if: startsWith(github.event.issue.title, '[sdk-export-gate0d-py310]')
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Download and verify pinned portable CPython
+        shell: bash
+        run: |
+          set -euo pipefail
+          name='cpython-3.10.20+20260807-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz'
+          url="https://github.com/astral-sh/python-build-standalone/releases/download/20260807/cpython-3.10.20%2B20260807-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz"
+          expected='213ad831a580c186804f91c41cd6712f8ac8cd765ad7a517161c09606a48b588'
+          curl -fL "$url" -o "$name"
+          echo "$expected  $name" | sha256sum -c -
+          test "$(stat -c %s "$name")" = 29446769
+          mkdir -p gate0d-py310/python
+          tar -xzf "$name" -C gate0d-py310/python --strip-components=1
+          gate0d-py310/python/bin/python3.10 --version
+          test -f gate0d-py310/python/lib/libpython3.10.so.1.0
+
+      - name: Package exact runner C++ runtime used by QAIRT converter
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends libc++1 libc++abi1 libunwind-18
+          mkdir -p gate0d-py310/cxx
+          for pat in 'libc++.so.1*' 'libc++abi.so.1*' 'libunwind.so.1*'; do
+            found=0
+            for f in /usr/lib/x86_64-linux-gnu/$pat /usr/lib/llvm-*/lib/$pat; do
+              [ -e "$f" ] || continue
+              cp -L "$f" gate0d-py310/cxx/"$(basename "$f")"
+              found=1
+            done
+            test "$found" = 1
+          done
+          dpkg-query -W -f='${Package}=${Version}\n' libc++1 libc++abi1 libunwind-18 | sort > gate0d-py310/APT_VERSIONS.txt
+          find gate0d-py310 -type f -print0 | sort -z | xargs -0 sha256sum > gate0d-py310/SHA256SUMS.txt
+          gate0d-py310/python/bin/python3.10 - <<'PY'
+          import sys
+          print(sys.version)
+          PY
+          cat gate0d-py310/APT_VERSIONS.txt
+          du -sh gate0d-py310
+
+      - name: Upload short-lived runtime artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gate0d-cpython310-runtime
+          path: gate0d-py310
+          compression-level: 6
+          retention-days: 1
+          if-no-files-found: error
