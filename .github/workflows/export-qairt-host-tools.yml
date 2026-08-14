@@ -1,0 +1,124 @@
+name: Export QAIRT 2.42 host tools
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    if: startsWith(github.event.issue.title, '[sdk-export-host-tools]') && contains(github.event.issue.title, '2.42')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download and verify production SDK
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          sdk_zip=qairt-2.42.0.251225.zip
+          curl -fL \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H 'Accept: application/octet-stream' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/assets/512699984" \
+            -o "$sdk_zip"
+          expected=1A744ED72A813FC9DD4A29E31B1685F784786102FD45414D74915BB3351AE321
+          actual="$(sha256sum "$sdk_zip" | awk '{print toupper($1)}')"
+          test "$actual" = "$expected"
+          test "$(stat -c %s "$sdk_zip")" = "1543955191"
+          echo "SDK_ZIP=$sdk_zip" >> "$GITHUB_ENV"
+          echo "FULL_ZIP_SHA256=$actual"
+          echo "FULL_ZIP_BYTES=$(stat -c %s "$sdk_zip")"
+
+      - name: Extract minimal host capability subset
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - "$SDK_ZIP" <<'PY'
+          import os, sys, zipfile
+          src=sys.argv[1]
+          dst='qairt-2.42.0.251225-host-tools'
+          os.makedirs(dst, exist_ok=True)
+          markers=(
+              ('bin','x86_64-linux-clang'),
+              ('lib','x86_64-linux-clang'),
+              ('lib','python'),
+              ('include',),
+              ('share',),
+          )
+          counts={m:0 for m in markers}
+          def match(parts):
+              for marker in markers:
+                  n=len(marker)
+                  for i in range(0, len(parts)-n+1):
+                      if tuple(parts[i:i+n]) == marker:
+                          return marker, i
+              return None, None
+          with zipfile.ZipFile(src) as z:
+              for info in z.infolist():
+                  if info.is_dir():
+                      continue
+                  parts=[p for p in info.filename.replace('\\','/').split('/') if p]
+                  marker,i=match(parts)
+                  if marker is None:
+                      continue
+                  rel='/'.join(parts[i:])
+                  target=os.path.join(dst, rel)
+                  os.makedirs(os.path.dirname(target), exist_ok=True)
+                  with z.open(info) as r, open(target,'wb') as w:
+                      while True:
+                          b=r.read(1024*1024)
+                          if not b: break
+                          w.write(b)
+                  counts[marker]+=1
+          print('EXTRACT_COUNTS', counts)
+          required=[
+              os.path.join(dst,'bin','x86_64-linux-clang'),
+              os.path.join(dst,'lib','x86_64-linux-clang'),
+              os.path.join(dst,'lib','python'),
+              os.path.join(dst,'include'),
+          ]
+          for p in required:
+              if not os.path.isdir(p):
+                  raise SystemExit(f'missing required subtree: {p}')
+          PY
+
+          root=qairt-2.42.0.251225-host-tools
+          printf '%s\n' \
+            'source_repository=lly8666/qairt-sdk-archive' \
+            'source_release=qairt-sdk-archive-v1' \
+            'source_asset=qairt-2.42.0.251225.zip' \
+            'source_asset_id=512699984' \
+            'source_bytes=1543955191' \
+            'source_sha256=1A744ED72A813FC9DD4A29E31B1685F784786102FD45414D74915BB3351AE321' \
+            > "$root/SOURCE_PROVENANCE.txt"
+          (
+            cd "$root"
+            find . -type f ! -name HOST_TOOLS_SHA256SUMS.txt -print0 \
+              | sort -z \
+              | xargs -0 sha256sum \
+              > HOST_TOOLS_SHA256SUMS.txt
+          )
+          find "$root/bin/x86_64-linux-clang" -maxdepth 1 -type f -printf '%f\n' | sort | grep -E 'qnn|onnx|converter|validator' || true
+          echo "HOST_SUBSET_FILES=$(find "$root" -type f | wc -l)"
+          echo "HOST_SUBSET_BYTES=$(du -sb "$root" | awk '{print $1}')"
+
+      - name: Upload disposable host-tools artifact
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: qairt-2.42.0.251225-host-tools
+          path: qairt-2.42.0.251225-host-tools
+          compression-level: 6
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: Print artifact identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "ARTIFACT_ID=${{ steps.upload.outputs.artifact-id }}"
+          echo "ARTIFACT_DIGEST=${{ steps.upload.outputs.artifact-digest }}"
