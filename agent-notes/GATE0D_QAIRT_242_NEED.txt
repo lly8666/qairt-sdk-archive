@@ -1,0 +1,1 @@
+SimAdmin MeanVC2 Gate 0D requires the locked QAIRT/QNN 2.42.0.251225 host toolchain to obtain supplemental offline capability/converter evidence for the frozen Fast-U2++ ONNX. ORT QNN EP GetCapability will remain a separately labeled requirement because the current x86_64 ORT wheel has no QNNExecutionProvider.
