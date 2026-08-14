@@ -1,0 +1,33 @@
+name: Cleanup Gate0D transport artifact
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  actions: write
+
+jobs:
+  cleanup:
+    if: startsWith(github.event.issue.title, '[sdk-export-gate0d-cleanup]')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete requested artifact and verify absence
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+        run: |
+          set -euo pipefail
+          id="${ISSUE_TITLE##* }"
+          [[ "$id" =~ ^[0-9]+$ ]]
+          api="https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${id}"
+          code="$(curl -sS -o /tmp/delete.out -w '%{http_code}' -X DELETE \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H 'X-GitHub-Api-Version: 2022-11-28' "$api")"
+          test "$code" = 204
+          code2="$(curl -sS -o /tmp/get.out -w '%{http_code}' \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H 'X-GitHub-Api-Version: 2022-11-28' "$api")"
+          test "$code2" = 404
+          echo "GATE0D_ARTIFACT_CLEANUP_PASS id=$id"
