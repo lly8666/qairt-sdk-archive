@@ -44,13 +44,22 @@ jobs:
             test "$found" = 1
           done
           dpkg-query -W -f='${Package}=${Version}\n' libc++1 libc++abi1 libunwind-18 | sort > gate0d-py310/APT_VERSIONS.txt
-          find gate0d-py310 -type f -print0 | sort -z | xargs -0 sha256sum > gate0d-py310/SHA256SUMS.txt
           gate0d-py310/python/bin/python3.10 - <<'PY'
           import sys
           print(sys.version)
           PY
           cat gate0d-py310/APT_VERSIONS.txt
           du -sh gate0d-py310
+
+      - name: Freeze transport checksums last
+        shell: bash
+        run: |
+          set -euo pipefail
+          find gate0d-py310 -type d -name __pycache__ -prune -exec rm -rf {} +
+          find gate0d-py310 -type f -name '*.pyc' -delete
+          rm -f gate0d-py310/SHA256SUMS.txt
+          find gate0d-py310 -type f -print0 | sort -z | xargs -0 sha256sum > gate0d-py310/SHA256SUMS.txt
+          # Do not execute Python or mutate payload after this point.
 
       - name: Upload short-lived runtime artifact
         uses: actions/upload-artifact@v4
@@ -59,4 +68,5 @@ jobs:
           path: gate0d-py310
           compression-level: 6
           retention-days: 1
+          include-hidden-files: true
           if-no-files-found: error
