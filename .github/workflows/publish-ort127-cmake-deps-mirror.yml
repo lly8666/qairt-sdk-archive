@@ -1,0 +1,144 @@
+name: Publish ORT 1.27 CMake deps mirror (no compile)
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  package-deps:
+    if: github.event.issue.title == '[publish-ort127-cmake-deps-mirror]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      ORT_COMMIT: 8f0278c77bf44b0cc83c098c6c722b92a36ac4b5
+      RELEASE_TAG: ort-1.27.0-cmake-deps-v1
+      ASSET: ort-1.27.0-cmake-deps-mirror.tar.gz
+    steps:
+      - name: Checkout exact ORT dependency manifest only
+        uses: actions/checkout@v4
+        with:
+          repository: microsoft/onnxruntime
+          ref: 8f0278c77bf44b0cc83c098c6c722b92a36ac4b5
+          path: ort-src
+          fetch-depth: 1
+
+      - name: Verify ORT identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C ort-src rev-parse HEAD)" = "$ORT_COMMIT"
+          test -f ort-src/cmake/deps.txt
+
+      - name: Download and SHA1-verify exact CMake dependency mirror
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import concurrent.futures, hashlib, json, pathlib, urllib.parse, urllib.request, time
+          deps=pathlib.Path('ort-src/cmake/deps.txt')
+          root=pathlib.Path('mirror')
+          rows=[]
+          for raw in deps.read_text().splitlines():
+              raw=raw.strip()
+              if not raw or raw.startswith('#'):
+                  continue
+              parts=raw.split(';')
+              if len(parts) != 3:
+                  raise SystemExit(f'bad deps row: {raw}')
+              name,url,sha1=parts
+              if not url.startswith('https://'):
+                  continue
+              u=urllib.parse.urlsplit(url)
+              rel=pathlib.Path(u.netloc) / u.path.lstrip('/')
+              rows.append((name,url,sha1.lower(),rel))
+          def one(row):
+              name,url,expected,rel=row
+              dst=root/rel
+              dst.parent.mkdir(parents=True,exist_ok=True)
+              if dst.exists():
+                  data=dst.read_bytes(); got=hashlib.sha1(data).hexdigest()
+                  if got==expected:
+                      return {'name':name,'url':url,'sha1':got,'bytes':len(data),'path':str(rel)}
+                  dst.unlink()
+              last=None
+              for attempt in range(4):
+                  try:
+                      with urllib.request.urlopen(url,timeout=120) as r, open(dst,'wb') as w:
+                          h=hashlib.sha1(); n=0
+                          while True:
+                              b=r.read(1<<20)
+                              if not b: break
+                              w.write(b); h.update(b); n += len(b)
+                      got=h.hexdigest()
+                      if got != expected:
+                          raise RuntimeError(f'{name}: sha1 {got} != {expected}')
+                      return {'name':name,'url':url,'sha1':got,'bytes':n,'path':str(rel)}
+                  except Exception as e:
+                      last=e
+                      try: dst.unlink()
+                      except FileNotFoundError: pass
+                      time.sleep(2*(attempt+1))
+              raise last
+          out=[]
+          with concurrent.futures.ThreadPoolExecutor(max_workers=8) as ex:
+              futs={ex.submit(one,r):r[0] for r in rows}
+              for fut in concurrent.futures.as_completed(futs):
+                  item=fut.result(); out.append(item); print('OK',item['name'],item['bytes'],flush=True)
+          out.sort(key=lambda x:x['name'])
+          pathlib.Path('CMAKE_DEPS_MIRROR_MANIFEST.json').write_text(json.dumps({'schema':1,'ort_commit':'8f0278c77bf44b0cc83c098c6c722b92a36ac4b5','dependency_count':len(out),'dependencies':out},indent=2,sort_keys=True)+'\n')
+          print('DEPENDENCY_COUNT',len(out))
+          print('TOTAL_BYTES',sum(x['bytes'] for x in out))
+          PY
+
+      - name: Package dependency mirror only
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar --sort=name --mtime='UTC 2026-08-14 00:00:00' --owner=0 --group=0 --numeric-owner -cf - mirror | gzip -n -6 > "$ASSET"
+          sha256sum "$ASSET" > "${ASSET}.sha256"
+          stat -c '%s' "$ASSET" > "${ASSET}.bytes"
+          cat "${ASSET}.sha256"
+          cat "${ASSET}.bytes"
+
+      - name: Publish immutable private mirror Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $RELEASE_TAG already exists; refusing to clobber." >&2
+            exit 2
+          fi
+          gh release create "$RELEASE_TAG" \
+            "$ASSET" "${ASSET}.sha256" "${ASSET}.bytes" CMAKE_DEPS_MIRROR_MANIFEST.json \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "$RELEASE_TAG" \
+            --notes 'Exact cmake/deps.txt HTTPS mirror for ORT 1.27 sandbox-only offline compilation. This workflow performs no compilation.'
+
+      - name: Upload one-day connector transport
+        uses: actions/upload-artifact@v4
+        with:
+          name: ort127-cmake-deps-transport-${{ github.run_id }}
+          path: |
+            ${{ env.ASSET }}
+            ${{ env.ASSET }}.sha256
+            ${{ env.ASSET }}.bytes
+            CMAKE_DEPS_MIRROR_MANIFEST.json
+          retention-days: 1
+          compression-level: 0
+
+      - name: Record dependency mirror identity
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          sha="$(awk '{print $1}' "${ASSET}.sha256")"
+          bytes="$(cat "${ASSET}.bytes")"
+          count="$(python3 -c 'import json; print(json.load(open("CMAKE_DEPS_MIRROR_MANIFEST.json"))["dependency_count"])')"
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "ORT CMake dependency mirror ready (no compilation).\n\n- Release: \`${RELEASE_TAG}\`\n- asset: \`${ASSET}\`\n- bytes: \`${bytes}\`\n- SHA256: \`${sha}\`\n- dependency count: \`${count}\`\n- ORT commit: \`${ORT_COMMIT}\`\n- transport run: \`${GITHUB_RUN_ID}\`"
