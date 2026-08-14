@@ -20,6 +20,12 @@ jobs:
       QAIRT_ASSET_ID: '512699984'
       QAIRT_ZIP_SHA256: 1a744ed72a813fc9dd4a29e31b1685f784786102fd45414d74915bb3351ae321
       QAIRT_ZIP_BYTES: '1543955191'
+      LIBCXX_VERSION: '1:18.0-59~exp2'
+      LIBCXXABI_VERSION: '1:18.0-59~exp2'
+      LIBUNWIND_VERSION: '1:18.1.3-1ubuntu1'
+      LIBCXX_SHA256: 465b54c395f9a227554e653cdf0e2742686f891eb278e8d0b630d0229084c0df
+      LIBCXXABI_SHA256: 40cb6e2e548b61e53d4e3fb07c537dbc4f23900f465ae584f141eda9c92b1585
+      LIBUNWIND_SHA256: b9b34fb09f6c86778dd8a73f11715d09bb89efafbb4331bc76905b75cf1fb892
       RELEASE_TAG: ort-qnn-host-1.27.0-qnn2.42-v1
       PAYLOAD_NAME: ort-qnn-host-1.27.0-qnn2.42-v1.tar.gz
 
@@ -103,13 +109,19 @@ jobs:
           python-version: '3.11'
           cache: pip
 
-      - name: Install host build prerequisites
+      - name: Install pinned host build and QNN C++ runtime prerequisites
         shell: bash
         run: |
           set -euo pipefail
           sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends ninja-build ccache patchelf
+          sudo apt-get install -y --no-install-recommends \
+            ninja-build ccache patchelf \
+            "libc++1=${LIBCXX_VERSION}" \
+            "libc++abi1=${LIBCXXABI_VERSION}" \
+            "libunwind-18=${LIBUNWIND_VERSION}"
           python -m pip install --upgrade 'pip<26' wheel packaging setuptools numpy==1.26.4
+          dpkg-query -W -f='${Package}=${Version}\n' libc++1 libc++abi1 libunwind-18 | sort > CXX_APT_VERSIONS.txt
+          cat CXX_APT_VERSIONS.txt
           cmake --version
           ninja --version
           python --version
@@ -140,16 +152,40 @@ jobs:
           test -n "$wheel"
           cp "$wheel" payload/wheel/
           cp -a "$QNN_HOME/lib/x86_64-linux-clang/." payload/qnn-lib/
-          cp QNN_SELECTION.json payload/meta/
+          cp QNN_SELECTION.json CXX_APT_VERSIONS.txt payload/meta/
+          for spec in \
+            "libc++.so.1:${LIBCXX_SHA256}" \
+            "libc++abi.so.1:${LIBCXXABI_SHA256}" \
+            "libunwind.so.1:${LIBUNWIND_SHA256}"; do
+            name="${spec%%:*}"
+            expected="${spec#*:}"
+            src=""
+            for p in "/usr/lib/x86_64-linux-gnu/${name}" /usr/lib/llvm-*/lib/"${name}"; do
+              [ -e "$p" ] || continue
+              src="$p"
+              break
+            done
+            test -n "$src"
+            cp -L "$src" "payload/qnn-lib/$name"
+            echo "$expected  payload/qnn-lib/$name" | sha256sum -c -
+          done
           cat > payload/meta/BUILD_PROVENANCE.json <<EOF
           {
-            "schema": 1,
+            "schema": 2,
             "onnxruntime_tag": "${ORT_TAG}",
             "onnxruntime_commit": "${ORT_COMMIT}",
             "qairt_version": "${QAIRT_VERSION}",
             "qairt_release_repository": "${GITHUB_REPOSITORY}",
             "qairt_release_asset_id": ${QAIRT_ASSET_ID},
             "qairt_release_zip_sha256": "${QAIRT_ZIP_SHA256}",
+            "host_cxx_runtime": {
+              "libcxx_package_version": "${LIBCXX_VERSION}",
+              "libcxxabi_package_version": "${LIBCXXABI_VERSION}",
+              "libunwind_package_version": "${LIBUNWIND_VERSION}",
+              "libcxx_sha256": "${LIBCXX_SHA256}",
+              "libcxxabi_sha256": "${LIBCXXABI_SHA256}",
+              "libunwind_sha256": "${LIBUNWIND_SHA256}"
+            },
             "workflow_run_id": ${GITHUB_RUN_ID}
           }
           EOF
@@ -158,7 +194,7 @@ jobs:
           sha256sum "$PAYLOAD_NAME" > "${PAYLOAD_NAME}.sha256"
           stat -c '%s' "$PAYLOAD_NAME" > "${PAYLOAD_NAME}.bytes"
 
-      - name: Validate wheel exposes QNNExecutionProvider
+      - name: Validate wheel and QNN backend dynamic dependencies
         shell: bash
         run: |
           set -euo pipefail
@@ -166,12 +202,17 @@ jobs:
           verify-venv/bin/pip install --no-deps payload/wheel/*.whl
           export LD_LIBRARY_PATH="$PWD/payload/qnn-lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
           verify-venv/bin/python - <<'PY'
+          import ctypes
+          from pathlib import Path
           import numpy
           import onnxruntime as ort
+          backend=Path('payload/qnn-lib/libQnnHtp.so').resolve()
+          ctypes.CDLL(str(backend), mode=ctypes.RTLD_GLOBAL)
           print('NUMPY_VERSION', numpy.__version__)
           print('ORT_VERSION', ort.__version__)
           providers=ort.get_available_providers()
           print('PROVIDERS', providers)
+          print('QNN_HTP_DLOPEN_PASS', backend)
           assert numpy.__version__ == '1.26.4'
           assert ort.__version__ == '1.27.0'
           assert 'QNNExecutionProvider' in providers
@@ -183,7 +224,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          notes="Pinned Linux x64 host qualification dependency: ONNX Runtime ${ORT_TAG} (${ORT_COMMIT}) built with QNN EP against QAIRT ${QAIRT_VERSION}. Generated by run ${GITHUB_RUN_ID}."
+          notes="Pinned Linux x64 host qualification dependency: ONNX Runtime ${ORT_TAG} (${ORT_COMMIT}) built with QNN EP against QAIRT ${QAIRT_VERSION}, including SHA-locked LLVM C++ host runtime. Generated by run ${GITHUB_RUN_ID}."
           if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release upload "$RELEASE_TAG" "$PAYLOAD_NAME" "${PAYLOAD_NAME}.sha256" "${PAYLOAD_NAME}.bytes" --repo "$GITHUB_REPOSITORY" --clobber
           else
@@ -191,4 +232,4 @@ jobs:
           fi
           asset_sha="$(sha256sum "$PAYLOAD_NAME" | awk '{print $1}')"
           asset_bytes="$(stat -c %s "$PAYLOAD_NAME")"
-          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "Durable ORT/QNN host Release ready.\n\n- release: \`${RELEASE_TAG}\`\n- asset: \`${PAYLOAD_NAME}\`\n- bytes: \`${asset_bytes}\`\n- SHA256: \`${asset_sha}\`\n- ORT commit: \`${ORT_COMMIT}\`\n- QAIRT: \`${QAIRT_VERSION}\`\n- run id: \`${GITHUB_RUN_ID}\`"
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "Durable ORT/QNN host Release ready.\n\n- release: \`${RELEASE_TAG}\`\n- asset: \`${PAYLOAD_NAME}\`\n- bytes: \`${asset_bytes}\`\n- SHA256: \`${asset_sha}\`\n- ORT commit: \`${ORT_COMMIT}\`\n- QAIRT: \`${QAIRT_VERSION}\`\n- QNN host C++ runtime: SHA-locked libc++/libc++abi/libunwind included\n- run id: \`${GITHUB_RUN_ID}\`"
