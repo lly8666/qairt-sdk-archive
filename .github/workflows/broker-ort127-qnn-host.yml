@@ -1,0 +1,69 @@
+name: Broker ORT 1.27 QNN host Release
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  broker:
+    if: github.event.issue.title == '[broker-ort127-qnn-host]'
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_TAG: ort-qnn-host-1.27.0-qnn2.42-v1
+      PAYLOAD_NAME: ort-qnn-host-1.27.0-qnn2.42-v1.tar.gz
+
+    steps:
+      - name: Download permanent Release payload and sidecars
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir transport
+          gh release download "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern "$PAYLOAD_NAME" \
+            --pattern "$PAYLOAD_NAME.sha256" \
+            --pattern "$PAYLOAD_NAME.bytes" \
+            --dir transport
+
+      - name: Verify permanent Release payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd transport
+          test -f "$PAYLOAD_NAME"
+          test -f "$PAYLOAD_NAME.sha256"
+          test -f "$PAYLOAD_NAME.bytes"
+          sha256sum -c "$PAYLOAD_NAME.sha256"
+          expected_bytes="$(tr -d '[:space:]' < "$PAYLOAD_NAME.bytes")"
+          actual_bytes="$(stat -c %s "$PAYLOAD_NAME")"
+          test "$actual_bytes" = "$expected_bytes"
+          actual_sha="$(sha256sum "$PAYLOAD_NAME" | awk '{print $1}')"
+          printf 'release=%s\nasset=%s\nbytes=%s\nsha256=%s\n' \
+            "$RELEASE_TAG" "$PAYLOAD_NAME" "$actual_bytes" "$actual_sha" > BROKER_META.txt
+          cat BROKER_META.txt
+
+      - name: Upload one-day connector transport
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: ort-qnn-host-1.27.0-qnn2.42-transport-${{ github.run_id }}
+          path: transport
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: Record transport identity
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_ID: ${{ steps.upload.outputs.artifact-id }}
+        run: |
+          set -euo pipefail
+          meta="$(cat transport/BROKER_META.txt)"
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "ORT/QNN host transport created.\n\n- release: \`${RELEASE_TAG}\`\n- artifact id: \`${ARTIFACT_ID}\`\n- artifact: \`ort-qnn-host-1.27.0-qnn2.42-transport-${GITHUB_RUN_ID}\`\n\n\`\`\`text\n${meta}\`\`\`\n\nAfter connector download + SHA/byte verification, create cleanup issue: \`[sdk-artifact-cleanup] ${ARTIFACT_ID}\`."
