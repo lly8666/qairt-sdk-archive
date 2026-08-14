@@ -1,0 +1,88 @@
+name: Publish ORT 1.27 source bundle (no compile)
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  package-source:
+    if: github.event.issue.title == '[publish-ort127-source-bundle]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      ORT_COMMIT: 8f0278c77bf44b0cc83c098c6c722b92a36ac4b5
+      ORT_TAG: v1.27.0
+      RELEASE_TAG: ort-1.27.0-source-v1
+      ASSET: onnxruntime-1.27.0-8f0278c-source-with-submodules.tar.gz
+    steps:
+      - name: Checkout exact ORT source recursively
+        uses: actions/checkout@v4
+        with:
+          repository: microsoft/onnxruntime
+          ref: 8f0278c77bf44b0cc83c098c6c722b92a36ac4b5
+          path: ort-src
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Verify source identity and record submodules
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C ort-src rev-parse HEAD)" = "$ORT_COMMIT"
+          git -C ort-src submodule status --recursive > ORT_SUBMODULES.txt
+          printf 'onnxruntime_tag=%s\nonnxruntime_commit=%s\npackaging_only=true\ncompilation_performed=false\n' \
+            "$ORT_TAG" "$ORT_COMMIT" > SOURCE_PROVENANCE.txt
+
+      - name: Package source only
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar --exclude-vcs --sort=name --mtime='UTC 2026-08-14 00:00:00' --owner=0 --group=0 --numeric-owner \
+            -cf - ort-src | gzip -n -6 > "$ASSET"
+          sha256sum "$ASSET" > "${ASSET}.sha256"
+          stat -c '%s' "$ASSET" > "${ASSET}.bytes"
+          cat "${ASSET}.sha256"
+          cat "${ASSET}.bytes"
+
+      - name: Publish immutable private source dependency Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $RELEASE_TAG already exists; refusing to clobber." >&2
+            exit 2
+          fi
+          gh release create "$RELEASE_TAG" \
+            "$ASSET" "${ASSET}.sha256" "${ASSET}.bytes" ORT_SUBMODULES.txt SOURCE_PROVENANCE.txt \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "$RELEASE_TAG" \
+            --notes 'Exact ONNX Runtime v1.27.0 source + recursive submodules for sandbox-only compilation. This workflow performs no compilation.'
+
+      - name: Upload one-day connector transport
+        uses: actions/upload-artifact@v4
+        with:
+          name: ort127-source-transport-${{ github.run_id }}
+          path: |
+            ${{ env.ASSET }}
+            ${{ env.ASSET }}.sha256
+            ${{ env.ASSET }}.bytes
+            ORT_SUBMODULES.txt
+            SOURCE_PROVENANCE.txt
+          retention-days: 1
+          compression-level: 0
+
+      - name: Record source dependency identity
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          sha="$(awk '{print $1}' "${ASSET}.sha256")"
+          bytes="$(cat "${ASSET}.bytes")"
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "ORT source dependency ready (no compilation).\n\n- Release: \`${RELEASE_TAG}\`\n- asset: \`${ASSET}\`\n- bytes: \`${bytes}\`\n- SHA256: \`${sha}\`\n- ORT commit: \`${ORT_COMMIT}\`\n- transport run: \`${GITHUB_RUN_ID}\`"
