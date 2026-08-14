@@ -162,14 +162,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m venv verify-venv
+          python -m venv --system-site-packages verify-venv
           verify-venv/bin/pip install --no-deps payload/wheel/*.whl
           export LD_LIBRARY_PATH="$PWD/payload/qnn-lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
           verify-venv/bin/python - <<'PY'
+          import numpy
           import onnxruntime as ort
+          print('NUMPY_VERSION', numpy.__version__)
           print('ORT_VERSION', ort.__version__)
           providers=ort.get_available_providers()
           print('PROVIDERS', providers)
+          assert numpy.__version__ == '1.26.4'
           assert ort.__version__ == '1.27.0'
           assert 'QNNExecutionProvider' in providers
           PY
