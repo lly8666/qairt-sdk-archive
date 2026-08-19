@@ -1,0 +1,158 @@
+name: Export indexed QAIRT 2.44 tools for agents
+
+on:
+  issues:
+    types: [opened]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  export:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.issue.title == '[sdk-export-qairt-2.44-tools]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve QAIRT 2.44 asset from stable agent index
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY' >> "$GITHUB_ENV"
+          import json
+          idx=json.load(open('release-manifest/AGENT_RELEASE_INDEX.json'))
+          matches=[]
+          for r in idx['releases']:
+              for a in r['assets']:
+                  if a['name'] == 'QAIRT.v2.44.0.260225.zip':
+                      matches.append((r,a))
+          if len(matches) != 1:
+              raise SystemExit(f'expected exactly one QAIRT 2.44 asset, found {len(matches)}')
+          r,a=matches[0]
+          digest=(a.get('digest') or '')
+          if not digest.startswith('sha256:'):
+              raise SystemExit('QAIRT 2.44 Release metadata is missing sha256 digest')
+          print('QAIRT_RELEASE_TAG='+r['tag_name'])
+          print('QAIRT_ASSET_NAME='+a['name'])
+          print('QAIRT_ASSET_ID='+str(a['id']))
+          print('QAIRT_ASSET_BYTES='+str(a['size']))
+          print('QAIRT_ASSET_SHA256='+digest.split(':',1)[1])
+          PY
+
+      - name: Download and verify full SDK from private Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl -fL \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H 'Accept: application/octet-stream' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/assets/${QAIRT_ASSET_ID}" \
+            -o "$QAIRT_ASSET_NAME"
+          test "$(stat -c %s "$QAIRT_ASSET_NAME")" = "$QAIRT_ASSET_BYTES"
+          actual="$(sha256sum "$QAIRT_ASSET_NAME" | awk '{print $1}')"
+          test "$actual" = "$QAIRT_ASSET_SHA256"
+          echo "QAIRT_244_FULL_SDK_VERIFY_PASS bytes=$QAIRT_ASSET_BYTES sha256=$actual"
+
+      - name: Extract host numerical-analysis subset
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - "$QAIRT_ASSET_NAME" <<'PY'
+          import json, os, shutil, sys, zipfile
+          src=sys.argv[1]
+          dst='qairt-2.44.0.260225-agent-tools'
+          os.makedirs(dst, exist_ok=True)
+          selected=[]
+          needles=(
+              '/bin/x86_64-linux-clang/',
+              '/lib/x86_64-linux-clang/',
+              '/lib/aarch64-android/',
+              '/lib/python/',
+              '/include/QNN/',
+              '/share/QNN/',
+          )
+          with zipfile.ZipFile(src) as z:
+              for info in z.infolist():
+                  if info.is_dir():
+                      continue
+                  norm='/' + info.filename.replace('\\','/').lstrip('/')
+                  if not any(x in norm for x in needles):
+                      continue
+                  parts=[p for p in info.filename.replace('\\','/').split('/') if p]
+                  marker=None
+                  for i,p in enumerate(parts):
+                      if p in ('bin','lib','include','share'):
+                          marker=i; break
+                  if marker is None:
+                      continue
+                  rel='/'.join(parts[marker:])
+                  target=os.path.join(dst, rel)
+                  os.makedirs(os.path.dirname(target), exist_ok=True)
+                  with z.open(info) as r, open(target,'wb') as w:
+                      shutil.copyfileobj(r,w,1024*1024)
+                  selected.append({'source':info.filename,'path':rel,'bytes':info.file_size})
+          with open(os.path.join(dst,'SELECTION_MANIFEST.json'),'w') as f:
+              json.dump({'schema':1,'sdk':'QAIRT 2.44.0.260225','files':selected},f,indent=2,sort_keys=True)
+          names=[x['path'] for x in selected]
+          required=(
+              'qnn-net-run',
+              'qnn-context-binary-generator',
+              'qnn-profile-viewer',
+              'libQnnCpu.so',
+              'libQnnHtp.so',
+              'libQnnSystem.so',
+              'libQnnSaver.so',
+              'libQnnHtpOptraceProfilingReader.so',
+              'QnnInterface.h',
+              'QnnTypes.h',
+              'QnnBackend.h',
+              'QnnDevice.h',
+          )
+          missing=[]
+          for req in required:
+              hits=[n for n in names if n.endswith('/'+req) or n==req]
+              print('QAIRT_REQUIRED',req,hits[:10])
+              if not hits: missing.append(req)
+          if missing:
+              raise SystemExit('missing required QAIRT 2.44 files: '+', '.join(missing))
+          print('QAIRT_244_AGENT_SUBSET_PASS files=',len(selected),'bytes=',sum(x['bytes'] for x in selected))
+          PY
+
+          cat > qairt-2.44.0.260225-agent-tools/SOURCE_PROVENANCE.txt <<EOF
+          source_repository=lly8666/qairt-sdk-archive
+          source_release=${QAIRT_RELEASE_TAG}
+          source_asset=${QAIRT_ASSET_NAME}
+          source_asset_id=${QAIRT_ASSET_ID}
+          source_bytes=${QAIRT_ASSET_BYTES}
+          source_sha256=${QAIRT_ASSET_SHA256}
+          EOF
+          (
+            cd qairt-2.44.0.260225-agent-tools
+            find . -type f ! -name EXTRACTED_SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > EXTRACTED_SHA256SUMS.txt
+          )
+
+      - name: Upload one-day connector transport
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: qairt-2.44.0.260225-agent-tools
+          path: qairt-2.44.0.260225-agent-tools
+          compression-level: 6
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: Record artifact identity
+        if: github.event_name == 'issues'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "QAIRT 2.44 verified agent-tools transport is ready. Artifact id: \`${{ steps.upload.outputs.artifact-id }}\`; name: \`qairt-2.44.0.260225-agent-tools\`; retention: 1 day. Download with the GitHub connector, verify \`SOURCE_PROVENANCE.txt\` and \`EXTRACTED_SHA256SUMS.txt\`, then use it only as host/diagnostic tooling."
