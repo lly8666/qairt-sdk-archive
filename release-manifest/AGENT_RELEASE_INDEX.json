@@ -1,17 +1,17 @@
 {
   "schema": 1,
   "repository": "lly8666/qairt-sdk-archive",
-  "generated_at_utc": "2026-08-19T15:37:51.887367+00:00",
+  "generated_at_utc": "2026-08-19T15:38:56.879092+00:00",
   "note": "Stable, non-secret metadata index for agents. browser_download_url is not a signed credential; private asset download still requires authenticated GitHub access or an export workflow.",
   "releases": [
     {
       "tag_name": "20260819.4",
       "name": "qairt244-py310-wheelhouse v2",
-      "draft": true,
+      "draft": false,
       "prerelease": false,
-      "created_at": "2026-08-19T15:36:03Z",
-      "published_at": null,
-      "html_url": "https://github.com/lly8666/qairt-sdk-archive/releases/tag/untagged-5faba62e4c34e40f79e2",
+      "created_at": "2026-08-19T15:37:51Z",
+      "published_at": "2026-08-19T15:38:49Z",
+      "html_url": "https://github.com/lly8666/qairt-sdk-archive/releases/tag/20260819.4",
       "assets": [
         {
           "name": "qairt244-py310-wheelhouse.v2.tar",
@@ -20,7 +20,7 @@
           "digest": "sha256:eb3d0b500d7021a05ec111bf6afc14262d97282a5bb5a4481c88c7865b38d19f",
           "created_at": "2026-08-19T15:36:03Z",
           "updated_at": "2026-08-19T15:36:30Z",
-          "browser_download_url": "https://github.com/lly8666/qairt-sdk-archive/releases/download/untagged-5faba62e4c34e40f79e2/qairt244-py310-wheelhouse.v2.tar",
+          "browser_download_url": "https://github.com/lly8666/qairt-sdk-archive/releases/download/20260819.4/qairt244-py310-wheelhouse.v2.tar",
           "api_url": "https://api.github.com/repos/lly8666/qairt-sdk-archive/releases/assets/521019740"
         }
       ]
