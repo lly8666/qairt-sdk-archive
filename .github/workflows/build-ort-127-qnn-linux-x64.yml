@@ -1,0 +1,157 @@
+name: Build exact ORT 1.27 QNN Linux x64 host bundle
+
+on:
+  issues:
+    types: [opened]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  build:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.issue.title == '[build-ort-1.27-qnn-linux-x64]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      ORT_ASSET_ID: '514402050'
+      ORT_ASSET_BYTES: '299476789'
+      ORT_ASSET_SHA256: '28fbbd3e7e180b815ea2069c66947f77a1427c058c1122c4bda64e2b50ed2783'
+      QAIRT_ASSET_ID: '520887827'
+      QAIRT_ASSET_BYTES: '1560450667'
+      QAIRT_ASSET_SHA256: '52a5b0cc051eb2896848c9fd46e704612b1dc06e7d2f5d0d9a79fd8bcdd344bb'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download exact archived ORT source and QAIRT 2.44
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for spec in \
+            "${ORT_ASSET_ID}:ort-source.tar.gz:${ORT_ASSET_BYTES}:${ORT_ASSET_SHA256}" \
+            "${QAIRT_ASSET_ID}:qairt.zip:${QAIRT_ASSET_BYTES}:${QAIRT_ASSET_SHA256}"; do
+            IFS=: read -r id name bytes sha <<< "$spec"
+            curl -fL -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/octet-stream' -H 'X-GitHub-Api-Version: 2022-11-28' \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/assets/${id}" -o "$name"
+            test "$(stat -c %s "$name")" = "$bytes"
+            echo "$sha  $name" | sha256sum -c -
+          done
+
+      - name: Extract exact source and minimal QAIRT host QNN SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir ort-src qnn-sdk
+          tar -xzf ort-source.tar.gz -C ort-src --strip-components=1
+          test -x ort-src/build.sh
+          test -f ort-src/tools/ci_build/build.py
+          git_commit=$(cat ort-src/ORT_SUBMODULES.txt 2>/dev/null || true)
+          echo "ORT source extracted; submodule marker: $git_commit"
+          python3 - <<'PY'
+          import os, zipfile
+          dst='qnn-sdk'
+          keep=(
+            ('include','QNN'),
+            ('lib','x86_64-linux-clang'),
+            ('lib','python'),
+            ('share','QNN'),
+          )
+          with zipfile.ZipFile('qairt.zip') as z:
+            selected=0
+            for info in z.infolist():
+              if info.is_dir(): continue
+              parts=[p for p in info.filename.replace('\\','/').split('/') if p]
+              hit=None
+              for marker in keep:
+                n=len(marker)
+                for i in range(len(parts)-n+1):
+                  if tuple(parts[i:i+n])==marker:
+                    hit=i; break
+                if hit is not None: break
+              if hit is None: continue
+              rel='/'.join(parts[hit:])
+              target=os.path.join(dst,rel)
+              os.makedirs(os.path.dirname(target),exist_ok=True)
+              with z.open(info) as r, open(target,'wb') as w:
+                while True:
+                  b=r.read(1<<20)
+                  if not b: break
+                  w.write(b)
+              selected += 1
+          req=['include/QNN/QnnInterface.h','include/QNN/QnnTypes.h','lib/x86_64-linux-clang/libQnnCpu.so','lib/x86_64-linux-clang/libQnnHtp.so','lib/x86_64-linux-clang/libQnnSystem.so']
+          for r in req:
+            if not os.path.isfile(os.path.join(dst,r)): raise SystemExit('missing '+r)
+          print('QAIRT_MINIMAL_FILES',selected)
+          PY
+
+      - name: Build ORT 1.27 shared library with QNN EP
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 --version
+          cmake --version | head -1
+          ./ort-src/build.sh \
+            --config Release \
+            --build_dir "$PWD/ort-build" \
+            --build_shared_lib \
+            --parallel 2 \
+            --skip_tests \
+            --compile_no_warning_as_error \
+            --use_qnn "$PWD/qnn-sdk"
+
+      - name: Locate QNN-enabled runtime and runtime-probe available providers
+        shell: bash
+        run: |
+          set -euo pipefail
+          out=ort-qnn-host-bundle
+          mkdir -p "$out/lib" "$out/include" "$out/bin"
+          lib=$(find ort-build -type f -name 'libonnxruntime.so*' | sort | tail -1)
+          test -n "$lib"
+          cp -av "$lib" "$out/lib/"
+          while IFS= read -r f; do cp -av "$f" "$out/lib/"; done < <(find ort-build -type f -name 'libonnxruntime_providers*.so*' | sort -u)
+          cp ort-src/include/onnxruntime/core/session/onnxruntime_c_api.h "$out/include/"
+          cp ort-src/include/onnxruntime/core/providers/qnn/qnn_provider_factory.h "$out/include/"
+          cat > /tmp/list-providers.cc <<'CPP'
+          #include <cstdio>
+          #include <onnxruntime_c_api.h>
+          int main(){const OrtApi* api=OrtGetApiBase()->GetApi(ORT_API_VERSION);char** p=nullptr;int n=0;OrtStatus* s=api->GetAvailableProviders(&p,&n);if(s){std::fprintf(stderr,"%s\n",api->GetErrorMessage(s));return 2;}for(int i=0;i<n;i++)std::printf("%s\n",p[i]);api->ReleaseAvailableProviders(p,n);return 0;}
+          CPP
+          soname=$(basename "$lib")
+          libdir=$(dirname "$lib")
+          g++ -std=c++17 -Iort-src/include/onnxruntime/core/session /tmp/list-providers.cc -L"$libdir" -lonnxruntime -Wl,-rpath,'$ORIGIN/../lib' -o "$out/bin/list-ort-providers"
+          # Copy the canonical unversioned/shared symlinks if build produced them.
+          find "$libdir" -maxdepth 1 \( -type f -o -type l \) -name 'libonnxruntime.so*' -exec cp -a {} "$out/lib/" \;
+          export LD_LIBRARY_PATH="$PWD/qnn-sdk/lib/x86_64-linux-clang:$PWD/$out/lib"
+          "$out/bin/list-ort-providers" | tee "$out/AVAILABLE_PROVIDERS.txt"
+          grep -qx 'QNNExecutionProvider' "$out/AVAILABLE_PROVIDERS.txt"
+          strings "$out/lib/"libonnxruntime.so* | grep -E 'QNNExecutionProvider|backend_type|QnnCpu' | sort -u | head -100 > "$out/QNN_STRING_EVIDENCE.txt" || true
+          cp qnn-sdk/lib/x86_64-linux-clang/libQnnCpu.so "$out/lib/"
+          cp qnn-sdk/lib/x86_64-linux-clang/libQnnSystem.so "$out/lib/"
+          cp qnn-sdk/lib/x86_64-linux-clang/libQnnSaver.so "$out/lib/" 2>/dev/null || true
+          cp qnn-sdk/include/QNN/QnnInterface.h qnn-sdk/include/QNN/QnnTypes.h "$out/include/"
+          printf 'ort_source_asset_sha256=%s\nqairt_source_asset_sha256=%s\nort_commit=8f0278c\nqairt_version=2.44.0.260225\nbuild_host=ubuntu-24.04\n' "$ORT_ASSET_SHA256" "$QAIRT_ASSET_SHA256" > "$out/BUILD_PROVENANCE.txt"
+          (cd "$out" && find . -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS.txt)
+
+      - name: Upload exact host QNN bundle
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: ort-1.27-qnn244-linux-x64-host-bundle
+          path: ort-qnn-host-bundle
+          retention-days: 1
+          compression-level: 6
+
+      - name: Report bundle identity
+        if: github.event_name == 'issues'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          providers=$(tr '\n' ',' < ort-qnn-host-bundle/AVAILABLE_PROVIDERS.txt | sed 's/,$//')
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "Exact ORT 1.27 + QAIRT 2.44 Linux x64 QNN host bundle built. Artifact id: \`${{ steps.upload.outputs.artifact-id }}\`; providers: \`${providers}\`. Verify BUILD_PROVENANCE.txt and SHA256SUMS.txt after download."
