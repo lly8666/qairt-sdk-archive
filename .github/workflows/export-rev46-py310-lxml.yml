@@ -1,0 +1,60 @@
+name: Export rev46 Python 3.10 lxml wheel
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  export:
+    if: github.event.issue.title == '[sdk-export-rev46-py310-lxml]'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Download binary-only CPython 3.10 lxml dependency
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p transport
+          python3 -m pip download \
+            --only-binary=:all: \
+            --python-version 3.10 \
+            --implementation cp \
+            --abi cp310 \
+            --platform manylinux2014_x86_64 \
+            --dest transport \
+            'lxml<7'
+          test "$(find transport -maxdepth 1 -type f -name 'lxml-*.whl' | wc -l)" = 1
+          (cd transport && sha256sum lxml-*.whl > SHA256SUMS.txt)
+          python3 - <<'PY' > transport/SOURCE_PROVENANCE.txt
+          from pathlib import Path
+          p=next(Path('transport').glob('lxml-*.whl'))
+          print('source=pypi')
+          print('requirement=lxml<7')
+          print('python=cp310')
+          print('platform=manylinux2014_x86_64')
+          print('wheel='+p.name)
+          print('bytes='+str(p.stat().st_size))
+          PY
+          cat transport/SOURCE_PROVENANCE.txt
+          cat transport/SHA256SUMS.txt
+
+      - name: Upload one-day connector transport
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: rev46-py310-lxml
+          path: transport
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: Record artifact identity
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "rev46 CPython 3.10 lxml transport ready. Artifact id: \`${{ steps.upload.outputs.artifact-id }}\`. Binary wheel transport only; no project compilation performed. Verify SOURCE_PROVENANCE.txt and SHA256SUMS.txt after download."
