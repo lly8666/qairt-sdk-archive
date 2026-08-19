@@ -4,6 +4,11 @@
 
 Canonical machine-readable file: `release-manifest/AGENT_RELEASE_INDEX.json`.
 
+## `20260819.2`
+Published: `2026-08-19T14:41:09Z`
+
+- `cpython-3.11.15+20260807-x86_64-unknown-linux-gnu-install_only.1.tar.gz` — id `520958522`, bytes `49071794`, `sha256:b9fff092374acebc451bb881156afe6a58991213d25386358742fee296128909`
+
 ## `20260819`
 Published: `2026-08-19T13:45:06Z`
 
