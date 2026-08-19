@@ -1,0 +1,5 @@
+rev46 wheelhouse v2 transport only; no compilation in Actions.
+release=20260819.4
+asset=qairt244-py310-wheelhouse.v2.tar
+sha256=eb3d0b500d7021a05ec111bf6afc14262d97282a5bb5a4481c88c7865b38d19f
+purpose=verify pandas/transitive closure and real QAIRT 2.44 qnn-onnx-converter smoke in sandbox
