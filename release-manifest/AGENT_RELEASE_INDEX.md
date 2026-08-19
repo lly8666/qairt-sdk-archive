@@ -4,6 +4,10 @@
 
 Canonical machine-readable file: `release-manifest/AGENT_RELEASE_INDEX.json`.
 
+## `20260819.4` [draft]
+
+- `qairt244-py310-wheelhouse.v2.tar` — id `521019740`, bytes `103860736`, `sha256:eb3d0b500d7021a05ec111bf6afc14262d97282a5bb5a4481c88c7865b38d19f`
+
 ## `20260819.3`
 Published: `2026-08-19T15:11:14Z`
 
