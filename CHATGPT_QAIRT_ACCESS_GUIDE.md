@@ -1,250 +1,274 @@
-# ChatGPT QAIRT SDK Access Guide
+# ChatGPT / Agent QAIRT SDK Access Guide v2
 
-This repository is a private long-term archive for Qualcomm QAIRT/QNN SDK files.
+This private repository is the permanent binary archive and transport broker for QAIRT/QNN and related host diagnostic dependencies.
 
-## Fixed repository data
+## 1. Canonical discovery rule
 
-- Repository: `lly8666/qairt-sdk-archive`
-- Private Release tag: `qairt-sdk-archive-v1`
-- The GitHub connector must have access to this private repository.
+Do **not** guess private Release tags, asset IDs, file sizes, or checksums from chat history.
 
-### Release assets
+Every agent must first read:
 
-#### QAIRT 2.42.0.251225
-
-- Asset: `qairt-2.42.0.251225.zip`
-- Asset ID: `512699984`
-- Size: `1543955191` bytes
-- SHA256: `1A744ED72A813FC9DD4A29E31B1685F784786102FD45414D74915BB3351AE321`
-
-#### QAIRT 2.48.40.260702
-
-Stored as three Release assets because the original ZIP is larger than GitHub's per-asset limit:
-
-- `qairt-2.48.40.260702.zip.part-00`
-  - Asset ID: `512706038`
-  - SHA256: `8D2B6A9684069E4838BEE5052BCFFC5CAE4358EFE845B7C9BE8487AE768D3E36`
-- `qairt-2.48.40.260702.zip.part-01`
-  - Asset ID: `512710818`
-  - SHA256: `EBEA49F038D264E7D1A783F4224125E0E5833EC6DD4ECB6387C576521E34C8F2`
-- `qairt-2.48.40.260702.zip.part-02`
-  - Asset ID: `512714869`
-  - SHA256: `8CC1EF6252820A3CB6C8D60D70D287DC7E759914DC610EBFE68EDF32F056C35B`
-
-Reassemble in numeric order:
-
-```bash
-cat qairt-2.48.40.260702.zip.part-00 \
-    qairt-2.48.40.260702.zip.part-01 \
-    qairt-2.48.40.260702.zip.part-02 \
-  > qairt-2.48.40.260702.zip
+```text
+lly8666/qairt-sdk-archive
+  release-manifest/AGENT_RELEASE_INDEX.json
 ```
 
-Expected reconstructed file:
+Optional human-readable view:
 
-- Size: `2387723706` bytes
-- SHA256: `72BF9FBB177E65D05483B5CFC1E10A2864307FB031BCD7B9943B9C32693757B8`
+```text
+release-manifest/AGENT_RELEASE_INDEX.md
+```
 
-The canonical checksums also live in `release-manifest/SHA256SUMS`.
+The index is automatically regenerated from the private GitHub Release API by:
+
+```text
+.github/workflows/refresh-agent-release-index.yml
+```
+
+It is refreshed on Release publish/edit/release, on main updates, or via Issue title:
+
+```text
+[sdk-refresh-release-index]
+```
+
+The index contains only stable non-secret metadata: Release tag/name, asset name/id/bytes/digest, browser download URL and asset API URL. It never commits temporary signed redirect credentials.
 
 ---
 
-## Mode A: direct private Release download through a temporary signed URL
+## 2. Current MeanVC2 / Vocos pinned dependency Release
 
-Use this when the ChatGPT environment has a downloader with outbound access to `release-assets.githubusercontent.com`.
-
-Workflow: `.github/workflows/broker-release-assets.yml`
-
-The tested broker is version 4. It uses the private repository's `GITHUB_TOKEN` only inside GitHub Actions, requests each Release asset through the Release Asset API, verifies the Release metadata checksum, obtains GitHub's temporary signed redirect, verifies that redirect with a HEAD request, and prints the complete signed URL as base64.
-
-### Trigger
-
-Create a private Issue whose title starts with:
+The current indexed Release is:
 
 ```text
-[sdk-broker]
+tag: 20260819
+name: QAIRT 2.44 and others
 ```
 
-Example:
+For current SimAdmin MeanVC2 QNN/HTP numerical work, the authoritative QAIRT SDK asset is:
 
 ```text
-[sdk-broker] get QAIRT download URLs
+QAIRT.v2.44.0.260225.zip
+asset id: 520887827
+bytes: 1560450667
+sha256: 52a5b0cc051eb2896848c9fd46e704612b1dc06e7d2f5d0d9a79fd8bcdd344bb
 ```
 
-The Issue is only a trigger; no secret needs to be placed in the Issue body.
+Companion assets currently indexed in the same Release:
 
-### Read the broker result
+```text
+Netron-9.2.2-amd64.deb
+  id: 520888082
+  bytes: 102880024
+  sha256: 0959a638b54a40ad95927d75c286bbba49dd2b8b39dda79491d57e1615cb51f4
 
-1. Find the newest run of `Broker QAIRT Release asset URLs` triggered by the Issue.
-2. Fetch the `broker` job log.
-3. Look for lines beginning with `QAIRT_ASSET`.
-4. Each line contains:
-   - asset name
-   - asset ID
-   - byte size
-   - expected SHA256
-   - `expires=`
-   - `url_encoding=base64`
-   - `url_b64=`
-5. Base64-decode only the `url_b64` value to recover the complete temporary URL.
+linux-amd64.zip
+  id: 520887945
+  bytes: 13102121
+  sha256: a5354a4a133cc629bb398da53c95515e5a49d4bd96edfebe1ebc3221c85d936f
 
-Example decoder:
+onnxruntime-linux-x64-1.27.0.tgz
+  id: 520889056
+  bytes: 8831605
+  sha256: 547e40a48f1fe73e3f812d7c88a948612c23f896b91e4e2ee1e232d7b468246f
 
-```bash
-printf '%s' "$URL_B64" | base64 -d
+onnxruntime-linux-aarch64-1.27.0.tgz
+  id: 520889218
+  bytes: 7797972
+  sha256: 3e4d83ac06924a32a07b6d7f91ce6f852876153fc0bbdf931bf517a140bfbe48
 ```
 
-Do **not** store the decoded URL as a permanent credential. Base64 is transport encoding, not encryption. The decoded URL is a temporary signed credential and must be used before the printed `expires` timestamp.
+Before use, re-read `AGENT_RELEASE_INDEX.json`; if metadata changed, the current index wins over this prose copy.
 
-### Download and verify
-
-For 2.42, download the single file and verify SHA256.
-
-For 2.48, download all three parts, verify each part, concatenate them in numeric order, then verify the reconstructed SHA256.
-
-### Important compatibility note
-
-Some ChatGPT execution containers have no direct outbound DNS/network access. In that case the broker can still generate and validate the signed URLs, but the container itself may not be able to consume them. Use Mode B instead.
+The generic `linux-amd64.zip` filename is intentionally treated as an opaque companion tool until its extracted provenance/content is checked. Do not label it as Perfetto or another package solely from the filename.
 
 ---
 
-## Mode B: tested ChatGPT fallback — run the heavy download inside GitHub Actions and export only what ChatGPT needs
+## 3. Current project version lock
 
-Workflow: `.github/workflows/export-qairt-headers.yml`
-
-This is the recommended path for QNN development headers in ChatGPT environments that cannot directly download private Release assets.
-
-The workflow downloads the **full SDK from the private Release**, verifies it, extracts only `include/`, and uploads a small one-day Actions artifact. The GitHub connector can then download that artifact directly into the ChatGPT session.
-
-### Export QAIRT 2.42 headers
-
-Create an Issue titled:
+For the active SimAdmin MeanVC2 numerical investigation:
 
 ```text
-[sdk-export-headers] QAIRT 2.42
+ORT: 1.27.0
+QNN / QAIRT: 2.44.0 / QAIRT 2.44.0.260225
+Android QNN runtime baseline: 2.44.0
 ```
 
-The workflow will:
-
-1. Download asset ID `512699984` through the authenticated Release Asset API.
-2. Verify the full ZIP SHA256.
-3. Extract the entire `include/` tree.
-4. Confirm key headers such as:
-   - `QnnInterface.h`
-   - `QnnTypes.h`
-   - `QnnBackend.h`
-   - `QnnDevice.h`
-5. Upload artifact:
-
-```text
-qairt-2.42.0.251225-headers
-```
-
-### Export QAIRT 2.48 headers
-
-Create an Issue titled:
-
-```text
-[sdk-export-headers] QAIRT 2.48
-```
-
-The workflow will:
-
-1. Download all three 2.48 Release parts.
-2. Verify every part SHA256.
-3. Concatenate the parts.
-4. Verify reconstructed SHA256 `72BF9F...757B8`.
-5. Extract the entire `include/` tree.
-6. Upload artifact:
-
-```text
-qairt-2.48.40.260702-headers
-```
-
-Artifacts use `retention-days: 1`, because the private Release is the permanent source of truth. Do not turn Actions artifacts into long-term storage.
+Do not substitute QAIRT 2.42 or 2.48 for the current scientific conclusion. Those versions may be used only for explicit runtime/version-sensitivity A/B experiments.
 
 ---
 
-## Verified test results (2026-08-13)
+## 4. Preferred agent path: one-day verified QAIRT 2.44 subset
 
-### QAIRT 2.42
+Most ChatGPT execution environments should **not** pull the 1.56 GB SDK into the chat runtime.
 
-- Full Release ZIP download: PASS
-- Full ZIP bytes: `1543955191`
-- Full ZIP SHA256: `1A744ED72A813FC9DD4A29E31B1685F784786102FD45414D74915BB3351AE321`
-- Extracted include-tree files: `354`
-- Confirmed:
-  - `include/QNN/QnnInterface.h`
-  - `include/QNN/QnnTypes.h`
-  - `include/QNN/QnnBackend.h`
-  - `include/QNN/QnnDevice.h`
-- Headers artifact downloaded by the ChatGPT GitHub connector: PASS
-- Headers artifact ZIP SHA256: `a3b9bd11d276faae31928b0cabfee6ac731227afb93f7871e4c9292ab80bb19b`
-
-### QAIRT 2.48.40
-
-- Three-part Release download: PASS
-- Per-part checksum verification: PASS
-- Reassembly: PASS
-- Reconstructed ZIP bytes: `2387723706`
-- Reconstructed SHA256: `72BF9FBB177E65D05483B5CFC1E10A2864307FB031BCD7B9943B9C32693757B8`
-- Extracted include-tree files: `564`
-- Confirmed:
-  - `include/QNN/QnnInterface.h`
-  - `include/QNN/QnnTypes.h`
-  - `include/QNN/QnnBackend.h`
-  - `include/QNN/QnnDevice.h`
-- Headers artifact downloaded by the ChatGPT GitHub connector: PASS
-- Headers artifact ZIP SHA256: `d4e45e3878195b07c406dd2f4cc3d9bad4d927b6f4f6110d792ec4e650a713d2`
-
-### Broker v4
-
-- Private Release metadata access: PASS
-- Release Asset API authentication: PASS
-- Temporary signed redirect generation: PASS
-- Signed URL HEAD validation on GitHub runner: PASS
-- Complete URL transferred through the private job log as base64 without GitHub masking the JWT: PASS
-
-An attempted optimization that removed the `jwt` query parameter failed with HTTP 618. Do not remove `jwt`; use broker v4's base64 transport.
-
----
-
-## Recommended design rules
-
-1. Keep the full SDK only in the private GitHub Release as the permanent archive.
-2. Do not duplicate the full SDK into Git LFS or long-retention Actions artifacts.
-3. Prefer Mode A when the ChatGPT runtime has working outbound download access.
-4. Otherwise use Mode B and export only the needed subset (`include/`, selected `lib/` directories, etc.).
-5. Always verify SHA256 before using an SDK or reconstructed ZIP.
-6. Keep 2.42 and 2.48 isolated; do not overwrite the production 2.42 tree during A/B testing.
-7. Treat signed URLs as temporary secrets even though the repository is private.
-
----
-
-## Copy-paste prompt for another ChatGPT
+Create a private Issue with exact title:
 
 ```text
-Use the GitHub connector on my private repository:
-  lly8666/qairt-sdk-archive
+[sdk-export-qairt-2.44-tools]
+```
 
-Permanent SDK storage is the private Release:
-  tag: qairt-sdk-archive-v1
+Workflow:
 
-First read CHATGPT_QAIRT_ACCESS_GUIDE.md and release-manifest/SHA256SUMS.
+```text
+.github/workflows/export-indexed-qairt-244-tools.yml
+```
 
-For direct download, use .github/workflows/broker-release-assets.yml:
-- create a private Issue starting with [sdk-broker]
-- find the resulting broker workflow run
-- read the broker job log
-- parse QAIRT_ASSET lines
-- base64-decode url_b64
-- use the signed URL before expires
-- verify SHA256
+The workflow:
 
-If your execution environment cannot directly reach release-assets.githubusercontent.com, do NOT keep retrying the signed URL. Use .github/workflows/export-qairt-headers.yml instead:
-- title containing 2.42 exports the verified QAIRT 2.42 include tree
-- title containing 2.48 exports the verified QAIRT 2.48 include tree after three-part reconstruction
-- download the resulting one-day Actions artifact using the GitHub connector
+1. reads `AGENT_RELEASE_INDEX.json`;
+2. requires exactly one `QAIRT.v2.44.0.260225.zip` asset;
+3. obtains its asset ID, size and GitHub SHA256 digest from the index;
+4. downloads the full private Release asset inside GitHub Actions using `GITHUB_TOKEN`;
+5. verifies full ZIP byte size and SHA256;
+6. extracts only the numerical-analysis/host subset;
+7. requires the key QAIRT files listed below;
+8. writes source provenance and extracted per-file SHA256 manifest;
+9. uploads a one-day connector-downloadable Actions artifact.
 
-The full SDK must remain in the private Release; Actions artifacts are temporary transfer objects only.
+Artifact name:
+
+```text
+qairt-2.44.0.260225-agent-tools
+```
+
+Required files checked by the workflow:
+
+```text
+qnn-net-run
+qnn-context-binary-generator
+qnn-profile-viewer
+libQnnCpu.so
+libQnnHtp.so
+libQnnSystem.so
+libQnnSaver.so
+libQnnHtpOptraceProfilingReader.so
+QnnInterface.h
+QnnTypes.h
+QnnBackend.h
+QnnDevice.h
+```
+
+Selected subtrees include relevant portions of:
+
+```text
+bin/x86_64-linux-clang/
+lib/x86_64-linux-clang/
+lib/aarch64-android/
+lib/python/
+include/QNN/
+share/QNN/
+```
+
+After connector download, verify:
+
+```text
+SOURCE_PROVENANCE.txt
+EXTRACTED_SHA256SUMS.txt
+SELECTION_MANIFEST.json
+```
+
+The temporary artifact is transport only. The private Release remains permanent authority.
+
+---
+
+## 5. Direct private Release download path
+
+If an agent/runtime can authenticate directly to the private Release asset API, it may use the `api_url` / asset ID from `AGENT_RELEASE_INDEX.json`.
+
+Required rules:
+
+1. authenticate with GitHub access to this private repository;
+2. request `Accept: application/octet-stream`;
+3. verify byte size against the current index;
+4. verify SHA256 against `digest` from the current index;
+5. never persist temporary signed redirect URLs in Git, issues, logs, or documentation;
+6. keep each QAIRT version in a separate extraction tree.
+
+Recommended extraction isolation:
+
+```text
+/mnt/data/qairt-2.44.0.260225/
+/mnt/data/qairt-2.42.0.251225/
+/mnt/data/qairt-2.48.40.260702/
+```
+
+Never overwrite one with another.
+
+---
+
+## 6. What each dependency is for
+
+### QAIRT 2.44 full SDK
+
+Primary current dependency. Use for:
+
+- QNN CPU reference backend;
+- QNN Saver / API replay diagnostics;
+- qnn-net-run;
+- context binary generation;
+- qnn-profile-viewer;
+- HTP optrace/QHAS parsing support;
+- QNN headers;
+- exact-version host/target library inspection.
+
+### ORT 1.27.0 Linux x64
+
+Use only as a host ORT 1.27 reference/runtime starting point when compatible with the required QNN EP build/configuration. Do not assume the stock archive contains the QNN EP unless verified.
+
+### ORT 1.27.0 Linux aarch64
+
+Use for explicit ARM64 Linux compatibility work only. It does not replace the Android QNN AAR/runtime already frozen in SimAdmin.
+
+### Netron 9.2.2
+
+Graph visualization aid only. It is not numerical truth and must not be used to infer compiled HTP fusion boundaries.
+
+### linux-amd64.zip
+
+Opaque companion Linux tool asset until extracted content/provenance is verified. Once identified, document its exact role in the experiment manifest. Do not infer package identity from the filename.
+
+---
+
+## 7. Historical QAIRT archive
+
+Historical private Release tag:
+
+```text
+qairt-sdk-archive-v1
+```
+
+Contains:
+
+```text
+qairt-2.42.0.251225.zip
+qairt-2.48.40.260702.zip.part-00
+qairt-2.48.40.260702.zip.part-01
+qairt-2.48.40.260702.zip.part-02
+```
+
+Historical canonical hashes remain in:
+
+```text
+release-manifest/SHA256SUMS
+```
+
+Older fixed-ID broker/export workflows remain only for reproducing closed 2.42/2.48 experiments. New work must prefer the agent index and indexed workflows.
+
+---
+
+## 8. Security and provenance rules
+
+- Never print or commit private signing key bytes, passwords, tokens, JWTs or temporary signed Release URLs.
+- Release `browser_download_url`, asset ID, byte size and SHA256 digest are metadata and may be indexed in this private repo.
+- Verify SHA256 before using a full SDK or exported subset.
+- Record exact Release tag + asset ID + SHA256 in every serious numerical experiment manifest.
+- QNN CPU backend is a reference implementation, **not** a bit-accurate HTP simulator.
+- Strict device HTP remains the final source of truth for numerical and performance qualification.
+
+---
+
+## 9. Copy-paste instruction for another agent
+
+```text
+Read lly8666/qairt-sdk-archive/release-manifest/AGENT_RELEASE_INDEX.json and CHATGPT_QAIRT_ACCESS_GUIDE.md first; for current MeanVC2 work use only the indexed QAIRT.v2.44.0.260225.zip from Release tag 20260819, and if the full private asset is inconvenient trigger [sdk-export-qairt-2.44-tools] to obtain the verified one-day qairt-2.44.0.260225-agent-tools artifact; always verify provenance/SHA256 and never treat QNN CPU as HTP truth.
 ```
