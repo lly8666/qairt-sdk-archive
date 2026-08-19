@@ -1,0 +1,108 @@
+name: Refresh agent Release index
+
+on:
+  workflow_dispatch:
+  release:
+    types: [published, edited, released, prereleased]
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'release' ||
+      github.event.issue.title == '[sdk-refresh-release-index]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Query all private Releases and build stable agent index
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p release-manifest
+          gh api --paginate \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
+            --slurp > /tmp/release-pages.json
+
+          python3 - <<'PY'
+          import datetime, json, pathlib
+          pages=json.load(open('/tmp/release-pages.json'))
+          releases=[r for page in pages for r in page]
+          releases.sort(key=lambda r: (r.get('published_at') or r.get('created_at') or ''), reverse=True)
+
+          out={
+            'schema': 1,
+            'repository': 'lly8666/qairt-sdk-archive',
+            'generated_at_utc': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            'note': 'Stable, non-secret metadata index for agents. browser_download_url is not a signed credential; private asset download still requires authenticated GitHub access or an export workflow.',
+            'releases': []
+          }
+          for r in releases:
+            rr={
+              'tag_name': r.get('tag_name'),
+              'name': r.get('name'),
+              'draft': bool(r.get('draft')),
+              'prerelease': bool(r.get('prerelease')),
+              'created_at': r.get('created_at'),
+              'published_at': r.get('published_at'),
+              'html_url': r.get('html_url'),
+              'assets': []
+            }
+            for a in sorted(r.get('assets', []), key=lambda x:x.get('name','')):
+              rr['assets'].append({
+                'name': a.get('name'),
+                'id': a.get('id'),
+                'size': a.get('size'),
+                'digest': a.get('digest'),
+                'created_at': a.get('created_at'),
+                'updated_at': a.get('updated_at'),
+                'browser_download_url': a.get('browser_download_url'),
+                'api_url': a.get('url')
+              })
+            out['releases'].append(rr)
+
+          p=pathlib.Path('release-manifest/AGENT_RELEASE_INDEX.json')
+          p.write_text(json.dumps(out, indent=2, ensure_ascii=False, sort_keys=False)+'\n', encoding='utf-8')
+
+          lines=['# Agent-visible private Release index','',
+                 '> Generated automatically from GitHub private Release metadata. Do not hand-edit.', '',
+                 'Canonical machine-readable file: `release-manifest/AGENT_RELEASE_INDEX.json`.', '']
+          for r in out['releases']:
+            state=[]
+            if r['draft']: state.append('draft')
+            if r['prerelease']: state.append('prerelease')
+            suffix=(' ['+', '.join(state)+']') if state else ''
+            lines.append(f"## `{r['tag_name']}`{suffix}")
+            if r.get('published_at'): lines.append(f"Published: `{r['published_at']}`")
+            lines.append('')
+            if not r['assets']:
+              lines.append('- _(no assets)_')
+            for a in r['assets']:
+              digest=a.get('digest') or 'digest-unavailable'
+              lines.append(f"- `{a['name']}` — id `{a['id']}`, bytes `{a['size']}`, `{digest}`")
+            lines.append('')
+          pathlib.Path('release-manifest/AGENT_RELEASE_INDEX.md').write_text('\n'.join(lines)+'\n', encoding='utf-8')
+          PY
+
+      - name: Commit index when changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add release-manifest/AGENT_RELEASE_INDEX.json release-manifest/AGENT_RELEASE_INDEX.md
+          if git diff --cached --quiet; then
+            echo AGENT_RELEASE_INDEX_UNCHANGED
+            exit 0
+          fi
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git commit -m 'manifest: refresh agent-visible Release index'
+          git push origin HEAD:main
