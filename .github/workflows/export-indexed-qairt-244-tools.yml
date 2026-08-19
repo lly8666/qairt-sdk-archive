@@ -72,6 +72,7 @@ jobs:
           selected=[]
           needles=(
               '/bin/x86_64-linux-clang/',
+              '/bin/lib/',
               '/lib/x86_64-linux-clang/',
               '/lib/aarch64-android/',
               '/lib/python/',
@@ -99,7 +100,9 @@ jobs:
                       shutil.copyfileobj(r,w,1024*1024)
                   selected.append({'source':info.filename,'path':rel,'bytes':info.file_size})
           with open(os.path.join(dst,'SELECTION_MANIFEST.json'),'w') as f:
-              json.dump({'schema':1,'sdk':'QAIRT 2.44.0.260225','files':selected},f,indent=2,sort_keys=True)
+              json.dump({'schema':2,'sdk':'QAIRT 2.44.0.260225','files':selected,
+                         'host_runtime_policy':'include SDK bin/lib because x86_64 QNN tools RUNPATH resolves $ORIGIN/../lib'},
+                        f,indent=2,sort_keys=True)
           names=[x['path'] for x in selected]
           required=(
               'qnn-net-run',
@@ -110,6 +113,9 @@ jobs:
               'libQnnSystem.so',
               'libQnnSaver.so',
               'libQnnHtpOptraceProfilingReader.so',
+              'libc++.so.1',
+              'libc++abi.so.1',
+              'libunwind.so.1',
               'QnnInterface.h',
               'QnnTypes.h',
               'QnnBackend.h',
@@ -133,8 +139,34 @@ jobs:
           source_bytes=${QAIRT_ASSET_BYTES}
           source_sha256=${QAIRT_ASSET_SHA256}
           EOF
+
+      - name: Smoke-test exported x86_64 QNN runtime closure
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$PWD/qairt-2.44.0.260225-agent-tools"
+          chmod +x "$root/bin/x86_64-linux-clang/qnn-net-run" \
+                   "$root/bin/x86_64-linux-clang/qnn-context-binary-generator" \
+                   "$root/bin/x86_64-linux-clang/qnn-profile-viewer"
+          export LD_LIBRARY_PATH="$root/bin/lib:$root/lib/x86_64-linux-clang${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+          for f in \
+            "$root/bin/x86_64-linux-clang/qnn-net-run" \
+            "$root/bin/x86_64-linux-clang/qnn-context-binary-generator" \
+            "$root/bin/x86_64-linux-clang/qnn-profile-viewer" \
+            "$root/lib/x86_64-linux-clang/libQnnCpu.so" \
+            "$root/lib/x86_64-linux-clang/libQnnSaver.so"; do
+            echo "QAIRT_LDD $f"
+            ldd "$f" | tee /tmp/qairt-ldd.txt
+            if grep -q 'not found' /tmp/qairt-ldd.txt; then
+              echo "Unresolved runtime dependency in $f" >&2
+              exit 1
+            fi
+          done
+          "$root/bin/x86_64-linux-clang/qnn-net-run" --help >/tmp/qnn-net-run-help.txt 2>&1
+          grep -qi 'backend' /tmp/qnn-net-run-help.txt
+          echo 'QAIRT_244_HOST_RUNTIME_SMOKE_PASS'
           (
-            cd qairt-2.44.0.260225-agent-tools
+            cd "$root"
             find . -type f ! -name EXTRACTED_SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > EXTRACTED_SHA256SUMS.txt
           )
 
@@ -155,4 +187,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "QAIRT 2.44 verified agent-tools transport is ready. Artifact id: \`${{ steps.upload.outputs.artifact-id }}\`; name: \`qairt-2.44.0.260225-agent-tools\`; retention: 1 day. Download with the GitHub connector, verify \`SOURCE_PROVENANCE.txt\` and \`EXTRACTED_SHA256SUMS.txt\`, then use it only as host/diagnostic tooling."
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "QAIRT 2.44 verified agent-tools transport is ready. Artifact id: \`${{ steps.upload.outputs.artifact-id }}\`; name: \`qairt-2.44.0.260225-agent-tools\`; retention: 1 day. Export includes SDK host C++ runtime closure and passed ldd/qnn-net-run smoke tests. Verify \`SOURCE_PROVENANCE.txt\` and \`EXTRACTED_SHA256SUMS.txt\` after connector download."
