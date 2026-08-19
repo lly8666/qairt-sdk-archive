@@ -1,0 +1,53 @@
+name: Export lxml 5.3.0 Python 3.10 wheel
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  export:
+    if: github.event.issue.title == '[sdk-export-lxml530-py310-wheel]'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Download immutable PyPI wheel
+        shell: bash
+        run: |
+          set -euo pipefail
+          url='https://files.pythonhosted.org/packages/05/9e/87492d03ff604fbf656ed2bf3e2e8d28f5d58ea1f00ff27ac27b06509079/lxml-5.3.0-cp310-cp310-manylinux_2_28_x86_64.whl'
+          name='lxml-5.3.0-cp310-cp310-manylinux_2_28_x86_64.whl'
+          sha='b1c8c20847b9f34e98080da785bb2336ea982e7f913eed5809e5a3c872900f32'
+          mkdir -p lxml530-py310
+          curl -fL "$url" -o "lxml530-py310/$name"
+          echo "$sha  lxml530-py310/$name" | sha256sum -c -
+          cat > lxml530-py310/SOURCE_PROVENANCE.txt <<EOF
+          source=PyPI
+          project=lxml
+          version=5.3.0
+          filename=$name
+          sha256=$sha
+          transport_only=true
+          compilation_performed=false
+          EOF
+          (cd lxml530-py310 && sha256sum * > SHA256SUMS.txt)
+
+      - name: Upload one-day connector transport
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: lxml530-py310
+          path: lxml530-py310
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: Record artifact identity
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "lxml 5.3.0 CPython 3.10 dependency transport ready. Artifact id: \`${{ steps.upload.outputs.artifact-id }}\`. Verify SHA256 \`b1c8c20847b9f34e98080da785bb2336ea982e7f913eed5809e5a3c872900f32\`. No compilation performed."
