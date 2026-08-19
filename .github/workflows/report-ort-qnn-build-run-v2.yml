@@ -1,0 +1,36 @@
+name: Report ORT QNN build run v2
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  actions: read
+  contents: read
+  issues: write
+
+jobs:
+  report:
+    if: github.event.issue.title == '[report-ort-qnn-build-run-v2]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Report reporter run id first
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "reporter_run_id=\`${GITHUB_RUN_ID}\`"
+
+      - name: Query recent ORT QNN build runs
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api "/repos/${GITHUB_REPOSITORY}/actions/workflows/build-ort-127-qnn-linux-x64.yml/runs?event=issues&per_page=10" \
+            --jq '.workflow_runs[0:5][] | "run_id=\(.id) status=\(.status) conclusion=\(.conclusion // "null") created_at=\(.created_at) updated_at=\(.updated_at) head_sha=\(.head_sha)"' \
+            > /tmp/runs.txt
+          if [ ! -s /tmp/runs.txt ]; then echo 'no recent issue-triggered runs found' > /tmp/runs.txt; fi
+          body="$(cat /tmp/runs.txt)"
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "Recent ORT1.27+QNN2.44 build runs:\n\n\`\`\`text\n${body}\n\`\`\`"
