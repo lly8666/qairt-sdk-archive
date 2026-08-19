@@ -32,7 +32,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "Exact ORT1.27 + QAIRT2.44 QNN Linux x64 build started. This archive-safe revision skips Git submodule sync and runtime-probes QNNExecutionProvider before publishing any artifact."
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "Exact ORT1.27 + QAIRT2.44 QNN Linux x64 build started. run_id=\`${GITHUB_RUN_ID}\`. Archive-safe source; QNN args are \`--use_qnn shared_lib --qnn_home <verified 2.44 SDK>\`; runtime QNNExecutionProvider probe is mandatory before artifact publication."
 
       - name: Download exact archived ORT source and QAIRT 2.44
         shell: bash
@@ -117,7 +117,8 @@ jobs:
             --skip_tests \
             --skip_submodule_sync \
             --compile_no_warning_as_error \
-            --use_qnn "$PWD/qnn-sdk"
+            --use_qnn shared_lib \
+            --qnn_home "$PWD/qnn-sdk"
 
       - name: Locate QNN-enabled runtime and runtime-probe available providers
         shell: bash
@@ -143,11 +144,13 @@ jobs:
           export LD_LIBRARY_PATH="$PWD/qnn-sdk/lib/x86_64-linux-clang:$PWD/$out/lib"
           "$out/bin/list-ort-providers" | tee "$out/AVAILABLE_PROVIDERS.txt"
           grep -qx 'QNNExecutionProvider' "$out/AVAILABLE_PROVIDERS.txt"
-          ldd "$out/lib/libonnxruntime_providers_qnn.so" | tee "$out/QNN_PROVIDER_LDD.txt"
+          qnn_provider="$(find "$out/lib" -maxdepth 1 -type f -name 'libonnxruntime_providers_qnn.so*' | sort | head -1)"
+          test -n "$qnn_provider" && test -f "$qnn_provider"
+          ldd "$qnn_provider" | tee "$out/QNN_PROVIDER_LDD.txt"
           ! grep -q 'not found' "$out/QNN_PROVIDER_LDD.txt"
-          strings "$out/lib/libonnxruntime_providers_qnn.so" | grep -E 'QNNExecutionProvider|backend_type|QnnCpu|enable_htp_fp16_precision|qnn_saver_path' | sort -u > "$out/QNN_STRING_EVIDENCE.txt" || true
+          strings "$qnn_provider" | grep -E 'QNNExecutionProvider|backend_type|QnnCpu|enable_htp_fp16_precision|qnn_saver_path' | sort -u > "$out/QNN_STRING_EVIDENCE.txt" || true
           cp qnn-sdk/include/QNN/QnnInterface.h qnn-sdk/include/QNN/QnnTypes.h "$out/include/"
-          printf 'ort_source_asset_sha256=%s\nqairt_source_asset_sha256=%s\nort_commit=8f0278c\nqairt_version=2.44.0.260225\nbuild_host=ubuntu-24.04\narchive_safe_skip_submodule_sync=true\n' "$ORT_ASSET_SHA256" "$QAIRT_ASSET_SHA256" > "$out/BUILD_PROVENANCE.txt"
+          printf 'ort_source_asset_sha256=%s\nqairt_source_asset_sha256=%s\nort_commit=8f0278c\nqairt_version=2.44.0.260225\nbuild_host=ubuntu-24.04\narchive_safe_skip_submodule_sync=true\nuse_qnn=shared_lib\nqnn_home=verified_qairt_2.44_subset\n' "$ORT_ASSET_SHA256" "$QAIRT_ASSET_SHA256" > "$out/BUILD_PROVENANCE.txt"
           (cd "$out" && find . -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS.txt)
 
       - name: Upload exact host QNN bundle
@@ -167,4 +170,4 @@ jobs:
         run: |
           set -euo pipefail
           providers=$(tr '\n' ',' < ort-qnn-host-bundle/AVAILABLE_PROVIDERS.txt | sed 's/,$//')
-          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "Exact ORT 1.27 + QAIRT 2.44 Linux x64 QNN host bundle PASS. Artifact id: \`${{ steps.upload.outputs.artifact-id }}\`; providers: \`${providers}\`. Verify BUILD_PROVENANCE.txt and SHA256SUMS.txt after download."
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "Exact ORT 1.27 + QAIRT 2.44 Linux x64 QNN host bundle PASS. run_id=\`${GITHUB_RUN_ID}\`; artifact id: \`${{ steps.upload.outputs.artifact-id }}\`; providers: \`${providers}\`. Verify BUILD_PROVENANCE.txt and SHA256SUMS.txt after download."
