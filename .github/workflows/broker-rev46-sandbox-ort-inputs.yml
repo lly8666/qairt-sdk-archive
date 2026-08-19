@@ -1,0 +1,123 @@
+name: Broker rev46 sandbox ORT build inputs
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  broker:
+    if: github.event.issue.title == '[broker-rev46-sandbox-ort-inputs]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      ORT_SOURCE_ID: '514402050'
+      ORT_SOURCE_NAME: 'onnxruntime-1.27.0-8f0278c-source-with-submodules.tar.gz'
+      ORT_SOURCE_BYTES: '299476789'
+      ORT_SOURCE_SHA256: '28fbbd3e7e180b815ea2069c66947f77a1427c058c1122c4bda64e2b50ed2783'
+      ORT_PROV_ID: '514402049'
+      ORT_PROV_NAME: 'SOURCE_PROVENANCE.txt'
+      ORT_PROV_BYTES: '132'
+      ORT_PROV_SHA256: 'a89172fe6229a1a80addc7a065fb3653d244b61ffd6aa11a583090310ec3d928'
+      CMAKE_MIRROR_ID: '514410457'
+      CMAKE_MIRROR_NAME: 'ort-1.27.0-cmake-deps-mirror.tar.gz'
+      CMAKE_MIRROR_BYTES: '377334838'
+      CMAKE_MIRROR_SHA256: 'eacecab1004a1431e61d15f9c1092ee9c55a7401c3aec08e15984852f4de3d4c'
+      CMAKE_MANIFEST_ID: '514410458'
+      CMAKE_MANIFEST_NAME: 'CMAKE_DEPS_MIRROR_MANIFEST.json'
+      CMAKE_MANIFEST_BYTES: '13093'
+      CMAKE_MANIFEST_SHA256: 'fc6c5a8de8b2997031dfcd4c0787cae716c77025b872cdf025046d8cb8cd7d46'
+      QAIRT_ID: '520887827'
+      QAIRT_NAME: 'QAIRT.v2.44.0.260225.zip'
+      QAIRT_BYTES: '1560450667'
+      QAIRT_SHA256: '52a5b0cc051eb2896848c9fd46e704612b1dc06e7d2f5d0d9a79fd8bcdd344bb'
+    steps:
+      - name: Download and verify immutable ORT source + CMake mirror
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p source-transport cmake-transport qairt-sdk-yaml
+          get_asset() {
+            local id="$1" name="$2" bytes="$3" sha="$4" out="$5"
+            curl -fL -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/octet-stream' -H 'X-GitHub-Api-Version: 2022-11-28' \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/assets/${id}" -o "$out/$name"
+            test "$(stat -c %s "$out/$name")" = "$bytes"
+            echo "$sha  $out/$name" | sha256sum -c -
+          }
+          get_asset "$ORT_SOURCE_ID" "$ORT_SOURCE_NAME" "$ORT_SOURCE_BYTES" "$ORT_SOURCE_SHA256" source-transport
+          get_asset "$ORT_PROV_ID" "$ORT_PROV_NAME" "$ORT_PROV_BYTES" "$ORT_PROV_SHA256" source-transport
+          get_asset "$CMAKE_MIRROR_ID" "$CMAKE_MIRROR_NAME" "$CMAKE_MIRROR_BYTES" "$CMAKE_MIRROR_SHA256" cmake-transport
+          get_asset "$CMAKE_MANIFEST_ID" "$CMAKE_MANIFEST_NAME" "$CMAKE_MANIFEST_BYTES" "$CMAKE_MANIFEST_SHA256" cmake-transport
+          cat > source-transport/BROKER_META.txt <<EOF
+          purpose=rev46_sandbox_only_ort_qnn_build
+          compilation_performed=false
+          ort_commit=8f0278c77bf44b0cc83c098c6c722b92a36ac4b5
+          source_sha256=${ORT_SOURCE_SHA256}
+          EOF
+          cat > cmake-transport/BROKER_META.txt <<EOF
+          purpose=rev46_sandbox_only_ort_qnn_build
+          compilation_performed=false
+          ort_commit=8f0278c77bf44b0cc83c098c6c722b92a36ac4b5
+          cmake_mirror_sha256=${CMAKE_MIRROR_SHA256}
+          EOF
+
+      - name: Extract exact sdk.yaml from verified QAIRT 2.44 Release asset
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl -fL -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/octet-stream' -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/assets/${QAIRT_ID}" -o qairt.zip
+          test "$(stat -c %s qairt.zip)" = "$QAIRT_BYTES"
+          echo "$QAIRT_SHA256  qairt.zip" | sha256sum -c -
+          python3 - <<'PY'
+          import pathlib, zipfile, hashlib
+          z=zipfile.ZipFile('qairt.zip')
+          hits=[i for i in z.infolist() if not i.is_dir() and i.filename.replace('\\','/').endswith('/sdk.yaml')]
+          if len(hits)!=1: raise SystemExit(f'expected exactly one sdk.yaml, got {len(hits)}')
+          raw=z.read(hits[0]); p=pathlib.Path('qairt-sdk-yaml/sdk.yaml'); p.write_bytes(raw)
+          pathlib.Path('qairt-sdk-yaml/SOURCE_PROVENANCE.txt').write_text(
+            'source_release=20260819\nsource_asset=QAIRT.v2.44.0.260225.zip\nsource_asset_id=520887827\nsource_bytes=1560450667\nsource_sha256=52a5b0cc051eb2896848c9fd46e704612b1dc06e7d2f5d0d9a79fd8bcdd344bb\nsource_member='+hits[0].filename+'\nsdk_yaml_bytes='+str(len(raw))+'\nsdk_yaml_sha256='+hashlib.sha256(raw).hexdigest()+'\n')
+          print('SDK_YAML_MEMBER',hits[0].filename)
+          print('SDK_YAML_BYTES',len(raw))
+          print('SDK_YAML_SHA256',hashlib.sha256(raw).hexdigest())
+          PY
+
+      - name: Upload source transport
+        id: source
+        uses: actions/upload-artifact@v4
+        with:
+          name: rev46-ort127-source-transport
+          path: source-transport
+          compression-level: 0
+          retention-days: 1
+      - name: Upload CMake mirror transport
+        id: cmake
+        uses: actions/upload-artifact@v4
+        with:
+          name: rev46-ort127-cmake-mirror-transport
+          path: cmake-transport
+          compression-level: 0
+          retention-days: 1
+      - name: Upload QAIRT sdk yaml transport
+        id: sdk
+        uses: actions/upload-artifact@v4
+        with:
+          name: rev46-qairt244-sdk-yaml-transport
+          path: qairt-sdk-yaml
+          compression-level: 0
+          retention-days: 1
+
+      - name: Record transport ids
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "Rev46 sandbox ORT build inputs verified and brokered; no compilation performed. source_artifact=\`${{ steps.source.outputs.artifact-id }}\`; cmake_mirror_artifact=\`${{ steps.cmake.outputs.artifact-id }}\`; qairt_sdk_yaml_artifact=\`${{ steps.sdk.outputs.artifact-id }}\`."
