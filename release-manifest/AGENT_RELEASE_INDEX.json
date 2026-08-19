@@ -1,0 +1,364 @@
+{
+  "schema": 1,
+  "repository": "lly8666/qairt-sdk-archive",
+  "generated_at_utc": "2026-08-19T13:57:23.119719+00:00",
+  "note": "Stable, non-secret metadata index for agents. browser_download_url is not a signed credential; private asset download still requires authenticated GitHub access or an export workflow.",
+  "releases": [
+    {
+      "tag_name": "20260819",
+      "name": "QAIRT 2.44 and others",
+      "draft": false,
+      "prerelease": false,
+      "created_at": "2026-08-14T13:00:35Z",
+      "published_at": "2026-08-19T13:45:06Z",
+      "html_url": "https://github.com/lly8666/qairt-sdk-archive/releases/tag/20260819",
+      "assets": [
+        {
+          "name": "Netron-9.2.2-amd64.deb",
+          "id": 520888082,
+          "size": 102880024,
+          "digest": "sha256:0959a638b54a40ad95927d75c286bbba49dd2b8b39dda79491d57e1615cb51f4",
+          "created_at": "2026-08-19T13:36:18Z",
+          "updated_at": "2026-08-19T13:37:08Z",
+          "browser_download_url": "https://github.com/lly8666/qairt-sdk-archive/releases/download/20260819/Netron-9.2.2-amd64.deb",
+          "api_url": "https://api.github.com/repos/lly8666/qairt-sdk-archive/releases/assets/520888082"
+        },
+        {
+          "name": "QAIRT.v2.44.0.260225.zip",
+          "id": 520887827,
+          "size": 1560450667,
+          "digest": "sha256:52a5b0cc051eb2896848c9fd46e704612b1dc06e7d2f5d0d9a79fd8bcdd344bb",
+          "created_at": "2026-08-19T13:36:01Z",
+          "updated_at": "2026-08-19T13:45:06Z",
+          "browser_download_url": "https://github.com/lly8666/qairt-sdk-archive/releases/download/20260819/QAIRT.v2.44.0.260225.zip",
+          "api_url": "https://api.github.com/repos/lly8666/qairt-sdk-archive/releases/assets/520887827"
+        },
+        {
+          "name": "linux-amd64.zip",
+          "id": 520887945,
+          "size": 13102121,
+          "digest": "sha256:a5354a4a133cc629bb398da53c95515e5a49d4bd96edfebe1ebc3221c85d936f",
+          "created_at": "2026-08-19T13:36:09Z",
+          "updated_at": "2026-08-19T13:36:18Z",
+          "browser_download_url": "https://github.com/lly8666/qairt-sdk-archive/releases/download/20260819/linux-amd64.zip",
+          "api_url": "https://api.github.com/repos/lly8666/qairt-sdk-archive/releases/assets/520887945"
+        },
+        {
+          "name": "onnxruntime-linux-aarch64-1.27.0.tgz",
+          "id": 520889218,
+          "size": 7797972,
+          "digest": "sha256:3e4d83ac06924a32a07b6d7f91ce6f852876153fc0bbdf931bf517a140bfbe48",
+          "created_at": "2026-08-19T13:37:15Z",
+          "updated_at": "2026-08-19T13:37:21Z",
+          "browser_download_url": "https://github.com/lly8666/qairt-sdk-archive/releases/download/20260819/onnxruntime-linux-aarch64-1.27.0.tgz",
+          "api_url": "https://api.github.com/repos/lly8666/qairt-sdk-archive/releases/assets/520889218"
+        },
+        {
+          "name": "onnxruntime-linux-x64-1.27.0.tgz",
+          "id": 520889056,
+          "size": 8831605,
+          "digest": "sha256:547e40a48f1fe73e3f812d7c88a948612c23f896b91e4e2ee1e232d7b468246f",
+          "created_at": "2026-08-19T13:37:08Z",
+          "updated_at": "2026-08-19T13:37:15Z",
+          "browser_download_url": "https://github.com/lly8666/qairt-sdk-archive/releases/download/20260819/onnxruntime-linux-x64-1.27.0.tgz",
+          "api_url": "https://api.github.com/repos/lly8666/qairt-sdk-archive/releases/assets/520889056"
+        }
+      ]
+    },
+    {
+      "tag_name": "ort-1.27.0-cmake-deps-v1",
+      "name": "ort-1.27.0-cmake-deps-v1",
+      "draft": false,
+      "prerelease": false,
+      "created_at": "2026-08-14T12:46:37Z",
+      "published_at": "2026-08-14T12:47:31Z",
+      "html_url": "https://github.com/lly8666/qairt-sdk-archive/releases/tag/ort-1.27.0-cmake-deps-v1",
+      "assets": [
+        {
+          "name": "CMAKE_DEPS_MIRROR_MANIFEST.json",
+          "id": 514410458,
+          "size": 13093,
+          "digest": "sha256:fc6c5a8de8b2997031dfcd4c0787cae716c77025b872cdf025046d8cb8cd7d46",
+          "created_at": "2026-08-14T12:47:22Z",
+          "updated_at": "2026-08-14T12:47:22Z",
+          "browser_download_url": "https://github.com/lly8666/qairt-sdk-archive/releases/download/ort-1.27.0-cmake-deps-v1/CMAKE_DEPS_MIRROR_MANIFEST.json",
+          "api_url": "https://api.github.com/repos/lly8666/qairt-sdk-archive/releases/assets/514410458"
+        },
+        {
+          "name": "ort-1.27.0-cmake-deps-mirror.tar.gz",
+          "id": 514410457,
+          "size": 377334838,
+          "digest": "sha256:eacecab1004a1431e61d15f9c1092ee9c55a7401c3aec08e15984852f4de3d4c",
+          "created_at": "2026-08-14T12:47:22Z",
+          "updated_at": "2026-08-14T12:47:30Z",
+          "browser_download_url": "https://github.com/lly8666/qairt-sdk-archive/releases/download/ort-1.27.0-cmake-deps-v1/ort-1.27.0-cmake-deps-mirror.tar.gz",
+          "api_url": "https://api.github.com/repos/lly8666/qairt-sdk-archive/releases/assets/514410457"
+        },
+        {
+          "name": "ort-1.27.0-cmake-deps-mirror.tar.gz.bytes",
+          "id": 514410459,
+          "size": 10,
+          "digest": "sha256:a16d15470e86fd6d18e543ccc5d523c3305c7a061ff24ef8fb8e35e1f275ff11",
+          "created_at": "2026-08-14T12:47:22Z",
+          "updated_at": "2026-08-14T12:47:22Z",
+          "browser_download_url": "https://github.com/lly8666/qairt-sdk-archive/releases/download/ort-1.27.0-cmake-deps-v1/ort-1.27.0-cmake-deps-mirror.tar.gz.bytes",
+          "api_url": "https://api.github.com/repos/lly8666/qairt-sdk-archive/releases/assets/514410459"
+        },
+        {
+          "name": "ort-1.27.0-cmake-deps-mirror.tar.gz.sha256",
+          "id": 514410456,
+          "size": 102,
+          "digest": "sha256:27f88ec29dddfc528498de491a906de86424ce67078bd5982ebc005cb84c9512",
+          "created_at": "2026-08-14T12:47:22Z",
+          "updated_at": "2026-08-14T12:47:22Z",
+          "browser_download_url": "https://github.com/lly8666/qairt-sdk-archive/releases/download/ort-1.27.0-cmake-deps-v1/ort-1.27.0-cmake-deps-mirror.tar.gz.sha256",
+          "api_url": "https://api.github.com/repos/lly8666/qairt-sdk-archive/releases/assets/514410456"
+        }
+      ]
+    },
+    {
+      "tag_name": "ort-1.27.0-offline-deps-v1",
+      "name": "ort-1.27.0-offline-deps-v1",
+      "draft": false,
+      "prerelease": false,
+      "created_at": "2026-08-14T12:43:47Z",
+      "published_at": "2026-08-14T12:44:54Z",
+      "html_url": "https://github.com/lly8666/qairt-sdk-archive/releases/tag/ort-1.27.0-offline-deps-v1",
+      "assets": [
+        {
+          "name": "OFFLINE_DEPS_MANIFEST.json",
+          "id": 514408050,
+          "size": 12053,
+          "digest": "sha256:3249f30b51f2513f852f33af2af49184a8f2b844e2d1c06e05b9bc09d9989166",
+          "created_at": "2026-08-14T12:44:44Z",
+          "updated_at": "2026-08-14T12:44:44Z",
+          "browser_download_url": "https://github.com/lly8666/qairt-sdk-archive/releases/download/ort-1.27.0-offline-deps-v1/OFFLINE_DEPS_MANIFEST.json",
+          "api_url": "https://api.github.com/repos/lly8666/qairt-sdk-archive/releases/assets/514408050"
+        },
+        {
+          "name": "OFFLINE_DEPS_MANIFEST.sha256",
+          "id": 514408046,
+          "size": 106,
+          "digest": "sha256:68097271491737fc76f1b2bb09a9ac927dcab1e062290152a4b1c4afa789b412",
+          "created_at": "2026-08-14T12:44:44Z",
+          "updated_at": "2026-08-14T12:44:44Z",
+          "browser_download_url": "https://github.com/lly8666/qairt-sdk-archive/releases/download/ort-1.27.0-offline-deps-v1/OFFLINE_DEPS_MANIFEST.sha256",
+          "api_url": "https://api.github.com/repos/lly8666/qairt-sdk-archive/releases/assets/514408046"
+        },
+        {
+          "name": "deps.txt",
+          "id": 514408061,
+          "size": 7137,
+          "digest": "sha256:e411468ead299e3386b2e5e9d773e50e1939b5fc0baca599666ca5757eeb3f71",
+          "created_at": "2026-08-14T12:44:45Z",
+          "updated_at": "2026-08-14T12:44:45Z",
+          "browser_download_url": "https://github.com/lly8666/qairt-sdk-archive/releases/download/ort-1.27.0-offline-deps-v1/deps.txt",
+          "api_url": "https://api.github.com/repos/lly8666/qairt-sdk-archive/releases/assets/514408061"
+        },
+        {
+          "name": "ort-1.27.0-offline-deps-v1.tar",
+          "id": 514408049,
+          "size": 424284160,
+          "digest": "sha256:fb1756060b4b844c3319ab20053af50ac04b5a4ef2537e3f24537995324ef8bd",
+          "created_at": "2026-08-14T12:44:44Z",
+          "updated_at": "2026-08-14T12:44:53Z",
+          "browser_download_url": "https://github.com/lly8666/qairt-sdk-archive/releases/download/ort-1.27.0-offline-deps-v1/ort-1.27.0-offline-deps-v1.tar",
+          "api_url": "https://api.github.com/repos/lly8666/qairt-sdk-archive/releases/assets/514408049"
+        },
+        {
+          "name": "ort-1.27.0-offline-deps-v1.tar.bytes",
+          "id": 514408047,
+          "size": 10,
+          "digest": "sha256:eafaad13ddc57362c98e90eff128c300e452f238dc649959d220419f07c81483",
+          "created_at": "2026-08-14T12:44:44Z",
+          "updated_at": "2026-08-14T12:44:44Z",
+          "browser_download_url": "https://github.com/lly8666/qairt-sdk-archive/releases/download/ort-1.27.0-offline-deps-v1/ort-1.27.0-offline-deps-v1.tar.bytes",
+          "api_url": "https://api.github.com/repos/lly8666/qairt-sdk-archive/releases/assets/514408047"
+        },
+        {
+          "name": "ort-1.27.0-offline-deps-v1.tar.sha256",
+          "id": 514408045,
+          "size": 97,
+          "digest": "sha256:26d04dabe461d99eb85bfba89b2334ce7f6e485d040f2638442a4d99b91b9102",
+          "created_at": "2026-08-14T12:44:44Z",
+          "updated_at": "2026-08-14T12:44:44Z",
+          "browser_download_url": "https://github.com/lly8666/qairt-sdk-archive/releases/download/ort-1.27.0-offline-deps-v1/ort-1.27.0-offline-deps-v1.tar.sha256",
+          "api_url": "https://api.github.com/repos/lly8666/qairt-sdk-archive/releases/assets/514408045"
+        }
+      ]
+    },
+    {
+      "tag_name": "ort-1.27.0-source-v1",
+      "name": "ort-1.27.0-source-v1",
+      "draft": false,
+      "prerelease": false,
+      "created_at": "2026-08-14T12:36:41Z",
+      "published_at": "2026-08-14T12:37:46Z",
+      "html_url": "https://github.com/lly8666/qairt-sdk-archive/releases/tag/ort-1.27.0-source-v1",
+      "assets": [
+        {
+          "name": "ORT_SUBMODULES.txt",
+          "id": 514402051,
+          "size": 232,
+          "digest": "sha256:d7117f7d39ce76134647f73b040387faa2c9dd6795a8190b47a67273eb2ed826",
+          "created_at": "2026-08-14T12:37:37Z",
+          "updated_at": "2026-08-14T12:37:38Z",
+          "browser_download_url": "https://github.com/lly8666/qairt-sdk-archive/releases/download/ort-1.27.0-source-v1/ORT_SUBMODULES.txt",
+          "api_url": "https://api.github.com/repos/lly8666/qairt-sdk-archive/releases/assets/514402051"
+        },
+        {
+          "name": "SOURCE_PROVENANCE.txt",
+          "id": 514402049,
+          "size": 132,
+          "digest": "sha256:a89172fe6229a1a80addc7a065fb3653d244b61ffd6aa11a583090310ec3d928",
+          "created_at": "2026-08-14T12:37:37Z",
+          "updated_at": "2026-08-14T12:37:38Z",
+          "browser_download_url": "https://github.com/lly8666/qairt-sdk-archive/releases/download/ort-1.27.0-source-v1/SOURCE_PROVENANCE.txt",
+          "api_url": "https://api.github.com/repos/lly8666/qairt-sdk-archive/releases/assets/514402049"
+        },
+        {
+          "name": "onnxruntime-1.27.0-8f0278c-source-with-submodules.tar.gz",
+          "id": 514402050,
+          "size": 299476789,
+          "digest": "sha256:28fbbd3e7e180b815ea2069c66947f77a1427c058c1122c4bda64e2b50ed2783",
+          "created_at": "2026-08-14T12:37:37Z",
+          "updated_at": "2026-08-14T12:37:45Z",
+          "browser_download_url": "https://github.com/lly8666/qairt-sdk-archive/releases/download/ort-1.27.0-source-v1/onnxruntime-1.27.0-8f0278c-source-with-submodules.tar.gz",
+          "api_url": "https://api.github.com/repos/lly8666/qairt-sdk-archive/releases/assets/514402050"
+        },
+        {
+          "name": "onnxruntime-1.27.0-8f0278c-source-with-submodules.tar.gz.bytes",
+          "id": 514402048,
+          "size": 10,
+          "digest": "sha256:ebf451ac488b30847b10110f1fc783f2cc81889633d1f8905f352302b8e3bcf2",
+          "created_at": "2026-08-14T12:37:37Z",
+          "updated_at": "2026-08-14T12:37:38Z",
+          "browser_download_url": "https://github.com/lly8666/qairt-sdk-archive/releases/download/ort-1.27.0-source-v1/onnxruntime-1.27.0-8f0278c-source-with-submodules.tar.gz.bytes",
+          "api_url": "https://api.github.com/repos/lly8666/qairt-sdk-archive/releases/assets/514402048"
+        },
+        {
+          "name": "onnxruntime-1.27.0-8f0278c-source-with-submodules.tar.gz.sha256",
+          "id": 514402047,
+          "size": 123,
+          "digest": "sha256:a1f6505bf5f07ff089c1c00a15070e05681498c441d9dcfdec67e98442c81a31",
+          "created_at": "2026-08-14T12:37:37Z",
+          "updated_at": "2026-08-14T12:37:38Z",
+          "browser_download_url": "https://github.com/lly8666/qairt-sdk-archive/releases/download/ort-1.27.0-source-v1/onnxruntime-1.27.0-8f0278c-source-with-submodules.tar.gz.sha256",
+          "api_url": "https://api.github.com/repos/lly8666/qairt-sdk-archive/releases/assets/514402047"
+        }
+      ]
+    },
+    {
+      "tag_name": "gate0d-host-toolchain-v1",
+      "name": "gate0d-host-toolchain-v1",
+      "draft": false,
+      "prerelease": false,
+      "created_at": "2026-08-14T11:56:53Z",
+      "published_at": "2026-08-14T12:00:00Z",
+      "html_url": "https://github.com/lly8666/qairt-sdk-archive/releases/tag/gate0d-host-toolchain-v1",
+      "assets": [
+        {
+          "name": "BYTES.txt",
+          "id": 514367355,
+          "size": 90,
+          "digest": "sha256:2cf1b2665e59aaef8a54f909353c31ed2492c9c5f7b13a55b4ac6264787771c6",
+          "created_at": "2026-08-14T11:59:52Z",
+          "updated_at": "2026-08-14T11:59:52Z",
+          "browser_download_url": "https://github.com/lly8666/qairt-sdk-archive/releases/download/gate0d-host-toolchain-v1/BYTES.txt",
+          "api_url": "https://api.github.com/repos/lly8666/qairt-sdk-archive/releases/assets/514367355"
+        },
+        {
+          "name": "GATE0D_HOST_TOOLCHAIN_MANIFEST.json",
+          "id": 514367356,
+          "size": 1582,
+          "digest": "sha256:4cc4dd682da5f1ff9906d4587c4ff500cbfe3ee66132f30db49953de7b33d1ba",
+          "created_at": "2026-08-14T11:59:52Z",
+          "updated_at": "2026-08-14T11:59:52Z",
+          "browser_download_url": "https://github.com/lly8666/qairt-sdk-archive/releases/download/gate0d-host-toolchain-v1/GATE0D_HOST_TOOLCHAIN_MANIFEST.json",
+          "api_url": "https://api.github.com/repos/lly8666/qairt-sdk-archive/releases/assets/514367356"
+        },
+        {
+          "name": "SHA256SUMS.txt",
+          "id": 514367354,
+          "size": 203,
+          "digest": "sha256:aa8c2f4a4d94dfd4bab1bf80149a2f8e5537b0a0ce2930ea73072bad247b2e4a",
+          "created_at": "2026-08-14T11:59:52Z",
+          "updated_at": "2026-08-14T11:59:52Z",
+          "browser_download_url": "https://github.com/lly8666/qairt-sdk-archive/releases/download/gate0d-host-toolchain-v1/SHA256SUMS.txt",
+          "api_url": "https://api.github.com/repos/lly8666/qairt-sdk-archive/releases/assets/514367354"
+        },
+        {
+          "name": "gate0d-cpython310-runtime.tar.gz",
+          "id": 514367357,
+          "size": 29226747,
+          "digest": "sha256:1d94b18b7956b3c5e55aa359254ee884e270d51fd75814eae455813f2f8b8b1d",
+          "created_at": "2026-08-14T11:59:52Z",
+          "updated_at": "2026-08-14T11:59:53Z",
+          "browser_download_url": "https://github.com/lly8666/qairt-sdk-archive/releases/download/gate0d-host-toolchain-v1/gate0d-cpython310-runtime.tar.gz",
+          "api_url": "https://api.github.com/repos/lly8666/qairt-sdk-archive/releases/assets/514367357"
+        },
+        {
+          "name": "qairt-2.42.0.251225-host-tools.tar.gz",
+          "id": 514367353,
+          "size": 257175357,
+          "digest": "sha256:b1ae0b6ea905131c49110aef703deb16ebed0b7ba60b6fe24f2bf877d13a5ced",
+          "created_at": "2026-08-14T11:59:52Z",
+          "updated_at": "2026-08-14T11:59:59Z",
+          "browser_download_url": "https://github.com/lly8666/qairt-sdk-archive/releases/download/gate0d-host-toolchain-v1/qairt-2.42.0.251225-host-tools.tar.gz",
+          "api_url": "https://api.github.com/repos/lly8666/qairt-sdk-archive/releases/assets/514367353"
+        }
+      ]
+    },
+    {
+      "tag_name": "qairt-sdk-archive-v1",
+      "name": "QAIRT SDK Archive",
+      "draft": false,
+      "prerelease": false,
+      "created_at": "2026-08-13T08:05:16Z",
+      "published_at": "2026-08-13T08:27:04Z",
+      "html_url": "https://github.com/lly8666/qairt-sdk-archive/releases/tag/qairt-sdk-archive-v1",
+      "assets": [
+        {
+          "name": "qairt-2.42.0.251225.zip",
+          "id": 512699984,
+          "size": 1543955191,
+          "digest": "sha256:1a744ed72a813fc9dd4a29e31b1685f784786102fd45414d74915bb3351ae321",
+          "created_at": "2026-08-13T08:11:38Z",
+          "updated_at": "2026-08-13T08:17:37Z",
+          "browser_download_url": "https://github.com/lly8666/qairt-sdk-archive/releases/download/qairt-sdk-archive-v1/qairt-2.42.0.251225.zip",
+          "api_url": "https://api.github.com/repos/lly8666/qairt-sdk-archive/releases/assets/512699984"
+        },
+        {
+          "name": "qairt-2.48.40.260702.zip.part-00",
+          "id": 512706038,
+          "size": 1000000000,
+          "digest": "sha256:8d2b6a9684069e4838bee5052bcffc5cae4358efe845b7c9be8487ae768d3e36",
+          "created_at": "2026-08-13T08:17:37Z",
+          "updated_at": "2026-08-13T08:21:25Z",
+          "browser_download_url": "https://github.com/lly8666/qairt-sdk-archive/releases/download/qairt-sdk-archive-v1/qairt-2.48.40.260702.zip.part-00",
+          "api_url": "https://api.github.com/repos/lly8666/qairt-sdk-archive/releases/assets/512706038"
+        },
+        {
+          "name": "qairt-2.48.40.260702.zip.part-01",
+          "id": 512710818,
+          "size": 1000000000,
+          "digest": "sha256:ebea49f038d264e7d1a783f4224125e0e5833ec6dd4ecb6387c576521e34c8f2",
+          "created_at": "2026-08-13T08:21:25Z",
+          "updated_at": "2026-08-13T08:25:16Z",
+          "browser_download_url": "https://github.com/lly8666/qairt-sdk-archive/releases/download/qairt-sdk-archive-v1/qairt-2.48.40.260702.zip.part-01",
+          "api_url": "https://api.github.com/repos/lly8666/qairt-sdk-archive/releases/assets/512710818"
+        },
+        {
+          "name": "qairt-2.48.40.260702.zip.part-02",
+          "id": 512714869,
+          "size": 387723706,
+          "digest": "sha256:8cc1ef6252820a3cb6c8d60d70d287dc7e759914dc610ebfe68edf32f056c35b",
+          "created_at": "2026-08-13T08:25:16Z",
+          "updated_at": "2026-08-13T08:26:46Z",
+          "browser_download_url": "https://github.com/lly8666/qairt-sdk-archive/releases/download/qairt-sdk-archive-v1/qairt-2.48.40.260702.zip.part-02",
+          "api_url": "https://api.github.com/repos/lly8666/qairt-sdk-archive/releases/assets/512714869"
+        }
+      ]
+    }
+  ]
+}
