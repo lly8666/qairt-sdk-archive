@@ -1,0 +1,84 @@
+name: Export indexed ORT 1.27 Linux x64 for agents
+
+on:
+  issues:
+    types: [opened]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  export:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.issue.title == '[sdk-export-ort-1.27-linux-x64]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Resolve exact ORT asset from stable index
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY' >> "$GITHUB_ENV"
+          import json
+          idx=json.load(open('release-manifest/AGENT_RELEASE_INDEX.json'))
+          hits=[]
+          for rel in idx['releases']:
+              for a in rel['assets']:
+                  if a['name']=='onnxruntime-linux-x64-1.27.0.tgz':
+                      hits.append((rel,a))
+          if len(hits)!=1: raise SystemExit(f'expected one ORT x64 asset, found {len(hits)}')
+          rel,a=hits[0]; digest=a.get('digest') or ''
+          if not digest.startswith('sha256:'): raise SystemExit('missing sha256')
+          print('ASSET_ID='+str(a['id']))
+          print('ASSET_NAME='+a['name'])
+          print('ASSET_BYTES='+str(a['size']))
+          print('ASSET_SHA='+digest.split(':',1)[1])
+          print('RELEASE_TAG='+rel['tag_name'])
+          PY
+      - name: Download, verify, inspect and package
+        id: inspect
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl -fL -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/octet-stream' -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/assets/${ASSET_ID}" -o "$ASSET_NAME"
+          test "$(stat -c %s "$ASSET_NAME")" = "$ASSET_BYTES"
+          echo "$ASSET_SHA  $ASSET_NAME" | sha256sum -c -
+          mkdir payload
+          tar -xzf "$ASSET_NAME" -C payload
+          find payload -type f -printf '%P\n' | sort > payload/FILE_LIST.txt
+          { grep -Ei 'qnn|provider' payload/FILE_LIST.txt || true; } > payload/QNN_FILENAME_HITS.txt
+          strings $(find payload -type f -name 'libonnxruntime.so*' | head -1) 2>/dev/null | grep -E 'QNNExecutionProvider|QnnCpu|QnnHtp' | sort -u > payload/QNN_STRING_HITS.txt || true
+          cat > payload/SOURCE_PROVENANCE.txt <<EOF
+          source_repository=${GITHUB_REPOSITORY}
+          source_release=${RELEASE_TAG}
+          source_asset=${ASSET_NAME}
+          source_asset_id=${ASSET_ID}
+          source_bytes=${ASSET_BYTES}
+          source_sha256=${ASSET_SHA}
+          EOF
+          qnn_files=$(wc -l < payload/QNN_FILENAME_HITS.txt | tr -d ' ')
+          qnn_strings=$(wc -l < payload/QNN_STRING_HITS.txt | tr -d ' ')
+          echo "qnn_filename_hits=$qnn_files" >> "$GITHUB_OUTPUT"
+          echo "qnn_string_hits=$qnn_strings" >> "$GITHUB_OUTPUT"
+          printf 'QNN_FILENAME_HITS=%s\nQNN_STRING_HITS=%s\n' "$qnn_files" "$qnn_strings" | tee payload/QNN_INSPECTION_SUMMARY.txt
+      - name: Upload one-day transport
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: ort-1.27-linux-x64-inspected
+          path: payload
+          retention-days: 1
+          compression-level: 6
+      - name: Report
+        if: github.event_name == 'issues'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "ORT 1.27 Linux x64 inspected transport ready. Artifact id: \`${{ steps.upload.outputs.artifact-id }}\`. QNN filename hits: \`${{ steps.inspect.outputs.qnn_filename_hits }}\`; QNN string hits: \`${{ steps.inspect.outputs.qnn_string_hits }}\`. Verify SOURCE_PROVENANCE.txt after download."
