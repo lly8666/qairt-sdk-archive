@@ -1,0 +1,29 @@
+name: Report ORT QNN host build run
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  actions: read
+  contents: read
+  issues: write
+
+jobs:
+  report:
+    if: github.event.issue.title == '[report-ort-qnn-build-run]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Find recent ORT/QNN build runs
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          json="$(gh api -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/workflows/build-ort-127-qnn-linux-x64.yml/runs?event=issues&per_page=10")"
+          body="$(printf '%s' "$json" | jq -r '
+            [.workflow_runs[] | {id,status,conclusion,created_at,updated_at,head_sha,event,html_url}] |
+            if length==0 then "no recent issue-triggered runs found"
+            else (.[0:5] | map("run_id=\(.id) status=\(.status) conclusion=\(.conclusion // \"null\") created_at=\(.created_at) updated_at=\(.updated_at) head_sha=\(.head_sha)") | join("\n")) end')"
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "Recent ORT1.27+QNN2.44 build runs:\n\n\`\`\`text\n${body}\n\`\`\`"
