@@ -26,6 +26,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Report start
+        if: github.event_name == 'issues'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "Exact ORT1.27 + QAIRT2.44 QNN Linux x64 build started. This archive-safe revision skips Git submodule sync and runtime-probes QNNExecutionProvider before publishing any artifact."
+
       - name: Download exact archived ORT source and QAIRT 2.44
         shell: bash
         env:
@@ -50,8 +58,7 @@ jobs:
           tar -xzf ort-source.tar.gz -C ort-src --strip-components=1
           test -x ort-src/build.sh
           test -f ort-src/tools/ci_build/build.py
-          git_commit=$(cat ort-src/ORT_SUBMODULES.txt 2>/dev/null || true)
-          echo "ORT source extracted; submodule marker: $git_commit"
+          test ! -d ort-src/.git
           python3 - <<'PY'
           import os, zipfile
           dst='qnn-sdk'
@@ -63,9 +70,11 @@ jobs:
           )
           with zipfile.ZipFile('qairt.zip') as z:
             selected=0
+            sdk_yaml=[]
             for info in z.infolist():
               if info.is_dir(): continue
               parts=[p for p in info.filename.replace('\\','/').split('/') if p]
+              if parts and parts[-1]=='sdk.yaml': sdk_yaml.append(info)
               hit=None
               for marker in keep:
                 n=len(marker)
@@ -83,11 +92,14 @@ jobs:
                   if not b: break
                   w.write(b)
               selected += 1
+            if len(sdk_yaml)==1:
+              with z.open(sdk_yaml[0]) as r, open(os.path.join(dst,'sdk.yaml'),'wb') as w: w.write(r.read())
           req=['include/QNN/QnnInterface.h','include/QNN/QnnTypes.h','lib/x86_64-linux-clang/libQnnCpu.so','lib/x86_64-linux-clang/libQnnHtp.so','lib/x86_64-linux-clang/libQnnSystem.so']
           for r in req:
             if not os.path.isfile(os.path.join(dst,r)): raise SystemExit('missing '+r)
           print('QAIRT_MINIMAL_FILES',selected)
           PY
+          if [ -f qnn-sdk/sdk.yaml ]; then grep -E '^version:' qnn-sdk/sdk.yaml || true; fi
 
       - name: Build ORT 1.27 shared library with QNN EP
         shell: bash
@@ -98,9 +110,12 @@ jobs:
           ./ort-src/build.sh \
             --config Release \
             --build_dir "$PWD/ort-build" \
+            --update \
+            --build \
             --build_shared_lib \
             --parallel 2 \
             --skip_tests \
+            --skip_submodule_sync \
             --compile_no_warning_as_error \
             --use_qnn "$PWD/qnn-sdk"
 
@@ -110,10 +125,10 @@ jobs:
           set -euo pipefail
           out=ort-qnn-host-bundle
           mkdir -p "$out/lib" "$out/include" "$out/bin"
-          lib=$(find ort-build -type f -name 'libonnxruntime.so*' | sort | tail -1)
-          test -n "$lib"
-          cp -av "$lib" "$out/lib/"
-          while IFS= read -r f; do cp -av "$f" "$out/lib/"; done < <(find ort-build -type f -name 'libonnxruntime_providers*.so*' | sort -u)
+          libdir=$(dirname "$(find ort-build -type f -name 'libonnxruntime.so' | sort | tail -1)")
+          test -n "$libdir" && test -f "$libdir/libonnxruntime.so"
+          find "$libdir" -maxdepth 1 \( -type f -o -type l \) -name 'libonnxruntime.so*' -exec cp -a {} "$out/lib/" \;
+          while IFS= read -r f; do cp -av "$f" "$out/lib/"; done < <(find "$libdir" -maxdepth 1 -type f -name 'libonnxruntime_providers*.so*' | sort -u)
           cp ort-src/include/onnxruntime/core/session/onnxruntime_c_api.h "$out/include/"
           cp ort-src/include/onnxruntime/core/providers/qnn/qnn_provider_factory.h "$out/include/"
           cat > /tmp/list-providers.cc <<'CPP'
@@ -121,20 +136,18 @@ jobs:
           #include <onnxruntime_c_api.h>
           int main(){const OrtApi* api=OrtGetApiBase()->GetApi(ORT_API_VERSION);char** p=nullptr;int n=0;OrtStatus* s=api->GetAvailableProviders(&p,&n);if(s){std::fprintf(stderr,"%s\n",api->GetErrorMessage(s));return 2;}for(int i=0;i<n;i++)std::printf("%s\n",p[i]);api->ReleaseAvailableProviders(p,n);return 0;}
           CPP
-          soname=$(basename "$lib")
-          libdir=$(dirname "$lib")
           g++ -std=c++17 -Iort-src/include/onnxruntime/core/session /tmp/list-providers.cc -L"$libdir" -lonnxruntime -Wl,-rpath,'$ORIGIN/../lib' -o "$out/bin/list-ort-providers"
-          # Copy the canonical unversioned/shared symlinks if build produced them.
-          find "$libdir" -maxdepth 1 \( -type f -o -type l \) -name 'libonnxruntime.so*' -exec cp -a {} "$out/lib/" \;
-          export LD_LIBRARY_PATH="$PWD/qnn-sdk/lib/x86_64-linux-clang:$PWD/$out/lib"
-          "$out/bin/list-ort-providers" | tee "$out/AVAILABLE_PROVIDERS.txt"
-          grep -qx 'QNNExecutionProvider' "$out/AVAILABLE_PROVIDERS.txt"
-          strings "$out/lib/"libonnxruntime.so* | grep -E 'QNNExecutionProvider|backend_type|QnnCpu' | sort -u | head -100 > "$out/QNN_STRING_EVIDENCE.txt" || true
           cp qnn-sdk/lib/x86_64-linux-clang/libQnnCpu.so "$out/lib/"
           cp qnn-sdk/lib/x86_64-linux-clang/libQnnSystem.so "$out/lib/"
           cp qnn-sdk/lib/x86_64-linux-clang/libQnnSaver.so "$out/lib/" 2>/dev/null || true
+          export LD_LIBRARY_PATH="$PWD/qnn-sdk/lib/x86_64-linux-clang:$PWD/$out/lib"
+          "$out/bin/list-ort-providers" | tee "$out/AVAILABLE_PROVIDERS.txt"
+          grep -qx 'QNNExecutionProvider' "$out/AVAILABLE_PROVIDERS.txt"
+          ldd "$out/lib/libonnxruntime_providers_qnn.so" | tee "$out/QNN_PROVIDER_LDD.txt"
+          ! grep -q 'not found' "$out/QNN_PROVIDER_LDD.txt"
+          strings "$out/lib/libonnxruntime_providers_qnn.so" | grep -E 'QNNExecutionProvider|backend_type|QnnCpu|enable_htp_fp16_precision|qnn_saver_path' | sort -u > "$out/QNN_STRING_EVIDENCE.txt" || true
           cp qnn-sdk/include/QNN/QnnInterface.h qnn-sdk/include/QNN/QnnTypes.h "$out/include/"
-          printf 'ort_source_asset_sha256=%s\nqairt_source_asset_sha256=%s\nort_commit=8f0278c\nqairt_version=2.44.0.260225\nbuild_host=ubuntu-24.04\n' "$ORT_ASSET_SHA256" "$QAIRT_ASSET_SHA256" > "$out/BUILD_PROVENANCE.txt"
+          printf 'ort_source_asset_sha256=%s\nqairt_source_asset_sha256=%s\nort_commit=8f0278c\nqairt_version=2.44.0.260225\nbuild_host=ubuntu-24.04\narchive_safe_skip_submodule_sync=true\n' "$ORT_ASSET_SHA256" "$QAIRT_ASSET_SHA256" > "$out/BUILD_PROVENANCE.txt"
           (cd "$out" && find . -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS.txt)
 
       - name: Upload exact host QNN bundle
@@ -154,4 +167,4 @@ jobs:
         run: |
           set -euo pipefail
           providers=$(tr '\n' ',' < ort-qnn-host-bundle/AVAILABLE_PROVIDERS.txt | sed 's/,$//')
-          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "Exact ORT 1.27 + QAIRT 2.44 Linux x64 QNN host bundle built. Artifact id: \`${{ steps.upload.outputs.artifact-id }}\`; providers: \`${providers}\`. Verify BUILD_PROVENANCE.txt and SHA256SUMS.txt after download."
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "Exact ORT 1.27 + QAIRT 2.44 Linux x64 QNN host bundle PASS. Artifact id: \`${{ steps.upload.outputs.artifact-id }}\`; providers: \`${providers}\`. Verify BUILD_PROVENANCE.txt and SHA256SUMS.txt after download."
