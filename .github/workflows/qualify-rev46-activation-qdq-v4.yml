@@ -1,0 +1,116 @@
+name: Qualify rev46 activation QDQ v4
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: rev46-activation-qdq-v4
+  cancel-in-progress: false
+
+jobs:
+  qualify:
+    if: github.event.issue.title == '[qualify-rev46-activation-qdq-v4]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      LAB: android-labs/rev46-block4-activation-qdq-v4
+      V3_COMMIT: daa8b471af9adad0d560374f9f4037724550e918
+      V3_LAB: android-labs/rev46-block4-activation-strict-htp-v3
+      PAYLOAD_NAME: rev46-block4-focused-payload-v2.tar.gz
+      PAYLOAD_BYTES: '4176967'
+      PAYLOAD_SHA256: 42493454ece1060a5100f28e5bf35a15d09bb48f8b46f82c5b69a12fd0f6a1c9
+      RELEASE_TAG: '20260820.1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned host tooling
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install 'numpy<2.3' 'onnx==1.19.1' 'onnxruntime==1.27.0'
+          python - <<'PY'
+          import onnxruntime as ort
+          assert ort.__version__ == '1.27.0'
+          print('ort='+ort.__version__)
+          PY
+      - name: Fetch pinned v3 float activation models
+        run: |
+          set -euo pipefail
+          fr="$RUNNER_TEMP/v3-float"; mkdir -p "$fr"
+          base="https://raw.githubusercontent.com/lly8666/qairt-sdk-archive/${V3_COMMIT}/${V3_LAB}/generated"
+          curl -fL --retry 3 "$base/cold4_baseline_contrib_gelu.onnx" -o "$fr/cold4_baseline_contrib_gelu.onnx"
+          curl -fL --retry 3 "$base/cold4_candidate_exact_activation.onnx" -o "$fr/cold4_candidate_exact_activation.onnx"
+          curl -fL --retry 3 "$base/warm6_baseline_contrib_gelu.onnx" -o "$fr/warm6_baseline_contrib_gelu.onnx"
+          curl -fL --retry 3 "$base/warm6_candidate_exact_activation.onnx" -o "$fr/warm6_candidate_exact_activation.onnx"
+          echo '96e2e309a22e41cc3040c88e339ddef24065e30cbf5ffa08a8be9550c899f40f  '"$fr/cold4_baseline_contrib_gelu.onnx" | sha256sum -c -
+          echo '3825f01208c5ba351bc70cbd6c967025a23014ee74c48b88dbf18552e6ecc1cd  '"$fr/cold4_candidate_exact_activation.onnx" | sha256sum -c -
+          echo '455516875b73b3ffcf3231260030c934ba752489b9eda8400c77f6179ac4a7e1  '"$fr/warm6_baseline_contrib_gelu.onnx" | sha256sum -c -
+          echo '00c10909e547e83ab87a70b7b71b4a6108992e5293198e41bc97ad2d508648e7  '"$fr/warm6_candidate_exact_activation.onnx" | sha256sum -c -
+          echo "FLOAT_ROOT=$fr" >> "$GITHUB_ENV"
+      - name: Fetch exact frozen payload for validation only
+        run: |
+          set -euo pipefail
+          p="$RUNNER_TEMP/$PAYLOAD_NAME"
+          curl -fL --retry 3 "https://github.com/lly8666/qairt-sdk-archive/releases/download/${RELEASE_TAG}/${PAYLOAD_NAME}" -o "$p"
+          test "$(stat -c%s "$p")" = "$PAYLOAD_BYTES"
+          echo "$PAYLOAD_SHA256  $p" | sha256sum -c -
+          out="$RUNNER_TEMP/v4-payload"; rm -rf "$out"; mkdir -p "$out"
+          python - "$p" "$out" <<'PY'
+          import pathlib,sys,tarfile
+          src=pathlib.Path(sys.argv[1]); dst=pathlib.Path(sys.argv[2])
+          with tarfile.open(src,'r:gz') as tf:
+              for m in tf.getmembers():
+                  p=pathlib.PurePosixPath(m.name)
+                  if p.is_absolute() or '..' in p.parts or m.issym() or m.islnk(): raise SystemExit(f'unsafe member {m.name}')
+              tf.extractall(dst)
+          PY
+          root=$(dirname "$(find "$out" -type f -name PAYLOAD_MANIFEST.json -print -quit)")
+          test -f "$root/SHA256SUMS.txt"
+          (cd "$root" && sha256sum -c SHA256SUMS.txt)
+          echo "PAYLOAD_ROOT=$root" >> "$GITHUB_ENV"
+      - name: Generate one prescribed QDQ configuration and validate
+        id: qdq
+        shell: bash
+        run: |
+          set -uo pipefail
+          rm -rf "$LAB/generated"; mkdir -p "$LAB/generated"
+          python "$LAB/tools/prepare_qdq_v4.py" --float-root "$FLOAT_ROOT" --payload-root "$PAYLOAD_ROOT" --out-dir "$LAB/generated" 2>&1 | tee "$LAB/generated/qualification.log"
+          rc=${PIPESTATUS[0]}
+          echo "rc=$rc" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Freeze generated evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f "$LAB/generated/QDQ_V4_MANIFEST.json"
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add "$LAB/generated"
+          git commit -m 'rev46: freeze activation QDQ v4 host qualification'
+          git push origin HEAD:main
+          echo "QUAL_COMMIT=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+      - name: Report result
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          rc='${{ steps.qdq.outputs.rc }}'
+          status=FAILURE
+          if [ "$rc" = 0 ]; then status=PASS; elif [ "$rc" = 2 ]; then status=REVIEW; fi
+          body="REV46_ACTIVATION_QDQ_V4_HOST_QUALIFICATION_${status}\n\nRun: **${GITHUB_RUN_ID}**\nCommit: **${QUAL_COMMIT:-uncommitted}**\nQuantization: **QDQ / QUInt16 activations / QUInt8 weights**\nCalibration: **deterministic synthetic only; frozen fixtures validation-only**."
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "$body"
+      - name: Enforce qualification result
+        if: always()
+        shell: bash
+        run: |
+          test '${{ steps.qdq.outputs.rc }}' = 0
