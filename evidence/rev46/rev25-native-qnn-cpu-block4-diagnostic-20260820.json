@@ -1,0 +1,94 @@
+{
+  "schema": 1,
+  "date": "2026-08-20",
+  "scope": "rev46 host diagnostic; no HTP conclusion; no production integration",
+  "foundation": {
+    "release": "20260820.1",
+    "asset": "qairt244-native-host-foundation-v4.tar.gz",
+    "asset_id": 521748069,
+    "sha256": "44753f03f7b2c0a21ff751258137a3673321bbd10aaa8817ebf1f00badb17b22",
+    "qnn": "2.44.0.260225",
+    "backend": "qnn-net-run/libQnnCpu.so"
+  },
+  "frozen_inputs": {
+    "cold4": "323c194e5da29f0be962ea8b72ca2fa2d1a9fc2481d80b95e5590f79e9485f65",
+    "warm6": "e2b7ab608a6b37a6dd9896589719cab446edf95287f59dfc7b5693da6ec98f6c",
+    "raw_mel": "dc58af153c7c0dd6ab0a450a5f77648203e7f82a800a17837e09095ce48c9963",
+    "ort127_spectrum": "1c98b1ef3aababc64e0bef53889cfe86a294190d37f4b94b476ab4697cf17d8a",
+    "ort127_waveform": "a9d23b56592014e4ad3bb84d49da25f6d10478551ceeba7ccaf0b54d30ff4853"
+  },
+  "repeatability": {
+    "native_qnn_whole_spectrum_bit_exact": true,
+    "native_qnn_waveform_bit_exact": true,
+    "native_qnn_per_block_bit_exact": true,
+    "source_evidence_sha256": "105cca22b369f6592a8675b1f2e583ea60c24ac6fd964ae048ebc054bbd4f15a"
+  },
+  "preserve_io_native_qnn_vs_ort127": {
+    "spectrum": {
+      "max_abs": 0.3273897171020508,
+      "mean_abs": 0.00016126253520038161,
+      "rmse": 0.0016567951061984346,
+      "cosine_similarity": 0.9999958157316631,
+      "pass_frozen_gate": false
+    },
+    "waveform": {
+      "max_abs": 0.0015545245260000229,
+      "mean_abs": 0.00006207001913120302,
+      "rmse": 0.00010771973583644068,
+      "cosine_similarity": 0.9999974054221387,
+      "pass_frozen_gate": false
+    },
+    "source_evidence_sha256": "8a1380f775e2ee7d30dc811c9712031c31e42709e59ba6f4a8706be67de81a05"
+  },
+  "cold_residual_localization": [
+    {"block":0,"max_abs":0.00000476837158203125,"mean_abs":1.6873073036549612e-7,"rmse":3.587448496358734e-7},
+    {"block":1,"max_abs":0.000005245208740234375,"mean_abs":1.8822215679392685e-7,"rmse":3.7771713374555565e-7},
+    {"block":2,"max_abs":0.000005245208740234375,"mean_abs":2.0847264750045725e-7,"rmse":3.967959061781031e-7},
+    {"block":3,"max_abs":0.000006198883056640625,"mean_abs":2.842627509380691e-7,"rmse":4.899172710143361e-7},
+    {"block":4,"max_abs":0.0014309883117675781,"mean_abs":0.0001340093178441748,"rmse":0.00020816964700223132},
+    {"block":5,"max_abs":0.001538991928100586,"mean_abs":0.00015219117303786334,"rmse":0.00022066278025670313},
+    {"block":6,"max_abs":0.0023674964904785156,"mean_abs":0.0002812056729453616,"rmse":0.00039514489036655695}
+  ],
+  "block4_taps": {
+    "activation": {
+      "max_abs": 0.0004732748493552208,
+      "mean_abs": 0.00011407254572981529,
+      "rmse": 0.0001652404130665278,
+      "cosine_similarity": 0.9999998185216019
+    },
+    "pw2_output": {
+      "max_abs": 0.005901336669921875,
+      "mean_abs": 0.0010785467813548167,
+      "rmse": 0.0013823019301918563,
+      "cosine_similarity": 0.9999998526798068
+    },
+    "residual": {
+      "max_abs": 0.001431107521057129,
+      "mean_abs": 0.00013401403048192152,
+      "rmse": 0.00020817590482430658,
+      "cosine_similarity": 0.9999999762807511
+    },
+    "tap_evidence_sha256": "90a9c5f55fd06bb43c70a8133886bea380a27c37f513ff8354c87d65b6971eb2"
+  },
+  "block4_decanonicalized_diagnostic": {
+    "construction": "replace block4 activation subgraph with mathematically equivalent block5-style activation expression; rest of graph unchanged",
+    "cold_model_sha256": "efda4b2b563a667b1c751eee53339085532ca1007209c42c23325ce109f09432",
+    "warm_model_sha256": "a605520bca2c2b6bd1d513ab62b987f76cce522eaaa1c9e21a212fd37608c275",
+    "ort_cpu_vs_frozen_rev25": {
+      "spectrum": {"max_abs":0.00008487701416015625,"mean_abs":1.912018858615381e-7,"rmse":0.0000014639374287859073,"cosine_similarity":0.9999999999967306,"pass_frozen_gate":true},
+      "waveform": {"max_abs":5.289912223815918e-7,"mean_abs":5.8746875851205564e-8,"rmse":8.38693385236336e-8,"cosine_similarity":0.9999999999984306,"pass_frozen_gate":true}
+    },
+    "qnn_cpu_vs_frozen_rev25": {
+      "spectrum": {"max_abs":0.0005030632019042969,"mean_abs":3.957610933493119e-7,"rmse":0.0000032915075546294626,"cosine_similarity":0.9999999999834887,"pass_frozen_gate":false},
+      "waveform": {"max_abs":0.000002384185791015625,"mean_abs":1.1781466990076746e-7,"rmse":1.8380086748443218e-7,"cosine_similarity":0.9999999999924621,"pass_frozen_gate":true}
+    },
+    "cpu_semantic_evidence_sha256": "1cc03c47408bcf387141f56ab3e667acf9446725595e5c61780831603257611b",
+    "qnn_evidence_sha256": "098050a4271a3732b4dff6cf411988012cd976e0387b2c4c07946c64abd96c32"
+  },
+  "compiled_model_libs": {
+    "canonicalized_preserve_io_cold_sha256": "0aa0b962df6eea2c21838c07d38d6541a17e6ce1cde0b4e93fc8d98a289126a0",
+    "block4_decanonicalized_cold_sha256": "587ab0b77d78f1bfb089887708316bfca2284cf4301f87eb9a9d6154b11a466b"
+  },
+  "interpretation": "First material native-QNN CPU drift localizes to block4 activation and is amplified by PW2/residual. A mathematically equivalent alternate activation expression nearly removes the QNN drift while remaining ORT-CPU equivalent. This supports block4 activation-subgraph lowering/canonicalization sensitivity as the next compiled-QNN/Saver structural target. It is not an HTP conclusion.",
+  "next_gate": "same-version Saver/debug/optrace comparison of canonicalized vs block4-decanonicalized block4 activation -> PW2 -> residual"
+}
