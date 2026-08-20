@@ -1,20 +1,36 @@
-# ChatGPT / Agent QAIRT Access Guide v3 — durable host foundation
+# ChatGPT / Agent QAIRT Access Guide v4 — public reusable host foundation
 
-This private repository is the permanent binary archive and transport broker for QAIRT/QNN and related host dependencies.
+This repository is the reusable QAIRT/QNN host-tooling, model-development and numerical-evidence workspace used by the MeanVC2/Vocos investigation.
 
-## 1. Canonical discovery
+## 1. Public-repository rule
 
-Never guess Release tags, asset IDs, byte sizes or checksums from chat history. Always read first:
+Treat `lly8666/qairt-sdk-archive` as a **public build/runtime workspace**.
+
+Allowed here:
+
+- open-source-derived ONNX models and model variants;
+- generated model libraries, context binaries, diagnostics and numerical evidence;
+- QAIRT/QNN dependency manifests and reproducible build scripts;
+- public build dependencies fetched by GitHub Actions;
+- Actions artifacts used to move generated files between agents/runs.
+
+Do **not** commit or print secrets: GitHub tokens, signing keys, passwords, private credentials, temporary signed URLs, or unrelated personal/private data.
+
+Model-development files are not treated as private merely because they are generated during SimAdmin work. The model source is open-source-derived, so model variants and generated numerical artifacts may be published here.
+
+## 2. Canonical dependency discovery
+
+Never guess Release tags, asset IDs, byte sizes or checksums from chat history. Read first:
 
 ```text
 release-manifest/AGENT_RELEASE_INDEX.json
 ```
 
-The current index wins over prose copies below. Temporary signed redirect URLs are never authority and must not be persisted.
+The current index wins over prose copies below.
 
-## 2. Primary long-lived MeanVC2 host foundation
+## 3. Primary long-lived MeanVC2 host foundation
 
-For active SimAdmin MeanVC2/Vocos rev46 host numerical work, the preferred reusable host dependency is the already-qualified foundation Release asset:
+For active MeanVC2/Vocos rev46 host numerical work, reuse the already-qualified foundation Release asset:
 
 ```text
 Release tag: 20260820.1
@@ -24,7 +40,7 @@ bytes: 377592420
 sha256: 44753f03f7b2c0a21ff751258137a3673321bbd10aaa8817ebf1f00badb17b22
 ```
 
-This payload was validated by an actual deterministic native CPU flow:
+Qualified flow:
 
 ```text
 qnn-onnx-converter
@@ -32,41 +48,15 @@ qnn-onnx-converter
   -> qnn-net-run --backend libQnnCpu.so
 ```
 
-It contains the reusable Linux x64 QAIRT 2.44 host closure, frozen CPython/C++ runtime and pinned Python package closure needed by the converter/model-lib/native-QNN path. It is the normal starting point; do not reconstruct this closure from the 1.56 GB SDK for routine rev46 work.
+This payload contains the reusable Linux x64 QAIRT 2.44 host closure, CPython/C++ runtime and Python package closure. Routine work must reuse it instead of rebuilding the 1.56 GB SDK closure.
 
-The historical Actions artifact `9392491458` is only evidence of the successful build that produced the same payload. It is not the long-term authority now that the byte-identical payload is in Release.
+Historical Actions artifact IDs are build evidence/transport only; the Release payload SHA is the long-term identity.
 
-## 3. Preferred acquisition paths
+## 4. Preferred acquisition
 
-### A. GitHub Actions / authenticated private GitHub runtime
+Because this repository is intended for public reusable tooling, prefer ordinary public GitHub Release download by asset URL/name, then verify exact byte size and SHA256 from `AGENT_RELEASE_INDEX.json` before use.
 
-Resolve the asset from `AGENT_RELEASE_INDEX.json`, download the private Release asset using its asset API ID with `Accept: application/octet-stream`, then require exact byte size and SHA256 above before extraction.
-
-### B. ChatGPT execution runtime without direct private Release byte download
-
-Create a private Issue with exact title:
-
-```text
-[sdk-export-qairt244-native-host-foundation]
-```
-
-Workflow:
-
-```text
-.github/workflows/export-qairt244-native-host-foundation.yml
-```
-
-This workflow performs **transport only**:
-
-1. resolves the permanent foundation from the current Release index;
-2. downloads the private Release asset inside GitHub Actions;
-3. verifies exact bytes and SHA256;
-4. verifies `foundation/smoke/FOUNDATION_PASS.txt` contains `QAIRT244_NATIVE_FOUNDATION_PASS=1`;
-5. exposes the unchanged Release payload as a short-lived connector-downloadable Actions artifact.
-
-No compilation is performed by this transport workflow. The private Release remains permanent authority.
-
-Recommended local extraction root:
+Recommended extraction root:
 
 ```text
 /mnt/data/qairt244-native-host-foundation-v4/
@@ -74,9 +64,58 @@ Recommended local extraction root:
 
 Keep other QAIRT versions in separate trees.
 
-## 4. Source/build fallback assets — not the normal runtime dependency
+If an execution environment cannot conveniently download the Release asset directly, an Actions transport artifact may be used. Transport must not rebuild or silently modify the qualified foundation payload.
 
-Only use these when rebuilding or auditing the durable foundation:
+## 5. GitHub Actions network/dependency policy
+
+GitHub Actions may and should fetch **public external dependencies directly** when that is faster and simpler. Examples include:
+
+```text
+apt / Ubuntu packages
+PyPI wheels/sdists
+GitHub source archives and Releases
+official toolchain archives
+public CMake dependencies
+```
+
+For scientific/reproducible paths:
+
+1. pin meaningful dependency versions;
+2. record source URL/repository and version/commit;
+3. record SHA256 for frozen binary/archive inputs when practical;
+4. freeze the final qualified closure as a Release asset when it is expensive or stable;
+5. do not rebuild a qualified long-lived foundation on every experiment.
+
+Offline wheelhouses/mirrors are optional reproducibility/cache tools, **not evidence that Actions lacks Internet access**.
+
+Heavy model compilation, QNN conversion, repeated inference, Saver/optrace generation and other CPU/memory-intensive jobs should normally run here in GitHub Actions when that avoids exhausting the interactive sandbox.
+
+## 6. SimAdmin-Android Actions prohibition
+
+Do **not** use GitHub Actions in `lly8666/SimAdmin-Android` for this investigation.
+
+`SimAdmin-Android` remains the project/source authority, but compute jobs must use either:
+
+- this qairt-sdk-archive Actions workspace for publishable model/tool/numerical work; or
+- the interactive sandbox/local environment when it is faster and safe for the workload.
+
+Do not copy unrelated SimAdmin private application material into this public repository merely to obtain compute.
+
+## 7. APK build/test selection
+
+APK build/test is a special case. Choose the **faster practical execution path** between the interactive sandbox/local build environment and a suitable non-SimAdmin Actions route.
+
+Rules:
+
+- never invoke SimAdmin-Android Actions;
+- if local/sandbox Gradle caches and checked-out source make local build faster, use local/sandbox;
+- if a public/non-sensitive reproducible build can be staged elsewhere without exposing unrelated application-private material and Actions is faster, Actions may be used;
+- benchmark from observed wall time rather than assuming either environment is always faster;
+- avoid saturating the interactive sandbox: serialize heavy jobs, avoid duplicate builds, and reuse compiled assets/caches.
+
+## 8. Source/build fallback assets
+
+Use these only when rebuilding/auditing the durable foundation:
 
 ```text
 QAIRT full SDK
@@ -101,50 +140,23 @@ Gate0D CPython 3.10 / C++ runtime
   sha256: 1d94b18b7956b3c5e55aa359254ee884e270d51fd75814eae455813f2f8b8b1d
 ```
 
-The Gate0D runtime supplies the frozen CPython 3.10.20 host runtime and required C++ shared runtime (`libc++`, `libc++abi`, `libunwind`) used by the qualified foundation.
+## 9. ORT 1.27 roles
 
-## 5. ORT 1.27 assets and roles
-
-```text
-ORT Linux x64 stock CPU package
-  Release: 20260819
-  asset: onnxruntime-linux-x64-1.27.0.tgz
-  id: 520889056
-  bytes: 8831605
-  sha256: 547e40a48f1fe73e3f812d7c88a948612c23f896b91e4e2ee1e232d7b468246f
-```
-
-The stock package is an exact ORT 1.27 CPU oracle/runtime source. Its provider probe exposes `CPUExecutionProvider`; it must **not** be represented as an ORT QNN-EP build.
-
-An exact ORT 1.27 + QAIRT 2.44 QNN-EP Linux x64 build is a separate frontend-parity/integration control. Native `qnn-net-run + libQnnCpu.so` PASS does not prove ORT-QNN frontend parity, and ORT-QNN PASS does not prove HTP PASS.
-
-## 6. Dependency role separation
-
-Keep these authority classes distinct:
+Official ORT Linux x64 stock CPU package:
 
 ```text
-host foundation
-  durable Release qairt244-native-host-foundation-v4
-
-source/build inputs
-  full QAIRT SDK + wheelhouse + Gate0D runtime
-
-ORT CPU oracle
-  official ORT 1.27 Linux x64 stock package
-
-ORT-QNN frontend parity
-  separately-qualified ORT 1.27 QNN-EP host bundle
-
-frozen model/fixture inputs
-  project authority / Drive / exact SHA, never hidden inside the host foundation
-
-experiment runners/evidence
-  Git-tracked scripts/manifests referencing exact dependency and model SHAs
+Release: 20260819
+asset: onnxruntime-linux-x64-1.27.0.tgz
+id: 520889056
+bytes: 8831605
+sha256: 547e40a48f1fe73e3f812d7c88a948612c23f896b91e4e2ee1e232d7b468246f
 ```
 
-This separation is intentional: changing the transport or host packaging must never silently change model identity, QNN semantics, thresholds or device conclusions.
+It is the exact ORT 1.27 CPU oracle/runtime source and is not an ORT QNN-EP build.
 
-## 7. Current version lock and scientific boundaries
+Exact ORT 1.27 + QAIRT 2.44 QNN-EP is a separate frontend-parity control. Native `qnn-net-run + libQnnCpu.so` PASS does not prove ORT-QNN parity, and ORT-QNN PASS does not prove HTP PASS.
+
+## 10. Scientific boundaries
 
 ```text
 ORT scientific baseline: 1.27.0
@@ -152,18 +164,12 @@ QNN runtime baseline: 2.44.0
 QAIRT SDK: 2.44.0.260225
 ```
 
-Do not substitute 2.42/2.48 except explicit version-sensitivity experiments. Formal QNN/HTP gates keep CPU EP fallback disabled. QNN CPU is a reference/integration backend, not a bit-accurate HTP simulator. Strict HTP device evidence remains final truth.
+Do not substitute 2.42/2.48 except explicit version-sensitivity experiments. Formal QNN/HTP gates keep CPU EP fallback disabled. QNN CPU is a reference/integration backend, not a bit-accurate HTP simulator. Strict device HTP remains final truth.
 
-## 8. Security/provenance
+No numerical threshold relaxation follows from changing compute/transport location.
 
-- Never print/commit tokens, private signing material, passwords or temporary signed asset redirects.
-- Before use, verify the Release asset byte size and SHA256 from the current index.
-- Every serious experiment manifest records Release tag, asset ID, payload SHA, model/fixture SHA and execution backend.
-- Foundation transport may change; foundation payload identity must not.
-- No production integration follows merely from host reference PASS.
-
-## 9. Copy-paste takeover instruction
+## 11. Takeover instruction
 
 ```text
-Read lly8666/qairt-sdk-archive/release-manifest/AGENT_RELEASE_INDEX.json and CHATGPT_QAIRT_ACCESS_GUIDE.md. For current MeanVC2 rev46 host work use Release 20260820.1 asset qairt244-native-host-foundation-v4.tar.gz (id 521748069, sha256 44753f03f7b2c0a21ff751258137a3673321bbd10aaa8817ebf1f00badb17b22) as the primary native QAIRT 2.44 foundation. If the chat runtime cannot directly download a private Release asset, trigger [sdk-export-qairt244-native-host-foundation] for a transport-only artifact. Do not rebuild the 1.56 GB SDK closure unless auditing/rebuilding the foundation; do not confuse native QNN CPU, ORT-QNN frontend parity, or HTP truth.
+Read release-manifest/AGENT_RELEASE_INDEX.json and CHATGPT_QAIRT_ACCESS_GUIDE.md. Reuse Release 20260820.1 qairt244-native-host-foundation-v4.tar.gz (sha256 44753f03f7b2c0a21ff751258137a3673321bbd10aaa8817ebf1f00badb17b22). Public dependencies may be fetched directly in qairt-sdk-archive Actions; model variants/generated evidence may be public. Never place secrets here. Never use SimAdmin-Android Actions. For APK build/test choose the faster safe path between sandbox/local and an eligible non-SimAdmin route, while avoiding sandbox saturation.
 ```
