@@ -1,0 +1,314 @@
+name: Preflight QAIRT 2.44 native QNN CPU
+
+on:
+  issues:
+    types: [opened]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+env:
+  QAIRT_VERSION: 2.44.0.260225
+  QAIRT_ASSET_ID: '520887827'
+  QAIRT_ZIP_BYTES: '1560450667'
+  QAIRT_ZIP_SHA256: 52a5b0cc051eb2896848c9fd46e704612b1dc06e7d2f5d0d9a79fd8bcdd344bb
+  WHEELHOUSE_ASSET_ID: '521019740'
+  WHEELHOUSE_BYTES: '103860736'
+  WHEELHOUSE_SHA256: eb3d0b500d7021a05ec111bf6afc14262d97282a5bb5a4481c88c7865b38d19f
+  SAFE_START: SIMADMIN_AGENT_SAFE_START_REQUIRED=1
+
+jobs:
+  native-qnncpu-preflight:
+    if: github.event_name == 'workflow_dispatch' || github.event.issue.title == '[preflight-qairt244-native-qnncpu]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+
+    steps:
+      - name: Record scientific scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "$SAFE_START"
+          echo 'QAIRT_NATIVE_QNNCPU_PREFLIGHT=1'
+          echo 'NO_ORT_QNN_EP_REQUIRED=1'
+          echo 'NO_CPU_FALLBACK=1'
+          echo 'NO_THRESHOLD_RELAXATION=1'
+          echo 'NO_PRODUCTION_INTEGRATION=1'
+
+      - uses: actions/checkout@v4
+
+      - name: Set up exact Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Download and verify immutable QAIRT and wheelhouse assets
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          download_asset() {
+            local id="$1" out="$2" bytes="$3" sha="$4"
+            curl --fail --location --retry 5 --retry-all-errors \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H 'Accept: application/octet-stream' \
+              -H 'X-GitHub-Api-Version: 2022-11-28' \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/assets/${id}" \
+              -o "$out"
+            test "$(stat -c %s "$out")" = "$bytes"
+            echo "$sha  $out" | sha256sum -c -
+          }
+          download_asset "$QAIRT_ASSET_ID" qairt.zip "$QAIRT_ZIP_BYTES" "$QAIRT_ZIP_SHA256"
+          download_asset "$WHEELHOUSE_ASSET_ID" wheelhouse.tar "$WHEELHOUSE_BYTES" "$WHEELHOUSE_SHA256"
+
+      - name: Extract exact Linux x64 QAIRT host subset
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, zipfile
+          dst='qairt-host'
+          markers=(('bin','x86_64-linux-clang'),('bin','lib'),('lib','x86_64-linux-clang'),('lib','python'),('include',),('share',))
+          os.makedirs(dst,exist_ok=True)
+          count=0; total=0
+          with zipfile.ZipFile('qairt.zip') as z:
+              for info in z.infolist():
+                  if info.is_dir(): continue
+                  parts=[p for p in info.filename.replace('\\','/').split('/') if p]
+                  hit=None
+                  for marker in markers:
+                      n=len(marker)
+                      for i in range(len(parts)-n+1):
+                          if tuple(parts[i:i+n])==marker:
+                              hit=i; break
+                      if hit is not None: break
+                  if hit is None: continue
+                  rel='/'.join(parts[hit:]); target=os.path.join(dst,rel)
+                  os.makedirs(os.path.dirname(target),exist_ok=True)
+                  with z.open(info) as r, open(target,'wb') as w:
+                      while True:
+                          b=r.read(1<<20)
+                          if not b: break
+                          w.write(b)
+                  count+=1; total+=info.file_size
+          print('EXTRACTED_FILES',count)
+          print('EXTRACTED_BYTES',total)
+          required=[
+            'bin/x86_64-linux-clang/qnn-onnx-converter',
+            'bin/x86_64-linux-clang/qnn-model-lib-generator',
+            'bin/x86_64-linux-clang/qnn-net-run',
+            'bin/x86_64-linux-clang/qnn-context-binary-generator',
+            'lib/x86_64-linux-clang/libQnnCpu.so',
+            'lib/x86_64-linux-clang/libQnnSystem.so',
+          ]
+          missing=[x for x in required if not os.path.isfile(os.path.join(dst,x))]
+          if missing: raise SystemExit('missing required QAIRT files: '+repr(missing))
+          PY
+          chmod -R a+rX qairt-host
+          chmod +x qairt-host/bin/x86_64-linux-clang/*
+          {
+            echo "source_asset_id=$QAIRT_ASSET_ID"
+            echo "source_bytes=$QAIRT_ZIP_BYTES"
+            echo "source_sha256=$QAIRT_ZIP_SHA256"
+            echo "qairt_version=$QAIRT_VERSION"
+          } > qairt-host/SOURCE_PROVENANCE.txt
+          (cd qairt-host && find . -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS.txt)
+
+      - name: Build isolated converter Python closure
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir wheelhouse
+          tar -xf wheelhouse.tar -C wheelhouse
+          python3.10 -m venv venv
+          wheel_root="$(dirname "$(find wheelhouse -type f -name 'numpy-1.26.4-*.whl' -print -quit)")"
+          test -n "$wheel_root"
+          venv/bin/pip install --no-index --find-links "$wheel_root" \
+            'numpy==1.26.4' 'onnx==1.19.1' 'onnxsim==0.4.36' \
+            'protobuf==7.35.1' 'pyyaml==6.0.3' 'packaging==26.3' \
+            'pandas==2.2.3' 'sympy==1.14.0' 'rich==15.0.0' 'jsonschema==4.26.0'
+          # These two converter dependencies are the known rev46 closure gaps and are
+          # intentionally recorded here. Dedicated one-day export workflows freeze them
+          # separately; a successful preflight will be followed by a durable merged closure.
+          venv/bin/pip install 'lxml==6.1.2' 'Mako<2'
+          venv/bin/python - <<'PY'
+          import lxml, mako, numpy, onnx, onnxsim, pandas, yaml
+          print('PYTHON_CLOSURE_PASS=1')
+          print('numpy',numpy.__version__,'onnx',onnx.__version__,'onnxsim',onnxsim.__version__,'pandas',pandas.__version__)
+          print('lxml',lxml.__version__,'mako',mako.__version__,'pyyaml',yaml.__version__)
+          PY
+          venv/bin/pip freeze | sort > PYTHON_FREEZE.txt
+          sha256sum $(find "$wheel_root" -maxdepth 1 -type f -name '*.whl' -print | sort) > WHEELHOUSE_SHA256_USED.txt
+
+      - name: Audit native tool identities and help contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/help evidence/ldd
+          export QNN_SDK_ROOT="$PWD/qairt-host"
+          export PATH="$QNN_SDK_ROOT/bin/x86_64-linux-clang:$PATH"
+          export PYTHONPATH="$QNN_SDK_ROOT/lib/python${PYTHONPATH:+:$PYTHONPATH}"
+          export LD_LIBRARY_PATH="$QNN_SDK_ROOT/lib/x86_64-linux-clang:$QNN_SDK_ROOT/bin/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+          for t in qnn-onnx-converter qnn-model-lib-generator qnn-net-run qnn-context-binary-generator; do
+            command -v "$t" | tee "evidence/${t}.path"
+            sha256sum "$(command -v "$t")" | tee "evidence/${t}.sha256"
+            set +e
+            venv/bin/python "$(command -v "$t")" --help >"evidence/help/${t}.txt" 2>&1
+            rc=$?
+            if [ "$rc" -ne 0 ]; then
+              "$t" --help >"evidence/help/${t}.txt" 2>&1
+              rc=$?
+            fi
+            set -e
+            echo "$rc" > "evidence/help/${t}.rc"
+            test "$rc" = 0
+            file "$(command -v "$t")" >> evidence/TOOL_FILE_TYPES.txt
+            ldd "$(command -v "$t")" >"evidence/ldd/${t}.txt" 2>&1 || true
+          done
+          sha256sum "$QNN_SDK_ROOT/lib/x86_64-linux-clang/libQnnCpu.so" | tee evidence/libQnnCpu.so.sha256
+          ldd "$QNN_SDK_ROOT/lib/x86_64-linux-clang/libQnnCpu.so" > evidence/ldd/libQnnCpu.so.txt 2>&1 || true
+
+      - name: Generate deterministic tiny ONNX and raw input
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p tiny
+          venv/bin/python - <<'PY'
+          import json, pathlib, numpy as np, onnx
+          from onnx import TensorProto, helper
+          x=helper.make_tensor_value_info('input',TensorProto.FLOAT,[1,4])
+          y=helper.make_tensor_value_info('output',TensorProto.FLOAT,[1,4])
+          node=helper.make_node('Relu',['input'],['output'],name='relu')
+          graph=helper.make_graph([node],'qairt244_native_qnncpu_preflight',[x],[y])
+          model=helper.make_model(graph,producer_name='simadmin-rev46-preflight',opset_imports=[helper.make_operatorsetid('',13)])
+          onnx.checker.check_model(model)
+          onnx.save(model,'tiny/tiny_relu.onnx')
+          arr=np.asarray([[1.0,-2.0,3.0,-4.0]],dtype='<f4')
+          arr.tofile('tiny/input.raw')
+          np.maximum(arr,0).astype('<f4').tofile('tiny/expected.raw')
+          pathlib.Path('tiny/input_list.txt').write_text('input:=input.raw\n')
+          pathlib.Path('tiny/contract.json').write_text(json.dumps({'input':'input','output':'output','shape':[1,4],'dtype':'float32','op':'Relu'},sort_keys=True,indent=2)+'\n')
+          PY
+          sha256sum tiny/tiny_relu.onnx tiny/input.raw tiny/expected.raw tiny/contract.json > tiny/SHA256SUMS.txt
+
+      - name: Convert ONNX to QNN C++ model
+        shell: bash
+        run: |
+          set -euo pipefail
+          export QNN_SDK_ROOT="$PWD/qairt-host"
+          export PATH="$QNN_SDK_ROOT/bin/x86_64-linux-clang:$PATH"
+          export PYTHONPATH="$QNN_SDK_ROOT/lib/python${PYTHONPATH:+:$PYTHONPATH}"
+          export LD_LIBRARY_PATH="$QNN_SDK_ROOT/lib/x86_64-linux-clang:$QNN_SDK_ROOT/bin/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+          cd tiny
+          set -o pipefail
+          venv_py="$GITHUB_WORKSPACE/venv/bin/python"
+          "$venv_py" "$(command -v qnn-onnx-converter)" \
+            --input_network tiny_relu.onnx \
+            --output_path tiny_relu.cpp \
+            2>&1 | tee converter.log
+          test -s tiny_relu.cpp
+          ls -la | tee converter-files.txt
+
+      - name: Compile QNN x86_64 model library
+        shell: bash
+        run: |
+          set -euo pipefail
+          export QNN_SDK_ROOT="$PWD/qairt-host"
+          export PATH="$QNN_SDK_ROOT/bin/x86_64-linux-clang:$PATH"
+          export LD_LIBRARY_PATH="$QNN_SDK_ROOT/lib/x86_64-linux-clang:$QNN_SDK_ROOT/bin/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+          cd tiny
+          args=(-c tiny_relu.cpp -o model-lib -t x86_64-linux-clang)
+          if [ -s tiny_relu.bin ]; then args+=(-b tiny_relu.bin); fi
+          qnn-model-lib-generator "${args[@]}" 2>&1 | tee model-lib.log
+          find model-lib -type f -maxdepth 5 -printf '%p %s\n' | tee model-lib-files.txt
+          model_so="$(find model-lib -type f -name 'lib*.so' -print -quit)"
+          test -n "$model_so"
+          echo "$model_so" > model-so.path
+          sha256sum "$model_so" > model-so.sha256
+
+      - name: Execute strict native QNN CPU tiny model
+        shell: bash
+        run: |
+          set -euo pipefail
+          export QNN_SDK_ROOT="$PWD/qairt-host"
+          export PATH="$QNN_SDK_ROOT/bin/x86_64-linux-clang:$PATH"
+          export LD_LIBRARY_PATH="$QNN_SDK_ROOT/lib/x86_64-linux-clang:$QNN_SDK_ROOT/bin/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+          cd tiny
+          model_so="$(cat model-so.path)"
+          qnn-net-run \
+            --backend "$QNN_SDK_ROOT/lib/x86_64-linux-clang/libQnnCpu.so" \
+            --model "$model_so" \
+            --input_list input_list.txt \
+            --output_dir netrun-out \
+            2>&1 | tee qnn-net-run.log
+          find netrun-out -type f -printf '%p %s\n' | sort | tee netrun-files.txt
+          GITHUB_WORKSPACE="$GITHUB_WORKSPACE" "$GITHUB_WORKSPACE/venv/bin/python" - <<'PY'
+          import json, pathlib, numpy as np
+          expected=np.fromfile('expected.raw',dtype='<f4')
+          outs=[p for p in pathlib.Path('netrun-out').rglob('*.raw') if p.stat().st_size==expected.nbytes]
+          if len(outs)!=1:
+              raise SystemExit(f'expected one {expected.nbytes}-byte output raw, found {[(str(p),p.stat().st_size) for p in pathlib.Path("netrun-out").rglob("*.raw")]}')
+          got=np.fromfile(outs[0],dtype='<f4')
+          d=np.abs(got.astype(np.float64)-expected.astype(np.float64))
+          m={'output_path':str(outs[0]),'max_abs':float(d.max(initial=0)),'mean_abs':float(d.mean()),'expected':expected.tolist(),'got':got.tolist()}
+          pathlib.Path('native-qnncpu-result.json').write_text(json.dumps(m,indent=2,sort_keys=True)+'\n')
+          if not np.array_equal(got,expected):
+              raise SystemExit('tiny native QNN CPU output mismatch: '+json.dumps(m))
+          print('QAIRT244_NATIVE_QNNCPU_TINY_PASS=1',json.dumps(m,sort_keys=True))
+          PY
+
+      - name: Freeze preflight evidence
+        if: always()
+        shell: bash
+        run: |
+          set -u
+          mkdir -p evidence/frozen
+          cp -f PYTHON_FREEZE.txt WHEELHOUSE_SHA256_USED.txt evidence/frozen/ 2>/dev/null || true
+          cp -f qairt-host/SOURCE_PROVENANCE.txt evidence/frozen/ 2>/dev/null || true
+          cp -f tiny/*.log tiny/*.txt tiny/*.json tiny/*.sha256 evidence/frozen/ 2>/dev/null || true
+          cp -rf evidence/help evidence/ldd evidence/frozen/ 2>/dev/null || true
+          {
+            echo "$SAFE_START"
+            echo "qairt_version=$QAIRT_VERSION"
+            echo "qairt_asset_id=$QAIRT_ASSET_ID"
+            echo "qairt_sha256=$QAIRT_ZIP_SHA256"
+            echo 'route=ONNX -> qnn-onnx-converter -> qnn-model-lib-generator -> qnn-net-run -> libQnnCpu.so'
+            echo 'onnxruntime_qnn_ep_required=false'
+            echo 'cpu_fallback_authorized=false'
+            echo 'threshold_relaxation_authorized=false'
+            echo 'production_integration_authorized=false'
+          } > evidence/frozen/AUTHORITY.txt
+          find evidence/frozen -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > evidence/frozen/SHA256SUMS.txt || true
+          tar -czf qairt244-native-qnncpu-preflight-${GITHUB_RUN_ID}.tar.gz -C evidence/frozen . || true
+          sha256sum qairt244-native-qnncpu-preflight-${GITHUB_RUN_ID}.tar.gz > qairt244-native-qnncpu-preflight-${GITHUB_RUN_ID}.tar.gz.sha256 2>/dev/null || true
+
+      - name: Upload diagnostic evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qairt244-native-qnncpu-preflight-${{ github.run_id }}
+          path: |
+            qairt244-native-qnncpu-preflight-${{ github.run_id }}.tar.gz
+            qairt244-native-qnncpu-preflight-${{ github.run_id }}.tar.gz.sha256
+            evidence/frozen
+          retention-days: 7
+          if-no-files-found: warn
+
+      - name: Report success
+        if: success() && github.event_name == 'issues'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "QAIRT244_NATIVE_QNNCPU_PREFLIGHT_PASS\n\nExact QAIRT: ${QAIRT_VERSION} / ${QAIRT_ZIP_SHA256}\nRoute: ONNX -> qnn-onnx-converter -> qnn-model-lib-generator -> qnn-net-run -> libQnnCpu.so\nQNNExecutionProvider was not required.\nRun: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\nNo CPU fallback, threshold relaxation, or production integration was authorized."
+
+      - name: Report failure
+        if: failure() && github.event_name == 'issues'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "QAIRT244_NATIVE_QNNCPU_PREFLIGHT_FAIL\n\nInspect run ${GITHUB_RUN_ID} and the always-uploaded diagnostic artifact. No result is qualified and no production integration is authorized."
