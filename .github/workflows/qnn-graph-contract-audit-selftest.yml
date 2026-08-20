@@ -1,0 +1,62 @@
+name: QNN graph contract audit qualification
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  audit:
+    if: github.event.issue.title == '[qnn-graph-contract-audit-selftest]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install ONNX
+        run: python -m pip install --disable-pip-version-check 'onnx==1.18.0'
+      - name: Audit committed rev46 Q16 graph contracts
+        run: |
+          set -euo pipefail
+          d=android-labs/rev46-block4-activation-q16-htp-v4/generated
+          python tools/qnn_graph_contract_audit.py \
+            "$d/cold4_baseline_q16_qdq.onnx" \
+            "$d/cold4_candidate_q16_qdq.onnx" \
+            "$d/cold4_micro_mul_q16_qdq.onnx" \
+            "$d/cold4_micro_mul_relu_q16_qdq.onnx" \
+            "$d/cold4_micro_add_q16_qdq.onnx" \
+            "$d/cold4_micro_add_clip_q16_qdq.onnx" \
+            "$d/cold4_micro_gelu_q16_qdq.onnx" \
+            --output "$d/Q16_V4_GRAPH_CONTRACT_AUDIT.json"
+          python - <<'PY'
+          import json
+          p='android-labs/rev46-block4-activation-q16-htp-v4/generated/Q16_V4_GRAPH_CONTRACT_AUDIT.json'
+          x=json.load(open(p))
+          assert x['schema']==1 and len(x['models'])==7
+          by={m['path'].split('/')[-1]:m for m in x['models']}
+          assert by['cold4_micro_mul_q16_qdq.onnx']['graph_contract_flags']['has_qdq']
+          assert by['cold4_micro_mul_q16_qdq.onnx']['qdq_node_count'] >= 2
+          assert by['cold4_candidate_q16_qdq.onnx']['node_count'] > by['cold4_baseline_q16_qdq.onnx']['node_count']
+          print('QNN_GRAPH_CONTRACT_AUDIT_SELFTEST_PASS')
+          PY
+      - name: Freeze report
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add android-labs/rev46-block4-activation-q16-htp-v4/generated/Q16_V4_GRAPH_CONTRACT_AUDIT.json
+          git commit -m 'rev46 q16: freeze graph-contract audit report'
+          git pull --rebase origin main
+          git push origin HEAD:main
+      - name: Report
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "QNN_GRAPH_CONTRACT_AUDIT_${{ job.status }} run=${GITHUB_RUN_ID}"
