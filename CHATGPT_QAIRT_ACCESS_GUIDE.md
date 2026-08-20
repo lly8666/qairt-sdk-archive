@@ -1,22 +1,24 @@
-# ChatGPT / Agent QAIRT Access Guide v4 — public reusable host foundation
+# ChatGPT / Agent QAIRT Access Guide v5 — public reusable model/tool/test workspace
 
-This repository is the reusable QAIRT/QNN host-tooling, model-development and numerical-evidence workspace used by the MeanVC2/Vocos investigation.
+This repository is the reusable QAIRT/QNN host-tooling, model-development, Android model-test and numerical-evidence workspace used by the MeanVC2/Vocos investigation.
 
 ## 1. Public-repository rule
 
-Treat `lly8666/qairt-sdk-archive` as a **public build/runtime workspace**.
+Treat `lly8666/qairt-sdk-archive` as a **public build/runtime/model-test workspace**.
 
 Allowed here:
 
 - open-source-derived ONNX models and model variants;
 - generated model libraries, context binaries, diagnostics and numerical evidence;
+- standalone model/QNN Android test applications, their source, fixtures, generated assets and APK build workflows/artifacts;
+- model-development scripts copied or refactored out of SimAdmin when they do not contain the small private communication/business layer;
 - QAIRT/QNN dependency manifests and reproducible build scripts;
 - public build dependencies fetched by GitHub Actions;
 - Actions artifacts used to move generated files between agents/runs.
 
-Do **not** commit or print secrets: GitHub tokens, signing keys, passwords, private credentials, temporary signed URLs, or unrelated personal/private data.
+Do **not** commit or print secrets: GitHub tokens, signing keys, passwords, private credentials, temporary signed URLs, personal data, or the small unrelated SimAdmin communication/business source that the user has not authorized for publication.
 
-Model-development files are not treated as private merely because they are generated during SimAdmin work. The model source is open-source-derived, so model variants and generated numerical artifacts may be published here.
+Model-development and model-test files are not treated as private merely because they are generated during SimAdmin work. The model source/test work is open-source-derived and may be published here. The privacy boundary is the unrelated communication/business code and secrets, not the model/test code.
 
 ## 2. Canonical dependency discovery
 
@@ -73,6 +75,7 @@ GitHub Actions may and should fetch **public external dependencies directly** wh
 ```text
 apt / Ubuntu packages
 PyPI wheels/sdists
+Maven Central Android AAR/JAR dependencies
 GitHub source archives and Releases
 official toolchain archives
 public CMake dependencies
@@ -90,28 +93,44 @@ Offline wheelhouses/mirrors are optional reproducibility/cache tools, **not evid
 
 Heavy model compilation, QNN conversion, repeated inference, Saver/optrace generation and other CPU/memory-intensive jobs should normally run here in GitHub Actions when that avoids exhausting the interactive sandbox.
 
-## 6. SimAdmin-Android Actions prohibition
+## 6. SimAdmin-Android Actions prohibition and publication boundary
 
 Do **not** use GitHub Actions in `lly8666/SimAdmin-Android` for this investigation.
 
-`SimAdmin-Android` remains the project/source authority, but compute jobs must use either:
+`SimAdmin-Android` remains the private application/project authority, but model/model-test work should be extracted to this public repository when useful. In particular, standalone MeanVC2/QNN test applications, model surgery/generation code, fixtures, analyzers and generated APKs may be public here.
 
-- this qairt-sdk-archive Actions workspace for publishable model/tool/numerical work; or
+The publication boundary is:
+
+- **public permitted:** model code, model-test code, numerical tools/evidence, standalone model-test Android code, generated model/test artifacts;
+- **keep private:** unrelated communication/business code, credentials, signing secrets, personal/private application data.
+
+Compute jobs must use either:
+
+- this qairt-sdk-archive Actions workspace for publishable model/tool/numerical/Android-test work; or
 - the interactive sandbox/local environment when it is faster and safe for the workload.
 
-Do not copy unrelated SimAdmin private application material into this public repository merely to obtain compute.
+## 7. APK build/test selection and device-test economy
 
-## 7. APK build/test selection
-
-APK build/test is a special case. Choose the **faster practical execution path** between the interactive sandbox/local build environment and a suitable non-SimAdmin Actions route.
+APK build/test chooses the **faster practical execution path** between the interactive sandbox/local build environment and this public Actions workspace. Benchmark with observed wall time; never assume one is always faster.
 
 Rules:
 
 - never invoke SimAdmin-Android Actions;
+- standalone model/QNN test APK source is eligible to live and build here publicly;
 - if local/sandbox Gradle caches and checked-out source make local build faster, use local/sandbox;
-- if a public/non-sensitive reproducible build can be staged elsewhere without exposing unrelated application-private material and Actions is faster, Actions may be used;
-- benchmark from observed wall time rather than assuming either environment is always faster;
-- avoid saturating the interactive sandbox: serialize heavy jobs, avoid duplicate builds, and reuse compiled assets/caches.
+- if Actions is faster or avoids sandbox pressure, build here;
+- avoid saturating the interactive sandbox: serialize heavy jobs, avoid duplicate builds, and reuse compiled assets/caches;
+- **minimize manual device installations/runs:** before asking for a phone test, combine all scientifically compatible A/B variants, input regimes, cold/warm shapes, fresh-session repeats, timing/partition/profiling evidence and failure controls into one batch APK whenever this does not confound interpretation;
+- a device run should answer several predeclared questions, not one tiny question that could have been bundled with adjacent probes;
+- do not avoid a scientifically necessary redesign, compiler investigation or difficult implementation merely because it is inconvenient. Engineering difficulty is not a rejection criterion; correctness and interpretable evidence are.
+
+Current public batch APK workspace:
+
+```text
+android-labs/rev46-block4-htp-batch/
+workflow: Build MeanVC2 rev46 Block4 HTP Batch APK
+artifact family: MeanVc2Rev46Block4HtpBatch-v1
+```
 
 ## 8. Source/build fallback assets
 
@@ -171,5 +190,5 @@ No numerical threshold relaxation follows from changing compute/transport locati
 ## 11. Takeover instruction
 
 ```text
-Read release-manifest/AGENT_RELEASE_INDEX.json and CHATGPT_QAIRT_ACCESS_GUIDE.md. Reuse Release 20260820.1 qairt244-native-host-foundation-v4.tar.gz (sha256 44753f03f7b2c0a21ff751258137a3673321bbd10aaa8817ebf1f00badb17b22). Public dependencies may be fetched directly in qairt-sdk-archive Actions; model variants/generated evidence may be public. Never place secrets here. Never use SimAdmin-Android Actions. For APK build/test choose the faster safe path between sandbox/local and an eligible non-SimAdmin route, while avoiding sandbox saturation.
+Read release-manifest/AGENT_RELEASE_INDEX.json and CHATGPT_QAIRT_ACCESS_GUIDE.md. Reuse Release 20260820.1 qairt244-native-host-foundation-v4.tar.gz (sha256 44753f03f7b2c0a21ff751258137a3673321bbd10aaa8817ebf1f00badb17b22). Public dependencies may be fetched directly in qairt-sdk-archive Actions. Model/model-test source, standalone test APK code and generated evidence may be public; only unrelated communication/business code and secrets stay private. Never use SimAdmin-Android Actions. For APK build/test choose the faster route from measured wall time and batch compatible device probes so each manual installation answers multiple questions. Do not reject a correct engineering path because it is difficult.
 ```
