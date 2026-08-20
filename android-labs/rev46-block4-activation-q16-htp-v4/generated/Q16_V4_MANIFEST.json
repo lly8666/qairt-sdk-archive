@@ -12,18 +12,7 @@
   },
   "micro_ladder": [
     {
-      "bytes": 199,
-      "dynamic_dims": [],
-      "kind": "relu",
-      "model": "cold4_micro_relu_q16_qdq.onnx",
-      "ops": {
-        "ai.onnx:Relu": 1
-      },
-      "qdq_present": false,
-      "sha256": "35265dad2397a825a33fa0a18328c195ec0eb0ea01168d40cfcc8ec0bec99187"
-    },
-    {
-      "bytes": 1089,
+      "bytes": 1125,
       "dynamic_dims": [],
       "kind": "mul",
       "model": "cold4_micro_mul_q16_qdq.onnx",
@@ -33,10 +22,24 @@
         "ai.onnx:QuantizeLinear": 2
       },
       "qdq_present": true,
-      "sha256": "c46b4e04064b3ceb7dffd000a451e2293f443ca4b0da527b2974f01a10c2f1e2"
+      "sha256": "0274a8b8d0dba64f2836882f6bab532ddba162633a43ee8536d36172240e71ed"
     },
     {
-      "bytes": 1089,
+      "bytes": 1531,
+      "dynamic_dims": [],
+      "kind": "mul_relu",
+      "model": "cold4_micro_mul_relu_q16_qdq.onnx",
+      "ops": {
+        "ai.onnx:DequantizeLinear": 4,
+        "ai.onnx:Mul": 1,
+        "ai.onnx:QuantizeLinear": 3,
+        "ai.onnx:Relu": 1
+      },
+      "qdq_present": true,
+      "sha256": "60c0a7c2b71ab5f9b2e790afa657cd332125b54cb26cc857d27cbd94eb46a2e0"
+    },
+    {
+      "bytes": 1125,
       "dynamic_dims": [],
       "kind": "add",
       "model": "cold4_micro_add_q16_qdq.onnx",
@@ -46,18 +49,21 @@
         "ai.onnx:QuantizeLinear": 2
       },
       "qdq_present": true,
-      "sha256": "3eb86d0ac2e41852f4d7bac8d5d7240440ecb1c663de1047e68eea890d951bc5"
+      "sha256": "77c707e17d0b994fd1e16994aa15b5df87c0e036b9acbc2925cfcc49af2f36b8"
     },
     {
-      "bytes": 236,
+      "bytes": 1571,
       "dynamic_dims": [],
-      "kind": "clip",
-      "model": "cold4_micro_clip_q16_qdq.onnx",
+      "kind": "add_clip",
+      "model": "cold4_micro_add_clip_q16_qdq.onnx",
       "ops": {
-        "ai.onnx:Clip": 1
+        "ai.onnx:Add": 1,
+        "ai.onnx:Clip": 1,
+        "ai.onnx:DequantizeLinear": 4,
+        "ai.onnx:QuantizeLinear": 3
       },
-      "qdq_present": false,
-      "sha256": "c05c6cb2d1b0f25f8ddc2fc74998617f8a4f612b31ec7612ad420cef189cefcd"
+      "qdq_present": true,
+      "sha256": "e44edbc6bce300fc9ab67890e2b5cea0c9c476d58eab4f8e8343ed00df1a9067"
     },
     {
       "bytes": 915,
@@ -75,12 +81,14 @@
   ],
   "ort_cpu_version": "1.27.0",
   "qualification": {
-    "all_fixed_shape": true,
-    "all_qdq_present": false,
-    "frozen_numeric_gate_all": false
+    "frozen_numeric_gate_all": false,
+    "micro_fixed_shape": true,
+    "micro_qdq_present": true,
+    "targets_fixed_shape": true,
+    "targets_qdq_present": true
   },
-  "schema": 1,
-  "status": "FAIL_STRUCTURE",
+  "schema": 2,
+  "status": "PASS_STRUCTURE_NUMERIC_GATE_NOT_MET_DIAGNOSTIC_ONLY",
   "variants": [
     {
       "dynamic_dims": [],
