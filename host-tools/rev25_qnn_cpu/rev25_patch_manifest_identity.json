@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "purpose": "identity summary for deterministic binary-splice reconstruction of frozen rev25 ONNX models",
+  "cold": {
+    "base_bytes": 33204674,
+    "base_sha256": "d32cb4b116bfe6aeee12f2ab726cf617b3aca6e8043bdf4d533c843769e00a7f",
+    "output_bytes": 33249679,
+    "output_sha256": "323c194e5da29f0be962ea8b72ca2fa2d1a9fc2481d80b95e5590f79e9485f65",
+    "splice_count": 9,
+    "source_rev24_pairwise_patch_sha256": "3c1b4d7bb83dab246fc2a35514ca0458ce6b2f84f4beb19c1aee4965034b8f22"
+  },
+  "warm": {
+    "base_bytes": 33195876,
+    "base_sha256": "5981bfc5d6850baaef7f44af2da18ecd149782e0ffcabf731bcf658d953e0909",
+    "output_bytes": 33243869,
+    "output_sha256": "e2b7ab608a6b37a6dd9896589719cab446edf95287f59dfc7b5693da6ec98f6c",
+    "splice_count": 9
+  },
+  "topology": "cheb_forward_pairwise; target ConvNeXt blocks 0,1,2,3,5,6,7; block4 remains canonical in frozen rev25",
+  "tool": "host-tools/rev25_qnn_cpu/apply_binary_splice_manifest.py",
+  "note": "Full splice manifests are model-generation data and may be public; this identity file is small takeover metadata. Exact manifest bytes should be frozen alongside the reconstructed model build workflow once their public source placement is finalized."
+}
