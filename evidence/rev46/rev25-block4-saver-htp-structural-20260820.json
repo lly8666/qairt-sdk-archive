@@ -1,0 +1,83 @@
+{
+  "schema": 1,
+  "date": "2026-08-20",
+  "scope": "QAIRT 2.44 Saver + x86 HTP Router structural diagnostic only",
+  "scientific_boundary": "not device HTP truth; not production qualification; no threshold change",
+  "foundation": {
+    "release": "20260820.1",
+    "asset": "qairt244-native-host-foundation-v4.tar.gz",
+    "sha256": "44753f03f7b2c0a21ff751258137a3673321bbd10aaa8817ebf1f00badb17b22",
+    "qnn": "2.44.0.260225"
+  },
+  "models": {
+    "canonicalized_preserve_io_cold_model_lib_sha256": "0aa0b962df6eea2c21838c07d38d6541a17e6ce1cde0b4e93fc8d98a289126a0",
+    "block4_decanonicalized_cold_model_lib_sha256": "587ab0b77d78f1bfb089887708316bfca2284cf4301f87eb9a9d6154b11a466b",
+    "block4_decanonicalized_cold_onnx_sha256": "efda4b2b563a667b1c751eee53339085532ca1007209c42c23325ce109f09432"
+  },
+  "saver": {
+    "backend": "libQnnSaver.so",
+    "canonical_saver_output_c_sha256": "a348485abe3a29acb03b43561a32874910948356f3df38a1e8bcf9567306f484",
+    "decanonicalized_saver_output_c_sha256": "4eb75d812709f68264107aac790148777f95a457d1212721e364438c1886df2f",
+    "canonical_total_graph_add_ops": 759,
+    "decanonicalized_total_graph_add_ops": 845,
+    "delta_graph_add_ops": 86,
+    "canonical_block4_sequence": [
+      "Reshape:_backbone_convnext_4_Conv_reshape_to_2d",
+      "Transpose:_backbone_convnext_4_Conv_reshape_to_2d_nhwc",
+      "DepthWiseConv2d:_backbone_convnext_4_Conv_2d",
+      "Transpose:_backbone_convnext_4_Conv_intermediate_nchw",
+      "Reshape:_backbone_convnext_4_Conv_intermediate",
+      "Transpose:_backbone_convnext_4_Transpose",
+      "LayerNorm:_backbone_convnext_4_LayerNormalization",
+      "Reshape:_backbone_convnext_4_MatMul_pre_reshape",
+      "FullyConnected:_backbone_convnext_4_MatMul",
+      "Reshape:_backbone_convnext_4_MatMul_post_reshape",
+      "ElementWiseNeuron:_elementwiseneuron_0",
+      "Reshape:_backbone_convnext_4_MatMul_1_pre_reshape",
+      "FullyConnected:_backbone_convnext_4_MatMul_1",
+      "Reshape:_backbone_convnext_4_MatMul_1_post_reshape",
+      "ElementWiseBinary:_backbone_convnext_4_Mul_2",
+      "ElementWiseBinary:_backbone_convnext_4_Add_3",
+      "Transpose:_backbone_convnext_4_Add_3_output_0_ncf"
+    ],
+    "canonical_anonymous_neuron": {
+      "name": "_elementwiseneuron_0",
+      "operation_parameter_uint32": 1,
+      "qnn_op_def": "QNN_OP_ELEMENT_WISE_NEURON_OPERATION_GELU",
+      "input": "_backbone_convnext_4_Add_output_0",
+      "output": "_backbone_convnext_4_Mul_1_output_0"
+    },
+    "decanonicalized_block4_activation": {
+      "explicit_nodes": 87,
+      "ElementWiseNeuron": 2,
+      "ElementWiseBinary": 85,
+      "first": "_R24_DIAG_B4_FP_Clip",
+      "last": "_R24_DIAG_B4_FP_GeluOut"
+    },
+    "interpretation": "QAIRT converter recognizes/canonicalizes only the baseline block4 activation expression into a single QNN GELU op. The mathematically equivalent block5-style diagnostic expression prevents that recognition and leaves the explicit activation chain."
+  },
+  "host_htp_context_probe": {
+    "backend": "libQnnHtp.so x86 RouterX86",
+    "command_class": "qnn-context-binary-generator --save_backend_op_mapping",
+    "canonical": {
+      "context_log_sha256": "a13c64f9470ab230e405d5ecca7c034f43adf992204e97e6d378143fcd696b49",
+      "schematic_bin_sha256": "6b552aa6014b1e75784a5d817d7ffd60c20441cce7841c0593f50c89342829fb",
+      "schematic_bytes": 2858068,
+      "finalize_pass": false,
+      "first_relevant_failure": "no properties registered for q::QNN_Gelu; could not create op q::QNN_Gelu; generated node _elementwiseneuron_0",
+      "elapsed_to_failure_ms_approx": 456
+    },
+    "decanonicalized": {
+      "context_log_sha256": "51d9ec461d375cb19486e17e1e37809a6ba78670b6f7dbf7e6b7d4ccb368e955",
+      "schematic_bin_sha256": "bb2326c3c934a0398e1007a2d372a396cf4063b985e40afb72b6c036bf3f215c",
+      "schematic_bytes": 3224868,
+      "finalize_pass": false,
+      "qnn_gelu_failure_present": false,
+      "later_failure": "could not create q::flat_from_vtcm from ReluMinMax; generated node _Clip",
+      "elapsed_to_failure_ms_approx": 561
+    },
+    "interpretation": "The block4 expression change alters the HTP graph-finalize path: canonicalized graph reaches/fails at QNN_Gelu; decanonicalized graph eliminates that failure and advances to a later unrelated Clip/flat_from_vtcm limitation of the x86 host HTP route. This proves structural HTP-path sensitivity but does not prove target-device behavior."
+  },
+  "conclusion": "Host numerical localization, Saver replay, and RouterX86 HTP compile all converge on block4 activation pattern recognition/lowering as a real structural sensitivity. Next device-side structural evidence should test whether target HTP compilation also maps canonical block4 to a native/fused GELU path while the equivalent decanonicalized expression remains explicit/different.",
+  "next_gate": "target-device/same-runtime compiled graph or optrace A/B for canonicalized vs block4-decanonicalized cold/warm models; no final A/B/C quality fixture use yet"
+}
