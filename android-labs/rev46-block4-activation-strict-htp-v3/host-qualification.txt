@@ -1,0 +1,1035 @@
+REV46_ACTIVATION_V3_HOST_QUALIFICATION_PASS
+{
+  "ort_cpu_version": "1.27.0",
+  "qualification": {
+    "baseline_contrib_gelu_max_abs_le_1e6_all": true,
+    "candidate_exact_all": true
+  },
+  "role": "fixed-shape activation-only strict-HTP model preparation; no threshold relaxation; no CPU fallback device policy change",
+  "schema": 1,
+  "source": {
+    "baseline_dynamic_dims": [
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "input",
+        "name": "preact"
+      },
+      {
+        "dims": [
+          1,
+          320,
+          "T"
+        ],
+        "kind": "input",
+        "name": "residual"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "output",
+        "name": "activation"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          320
+        ],
+        "kind": "output",
+        "name": "pw2"
+      },
+      {
+        "dims": [
+          1,
+          320,
+          "T"
+        ],
+        "kind": "output",
+        "name": "residual_out"
+      }
+    ],
+    "baseline_ops": {
+      "ai.onnx:Add": 3,
+      "ai.onnx:Constant": 3,
+      "ai.onnx:Div": 1,
+      "ai.onnx:Erf": 1,
+      "ai.onnx:MatMul": 1,
+      "ai.onnx:Mul": 3,
+      "ai.onnx:Transpose": 1
+    },
+    "baseline_sha256": "f946e2daef6265e012d6dd47ad55eaecfd4e84b0c225c1cf225d06fb69a0892a",
+    "candidate_activation_dynamic_dims": [
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "input",
+        "name": "preact"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "output",
+        "name": "activation"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_xc"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_scaled"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_u"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_two_u"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_t"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_two_t"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_T2mul"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_T2"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_T3mul"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_T3neg"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_T3"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_T4mul"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_T4neg"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_T4"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_T5mul"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_T5neg"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_T5"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_T6mul"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_T6neg"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_T6"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_T7mul"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_T7neg"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_T7"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_T8mul"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_T8neg"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_T8"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_T9mul"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_T9neg"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_T9"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_T10mul"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_T10neg"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_T10"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_T11mul"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_T11neg"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_T11"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_T12mul"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_T12neg"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_T12"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_T13mul"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_T13neg"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_T13"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_T14mul"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_T14neg"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_T14"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_T15mul"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_T15neg"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_T15"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_T16mul"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_T16neg"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_T16"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_term1"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_term2"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_term3"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_term4"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_term5"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_term6"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_term7"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_term8"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_term9"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_term10"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_term11"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_term12"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_term13"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_term14"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_term15"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_term16"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_psum0_0"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_psum0_1"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_psum0_2"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_psum0_3"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_psum0_4"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_psum0_5"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_psum0_6"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_psum0_7"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_psum1_0"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_psum1_1"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_psum1_2"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_psum1_3"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_psum2_0"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_psum2_1"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_psum3_0"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_psum4_0"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_xhalf"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_base"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_tailarg"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "value_info",
+        "name": "r24_diag_b4_FP_tail"
+      }
+    ],
+    "candidate_activation_extracted_ops": {
+      "ai.onnx:Add": 35,
+      "ai.onnx:Clip": 1,
+      "ai.onnx:Mul": 52,
+      "ai.onnx:Relu": 1
+    },
+    "candidate_dynamic_dims": [
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "input",
+        "name": "preact"
+      },
+      {
+        "dims": [
+          1,
+          320,
+          "T"
+        ],
+        "kind": "input",
+        "name": "residual"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          1536
+        ],
+        "kind": "output",
+        "name": "activation"
+      },
+      {
+        "dims": [
+          1,
+          "T",
+          320
+        ],
+        "kind": "output",
+        "name": "pw2"
+      },
+      {
+        "dims": [
+          1,
+          320,
+          "T"
+        ],
+        "kind": "output",
+        "name": "residual_out"
+      }
+    ],
+    "candidate_ops": {
+      "ai.onnx:Add": 37,
+      "ai.onnx:Clip": 1,
+      "ai.onnx:MatMul": 1,
+      "ai.onnx:Mul": 53,
+      "ai.onnx:Relu": 1,
+      "ai.onnx:Transpose": 1
+    },
+    "candidate_sha256": "e376f24898b2746d0250e3e47bb56fddaa237d013412cc2fcde50482fe90986c"
+  },
+  "status": "PASS",
+  "variants": [
+    {
+      "baseline_bytes": 242,
+      "baseline_dynamic_dims": [],
+      "baseline_model": "cold4_baseline_contrib_gelu.onnx",
+      "baseline_ops": {
+        "com.microsoft:Gelu": 1
+      },
+      "baseline_sha256": "96e2e309a22e41cc3040c88e339ddef24065e30cbf5ffa08a8be9550c899f40f",
+      "candidate_bytes": 13011,
+      "candidate_dynamic_dims": [],
+      "candidate_model": "cold4_candidate_exact_activation.onnx",
+      "candidate_ops": {
+        "ai.onnx:Add": 35,
+        "ai.onnx:Clip": 1,
+        "ai.onnx:Mul": 52,
+        "ai.onnx:Relu": 1
+      },
+      "candidate_sha256": "3825f01208c5ba351bc70cbd6c967025a23014ee74c48b88dbf18552e6ecc1cd",
+      "fixtures": [
+        {
+          "baseline_vs_frozen_oracle": {
+            "exact_bits": true,
+            "max_abs": 0.0,
+            "mean_abs": 0.0,
+            "rmse": 0.0
+          },
+          "candidate_vs_frozen_oracle": {
+            "exact_bits": true,
+            "max_abs": 0.0,
+            "mean_abs": 0.0,
+            "rmse": 0.0
+          },
+          "id": "cold0"
+        }
+      ],
+      "shape": "cold4",
+      "t": 4
+    },
+    {
+      "baseline_bytes": 242,
+      "baseline_dynamic_dims": [],
+      "baseline_model": "warm6_baseline_contrib_gelu.onnx",
+      "baseline_ops": {
+        "com.microsoft:Gelu": 1
+      },
+      "baseline_sha256": "455516875b73b3ffcf3231260030c934ba752489b9eda8400c77f6179ac4a7e1",
+      "candidate_bytes": 13011,
+      "candidate_dynamic_dims": [],
+      "candidate_model": "warm6_candidate_exact_activation.onnx",
+      "candidate_ops": {
+        "ai.onnx:Add": 35,
+        "ai.onnx:Clip": 1,
+        "ai.onnx:Mul": 52,
+        "ai.onnx:Relu": 1
+      },
+      "candidate_sha256": "00c10909e547e83ab87a70b7b71b4a6108992e5293198e41bc97ad2d508648e7",
+      "fixtures": [
+        {
+          "baseline_vs_frozen_oracle": {
+            "exact_bits": true,
+            "max_abs": 0.0,
+            "mean_abs": 0.0,
+            "rmse": 0.0
+          },
+          "candidate_vs_frozen_oracle": {
+            "exact_bits": true,
+            "max_abs": 0.0,
+            "mean_abs": 0.0,
+            "rmse": 0.0
+          },
+          "id": "warm1"
+        },
+        {
+          "baseline_vs_frozen_oracle": {
+            "exact_bits": true,
+            "max_abs": 0.0,
+            "mean_abs": 0.0,
+            "rmse": 0.0
+          },
+          "candidate_vs_frozen_oracle": {
+            "exact_bits": true,
+            "max_abs": 0.0,
+            "mean_abs": 0.0,
+            "rmse": 0.0
+          },
+          "id": "warm18"
+        },
+        {
+          "baseline_vs_frozen_oracle": {
+            "exact_bits": true,
+            "max_abs": 0.0,
+            "mean_abs": 0.0,
+            "rmse": 0.0
+          },
+          "candidate_vs_frozen_oracle": {
+            "exact_bits": true,
+            "max_abs": 0.0,
+            "mean_abs": 0.0,
+            "rmse": 0.0
+          },
+          "id": "warm47"
+        }
+      ],
+      "shape": "warm6",
+      "t": 6
+    }
+  ]
+}
+
