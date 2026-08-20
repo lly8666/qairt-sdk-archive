@@ -86,7 +86,7 @@ public final class MainActivity extends Activity {
     private String runBatch() throws Exception {
         StringBuilder b = new StringBuilder(256 * 1024);
         kv(b,"marker","REV46_BLOCK4_HTP_BATCH_START");
-        kv(b,"app_version",BuildConfig.VERSION_NAME);
+        kv(b,"app_version",getPackageManager().getPackageInfo(getPackageName(),0).versionName);
         kv(b,"ort_version","1.27.0"); kv(b,"qnn_runtime_version","2.44.0");
         kv(b,"strict_cpu_fallback_disabled",true);
         kv(b,"htp_performance_mode","burst");
