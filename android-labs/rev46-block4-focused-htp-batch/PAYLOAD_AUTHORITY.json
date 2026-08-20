@@ -1,0 +1,27 @@
+{
+  "schema": 2,
+  "asset_name": "rev46-block4-focused-payload-v2.tar.gz",
+  "target_release_tag": "20260820.1",
+  "bytes": 4176967,
+  "sha256": "42493454ece1060a5100f28e5bf35a15d09bb48f8b46f82c5b69a12fd0f6a1c9",
+  "payload_manifest_sha256": "b29c79b7ea2ae093fc0c69c77ad31519764a026050d997f4f3ddd7ebd86b86c9",
+  "clean_sha256sums_sha256": "105f5b4e20c956268b88dfbc15bcbad889afad61c824e6d382068e4b3217e8d6",
+  "source_rev25": {
+    "cold_sha256": "323c194e5da29f0be962ea8b72ca2fa2d1a9fc2481d80b95e5590f79e9485f65",
+    "warm_sha256": "e2b7ab608a6b37a6dd9896589719cab446edf95287f59dfc7b5693da6ec98f6c"
+  },
+  "scientific_role": "focused target-HTP structural/numerical diagnostic; not final full-model gate",
+  "contents": {
+    "models": ["block4_baseline.onnx", "block4_candidate.onnx"],
+    "fixtures": ["cold0", "warm1", "warm18", "warm47"],
+    "outputs": ["activation", "pw2", "residual_out"],
+    "host_oracle": "official ONNX Runtime 1.27.0 CPUExecutionProvider x86_64, threads=1",
+    "device_controls": [
+      {"id":"prod","enable_htp_fp16_precision":"1","htp_graph_finalization_optimization_mode":"3","fresh_session_repeat":true},
+      {"id":"fp32ctl","enable_htp_fp16_precision":"0","htp_graph_finalization_optimization_mode":"3","fresh_session_repeat":false},
+      {"id":"opt0ctl","enable_htp_fp16_precision":"1","htp_graph_finalization_optimization_mode":"0","fresh_session_repeat":false}
+    ]
+  },
+  "transport_note": "v2 is a deterministic re-pack of the already-frozen focused scientific files. SHA256SUMS.txt intentionally excludes its own checksum so sha256sum -c is self-consistent. No model computation was redone while repacking.",
+  "publication_policy": "public open-source-derived model/test asset; contains no communication/business source or secret"
+}
