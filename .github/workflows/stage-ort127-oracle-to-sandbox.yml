@@ -23,30 +23,41 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Build portable pinned oracle site-packages
+      - name: Build portable pinned oracle runtime
         shell: bash
         run: |
           set -euo pipefail
           root="$RUNNER_TEMP/ort127_oracle"
-          mkdir -p "$root/site-packages"
+          mkdir -p "$root/site-packages" "$root/python311/bin" "$root/python311/lib"
           python -m pip install --disable-pip-version-check --no-cache-dir --target "$root/site-packages" \
             'numpy==1.26.4' 'onnx==1.17.0' 'onnxruntime==1.27.0'
-          PYTHONPATH="$root/site-packages" python - <<'PY'
+
+          prefix="$(python -c 'import sys; print(sys.prefix)')"
+          cp -a "$prefix/bin/python3.11" "$root/python311/bin/"
+          cp -a "$prefix/lib/libpython3.11.so"* "$root/python311/lib/" 2>/dev/null || true
+          cp -a "$prefix/lib/python3.11" "$root/python311/lib/"
+          rm -rf "$root/python311/lib/python3.11/site-packages"
+          mkdir -p "$root/python311/lib/python3.11/site-packages"
+
+          PYTHONHOME="$root/python311" \
+          PYTHONPATH="$root/site-packages" \
+          LD_LIBRARY_PATH="$root/python311/lib" \
+          "$root/python311/bin/python3.11" - <<'PY'
           import json, numpy, onnx, onnxruntime as ort, pathlib, sys, os
           assert numpy.__version__ == '1.26.4'
           assert onnx.__version__ == '1.17.0'
           assert ort.__version__ == '1.27.0'
           root=pathlib.Path(os.environ['RUNNER_TEMP'])/'ort127_oracle'
           (root/'VERSIONS.json').write_text(json.dumps({'python':sys.version,'numpy':numpy.__version__,'onnx':onnx.__version__,'onnxruntime':ort.__version__},indent=2)+'\n')
-          print('ORT127_PORTABLE_ORACLE_PASS')
+          print('ORT127_PORTABLE_RUNTIME_PASS')
           PY
           cd "$root"
-          find site-packages -type f -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS.txt
+          find site-packages python311 -type f -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS.txt
 
       - name: Publish portable oracle package
         uses: actions/upload-artifact@v4
         with:
-          name: ort127-oracle-py311-${{ github.run_id }}
+          name: ort127-oracle-py311-runtime-${{ github.run_id }}
           path: ${{ runner.temp }}/ort127_oracle
           compression-level: 0
           retention-days: 1
@@ -59,8 +70,8 @@ jobs:
         run: |
           set -euo pipefail
           if [ "${{ job.status }}" = success ]; then
-            printf -v body 'ORT127_SANDBOX_STAGE_PASS\n\nRun: **%s**\nPortable Python 3.11 oracle: numpy 1.26.4 / onnx 1.17.0 / onnxruntime 1.27.0. Host-only; no APK/device action.' "$GITHUB_RUN_ID"
+            printf -v body 'ORT127_SANDBOX_RUNTIME_STAGE_PASS\n\nRun: **%s**\nRelocatable Python 3.11 + numpy 1.26.4 / onnx 1.17.0 / onnxruntime 1.27.0 self-tested before upload. Host-only; no APK/device action.' "$GITHUB_RUN_ID"
           else
-            printf -v body 'ORT127_SANDBOX_STAGE_FAIL\n\nRun: **%s**\nOracle package did not stage. No APK/device action.' "$GITHUB_RUN_ID"
+            printf -v body 'ORT127_SANDBOX_RUNTIME_STAGE_FAIL\n\nRun: **%s**\nPortable runtime did not stage. No APK/device action.' "$GITHUB_RUN_ID"
           fi
           gh issue comment "$REPORT_ISSUE" --repo "$GITHUB_REPOSITORY" --body "$body"
