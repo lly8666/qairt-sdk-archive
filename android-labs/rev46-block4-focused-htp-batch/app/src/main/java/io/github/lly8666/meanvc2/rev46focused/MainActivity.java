@@ -93,7 +93,7 @@ public final class MainActivity extends Activity {
         for(Cfg cfg:CONFIGS){
             progress("focused-htp-"+cfg.id);
             Matrix base=runFocused(env,"baseline",cfg,0,b);Matrix cand=runFocused(env,"candidate",cfg,0,b);htpMatrices+=2;
-            logFocusedComparison(b,cfg.id,base,cand);
+            logFocusedComparison(b,cfg.id,base,cand,baseCpu,candCpu);
             appendProfile(b,cfg.id+"_baseline",base);appendProfile(b,cfg.id+"_candidate",cand);
             if(cfg.repeat){
                 progress("focused-htp-"+cfg.id+"-fresh-repeat");
@@ -144,11 +144,11 @@ public final class MainActivity extends Activity {
     }
     private void logSemanticDelta(StringBuilder b)throws Exception{for(Fixture f:FIXTURES){if(!f.assetBacked)continue;for(String n:OUTPUTS){float[] a=assetFloats(oracleAsset("baseline",f.id,n),expectedCount(f,n)),c=assetFloats(oracleAsset("candidate",f.id,n),expectedCount(f,n));metricKv(b,"host_semantic_candidate_vs_baseline_"+f.id+"_"+n,metric(a,c));}}}
 
-    private void logFocusedComparison(StringBuilder b,String cfg,Matrix base,Matrix cand)throws Exception{
+    private void logFocusedComparison(StringBuilder b,String cfg,Matrix base,Matrix cand,Matrix baseCpu,Matrix candCpu)throws Exception{
         for(Fixture f:FIXTURES){OutputSet br=base.runs.get(f.id),cr=cand.runs.get(f.id);if(br==null||cr==null||!br.ok()||!cr.ok()){kv(b,"focused_"+cfg+"_"+f.id+"_comparison","unavailable");continue;}
             for(String n:OUTPUTS){
-                float[] teacher=f.assetBacked?assetFloats(oracleAsset("baseline",f.id,n),br.v.get(n).length):cpuFocusedReference("baseline",f,n);
-                float[] candOracle=f.assetBacked?assetFloats(oracleAsset("candidate",f.id,n),cr.v.get(n).length):cpuFocusedReference("candidate",f,n);
+                float[] teacher=f.assetBacked?assetFloats(oracleAsset("baseline",f.id,n),br.v.get(n).length):requireCpuReference(baseCpu,f,n);
+                float[] candOracle=f.assetBacked?assetFloats(oracleAsset("candidate",f.id,n),cr.v.get(n).length):requireCpuReference(candCpu,f,n);
                 Metric be=metric(teacher,br.v.get(n)),ct=metric(teacher,cr.v.get(n)),cb=metric(candOracle,cr.v.get(n));
                 String p="focused_"+cfg+"_"+f.id+"_"+n;metricKv(b,p+"_baseline_htp_vs_teacher",be);metricKv(b,p+"_candidate_htp_vs_teacher",ct);metricKv(b,p+"_candidate_backend_vs_own_cpu",cb);metricKv(b,p+"_candidate_htp_vs_baseline_htp",metric(br.v.get(n),cr.v.get(n)));
                 double imp=be.rmse==0?Double.NaN:(be.rmse-ct.rmse)/be.rmse;kv(b,p+"_rmse_improvement_fraction",imp);kv(b,p+"_material_ge_3pct",Double.isFinite(imp)&&imp>=MATERIAL);
@@ -156,8 +156,12 @@ public final class MainActivity extends Activity {
         }
     }
 
-    private float[] cpuFocusedReference(String model,Fixture target,String output)throws Exception{
-        OrtEnvironment env=OrtEnvironment.getEnvironment();Matrix m=new Matrix();byte[] mb=asset("focused/models/block4_"+model+".onnx");try(OrtSession.SessionOptions so=cpuOptions();OrtSession s=env.createSession(mb,so)){OutputSet r=runFocusedFixture(env,s,target);if(!r.ok())throw new IllegalStateException(r.error);return r.v.get(output);} }
+    private static float[] requireCpuReference(Matrix cpu,Fixture target,String output){
+        OutputSet r=cpu.runs.get(target.id);
+        if(r==null||!r.ok()||!r.v.containsKey(output))
+            throw new IllegalStateException("missing CPU reference "+target.id+"/"+output);
+        return r.v.get(output);
+    }
 
     private boolean logRepeat(StringBuilder b,String p,Matrix first,Matrix second){boolean all=true;for(Fixture f:FIXTURES){OutputSet a=first.runs.get(f.id),c=second.runs.get(f.id);if(a==null||c==null||!a.ok()||!c.ok()){all=false;continue;}for(String n:OUTPUTS){boolean ex=bits(a.v.get(n),c.v.get(n));all&=ex;kv(b,p+"_"+f.id+"_"+n+"_repeat_exact_bits",ex);metricKv(b,p+"_"+f.id+"_"+n+"_repeat_metric",metric(a.v.get(n),c.v.get(n)));}}kv(b,p+"_repeat_all_exact",all);return all;}
 
