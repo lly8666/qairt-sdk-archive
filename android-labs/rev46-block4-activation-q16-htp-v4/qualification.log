@@ -1,0 +1,11 @@
+REV46_Q16_V4_PREP_FAIL_STRUCTURE
+{"all_fixed_shape": true, "all_qdq_present": false, "frozen_numeric_gate_all": false}
+TARGET cold4 baseline qdq= True ops= {"com.microsoft:DequantizeLinear": 2, "com.microsoft:Gelu": 1, "com.microsoft:QuantizeLinear": 2} gates= [False]
+TARGET cold4 candidate qdq= True ops= {"ai.onnx:Add": 35, "ai.onnx:Clip": 1, "ai.onnx:Mul": 52, "ai.onnx:Relu": 1, "com.microsoft:DequantizeLinear": 112, "com.microsoft:QuantizeLinear": 90} gates= [False]
+TARGET warm6 baseline qdq= True ops= {"com.microsoft:DequantizeLinear": 2, "com.microsoft:Gelu": 1, "com.microsoft:QuantizeLinear": 2} gates= [False, False, False]
+TARGET warm6 candidate qdq= True ops= {"ai.onnx:Add": 35, "ai.onnx:Clip": 1, "ai.onnx:Mul": 52, "ai.onnx:Relu": 1, "com.microsoft:DequantizeLinear": 112, "com.microsoft:QuantizeLinear": 90} gates= [False, False, False]
+MICRO relu qdq= False ops= {"ai.onnx:Relu": 1}
+MICRO mul qdq= True ops= {"ai.onnx:DequantizeLinear": 3, "ai.onnx:Mul": 1, "ai.onnx:QuantizeLinear": 2}
+MICRO add qdq= True ops= {"ai.onnx:Add": 1, "ai.onnx:DequantizeLinear": 3, "ai.onnx:QuantizeLinear": 2}
+MICRO clip qdq= False ops= {"ai.onnx:Clip": 1}
+MICRO gelu qdq= True ops= {"ai.onnx:DequantizeLinear": 2, "ai.onnx:QuantizeLinear": 2, "com.microsoft:Gelu": 1}
