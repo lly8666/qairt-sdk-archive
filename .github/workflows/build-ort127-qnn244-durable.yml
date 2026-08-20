@@ -1,0 +1,369 @@
+name: Build durable ORT 1.27 + QAIRT 2.44 QNN host
+
+on:
+  issues:
+    types: [opened]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  build-durable-host:
+    if: github.event_name == 'workflow_dispatch' || github.event.issue.title == '[build-ort-1.27-qnn2.44-linux-x64-durable]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    env:
+      ORT_VERSION: 1.27.0
+      ORT_COMMIT: 8f0278c77bf44b0cc83c098c6c722b92a36ac4b5
+      ORT_SOURCE_ASSET_ID: '514402050'
+      ORT_SOURCE_SHA256: 28fbbd3e7e180b815ea2069c66947f77a1427c058c1122c4bda64e2b50ed2783
+      ORT_SOURCE_BYTES: '299476789'
+      ORT_MIRROR_ASSET_ID: '514410457'
+      ORT_MIRROR_SHA256: eacecab1004a1431e61d15f9c1092ee9c55a7401c3aec08e15984852f4de3d4c
+      ORT_MIRROR_BYTES: '377334838'
+      QAIRT_VERSION: 2.44.0.260225
+      QAIRT_ASSET_ID: '520887827'
+      QAIRT_SHA256: 52a5b0cc051eb2896848c9fd46e704612b1dc06e7d2f5d0d9a79fd8bcdd344bb
+      QAIRT_BYTES: '1560450667'
+      RELEASE_TAG: ort-1.27.0-qnn-2.44.0.260225-linux-x64-v1
+      PAYLOAD_NAME: ort-1.27.0-qnn-2.44.0.260225-linux-x64-v1.tar.gz
+      SAFE_START: SIMADMIN_AGENT_SAFE_START_REQUIRED=1
+
+    steps:
+      - name: Record user-authorized host-foundation exception
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "$SAFE_START"
+          echo 'USER_AUTHORIZED_ACTIONS_COMPILE_EXCEPTION=rev46-host-foundation-only'
+          echo 'NO_CPU_FALLBACK=1'
+          echo 'NO_THRESHOLD_RELAXATION=1'
+          echo 'NO_UNGATED_PRODUCTION_INTEGRATION=1'
+
+      - name: Install host build tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            ninja-build ccache patchelf pkg-config unzip zstd
+          cmake --version
+          ninja --version
+          gcc --version | head -n1
+          g++ --version | head -n1
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Download exact archived inputs
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          download_asset() {
+            local id="$1" out="$2"
+            curl --fail --location --retry 5 --retry-all-errors \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H 'Accept: application/octet-stream' \
+              -H 'X-GitHub-Api-Version: 2022-11-28' \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/assets/${id}" \
+              -o "$out"
+          }
+          download_asset "$ORT_SOURCE_ASSET_ID" ort-source.tar.gz
+          download_asset "$ORT_MIRROR_ASSET_ID" ort-cmake-mirror.tar.gz
+          download_asset "$QAIRT_ASSET_ID" qairt-2.44.zip
+
+          echo "$ORT_SOURCE_SHA256  ort-source.tar.gz" | sha256sum -c -
+          echo "$ORT_MIRROR_SHA256  ort-cmake-mirror.tar.gz" | sha256sum -c -
+          echo "$QAIRT_SHA256  qairt-2.44.zip" | sha256sum -c -
+          test "$(stat -c %s ort-source.tar.gz)" = "$ORT_SOURCE_BYTES"
+          test "$(stat -c %s ort-cmake-mirror.tar.gz)" = "$ORT_MIRROR_BYTES"
+          test "$(stat -c %s qairt-2.44.zip)" = "$QAIRT_BYTES"
+
+      - name: Extract exact ORT source and dependency mirror
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ort-archive cmake-mirror
+          tar -xzf ort-source.tar.gz -C ort-archive
+          tar -xzf ort-cmake-mirror.tar.gz -C cmake-mirror
+
+          build_sh="$(find "$PWD/ort-archive" -maxdepth 4 -type f -name build.sh -print -quit)"
+          test -n "$build_sh"
+          ORT_ROOT="$(dirname "$build_sh")"
+          test -f "$ORT_ROOT/VERSION_NUMBER"
+          grep -qx "$ORT_VERSION" "$ORT_ROOT/VERSION_NUMBER"
+
+          # Mirror archives were generated for this exact ORT source. Pass the extraction
+          # root; ORT's CMake mirror resolver performs its own relative lookup.
+          MIRROR_ROOT="$PWD/cmake-mirror"
+          test "$(find "$MIRROR_ROOT" -type f | wc -l)" -gt 20
+
+          echo "ORT_ROOT=$ORT_ROOT" >> "$GITHUB_ENV"
+          echo "MIRROR_ROOT=$MIRROR_ROOT" >> "$GITHUB_ENV"
+          printf 'ORT_ROOT=%s\nMIRROR_ROOT=%s\n' "$ORT_ROOT" "$MIRROR_ROOT"
+
+      - name: Extract verified QAIRT 2.44 host subset
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib, json, os, pathlib, zipfile
+
+          src = pathlib.Path('qairt-2.44.zip')
+          dst = pathlib.Path('qnn-sdk')
+          with zipfile.ZipFile(src) as z:
+              names = [i.filename.replace('\\\\','/').lstrip('/') for i in z.infolist() if not i.is_dir()]
+              marker = next((n for n in names if n.endswith('/include/QNN/QnnInterface.h')), None)
+              if marker is None:
+                  raise SystemExit('QAIRT root marker include/QNN/QnnInterface.h not found')
+              root = marker[:-len('/include/QNN/QnnInterface.h')]
+              keep_prefixes = (
+                  root + '/include/QNN/',
+                  root + '/lib/x86_64-linux-clang/',
+                  root + '/bin/x86_64-linux-clang/',
+                  root + '/share/QNN/',
+                  root + '/lib/python/',
+              )
+              keep_exact = {root + '/sdk.yaml'}
+              selected = []
+              for info in z.infolist():
+                  n = info.filename.replace('\\\\','/').lstrip('/')
+                  if info.is_dir() or not (n in keep_exact or any(n.startswith(p) for p in keep_prefixes)):
+                      continue
+                  out = dst / n
+                  out.parent.mkdir(parents=True, exist_ok=True)
+                  h = hashlib.sha256()
+                  with z.open(info) as r, open(out, 'wb') as w:
+                      while True:
+                          b = r.read(1024 * 1024)
+                          if not b:
+                              break
+                          w.write(b); h.update(b)
+                  selected.append({'path': n, 'bytes': info.file_size, 'sha256': h.hexdigest()})
+
+          qnn_home = (dst / root).resolve()
+          required = [
+              qnn_home / 'include/QNN/QnnInterface.h',
+              qnn_home / 'include/QNN/QnnTypes.h',
+              qnn_home / 'lib/x86_64-linux-clang/libQnnCpu.so',
+              qnn_home / 'lib/x86_64-linux-clang/libQnnHtp.so',
+              qnn_home / 'lib/x86_64-linux-clang/libQnnSystem.so',
+              qnn_home / 'lib/x86_64-linux-clang/libQnnSaver.so',
+              qnn_home / 'lib/x86_64-linux-clang/libQnnHtpOptraceProfilingReader.so',
+              qnn_home / 'bin/x86_64-linux-clang/qnn-net-run',
+          ]
+          missing = [str(p) for p in required if not p.is_file()]
+          if missing:
+              raise SystemExit('missing verified QAIRT host files: ' + ', '.join(missing))
+          pathlib.Path('QNN_SELECTION.json').write_text(json.dumps({
+              'schema': 2,
+              'qairt_version': os.environ['QAIRT_VERSION'],
+              'source_asset_id': int(os.environ['QAIRT_ASSET_ID']),
+              'source_sha256': os.environ['QAIRT_SHA256'],
+              'qnn_home': str(qnn_home),
+              'files': selected,
+          }, indent=2, sort_keys=True) + '\n')
+          with open(os.environ['GITHUB_ENV'], 'a') as f:
+              f.write(f'QNN_HOME={qnn_home}\n')
+          print('QNN_HOME', qnn_home)
+          print('QNN_SELECTED_FILES', len(selected))
+          PY
+
+      - name: Prepare Python build dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade 'pip<26' setuptools wheel packaging 'numpy==1.26.4'
+          python --version
+          python -m pip --version
+
+      - name: Configure and build ORT 1.27 QNN shared EP
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$ORT_ROOT"
+          cat > "$GITHUB_WORKSPACE/BUILD_COMMAND.txt" <<EOF
+          ./build.sh --config Release --update --build --build_wheel --build_shared_lib --skip_tests --parallel 2 --cmake_generator Ninja --use_qnn shared_lib --qnn_home "$QNN_HOME" --skip_submodule_sync --cmake_deps_mirror_dir "$MIRROR_ROOT"
+          EOF
+          bash -x ./build.sh \
+            --config Release \
+            --update \
+            --build \
+            --build_wheel \
+            --build_shared_lib \
+            --skip_tests \
+            --parallel 2 \
+            --cmake_generator Ninja \
+            --use_qnn shared_lib \
+            --qnn_home "$QNN_HOME" \
+            --skip_submodule_sync \
+            --cmake_deps_mirror_dir "$MIRROR_ROOT" \
+            2>&1 | tee "$GITHUB_WORKSPACE/ort-build.log"
+
+      - name: Freeze reusable wheel, runtime and provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf payload
+          mkdir -p payload/wheel payload/ort-lib payload/qnn payload/meta
+
+          wheel="$(find "$ORT_ROOT/build" -type f -path '*/dist/*.whl' -print -quit)"
+          test -n "$wheel"
+          cp "$wheel" payload/wheel/
+
+          find "$ORT_ROOT/build" -type f \( \
+            -name 'libonnxruntime.so*' -o \
+            -name 'libonnxruntime_providers_qnn.so*' -o \
+            -name 'onnxruntime_perf_test' -o \
+            -name 'onnxruntime_test_all' \
+          \) -exec cp -L '{}' payload/ort-lib/ \; || true
+
+          cp -a "$QNN_HOME/include" payload/qnn/
+          cp -a "$QNN_HOME/lib/x86_64-linux-clang" payload/qnn/lib
+          if [ -d "$QNN_HOME/bin/x86_64-linux-clang" ]; then cp -a "$QNN_HOME/bin/x86_64-linux-clang" payload/qnn/bin; fi
+          if [ -f "$QNN_HOME/sdk.yaml" ]; then cp "$QNN_HOME/sdk.yaml" payload/qnn/; fi
+
+          cp QNN_SELECTION.json BUILD_COMMAND.txt payload/meta/
+          printf '%s\n' "$SAFE_START" > payload/meta/SAFE_START.txt
+          cat > payload/meta/BUILD_PROVENANCE.json <<EOF
+          {
+            "schema": 3,
+            "purpose": "rev46-host-foundation-only",
+            "actions_compile_authority": "explicit-current-user-instruction",
+            "onnxruntime_version": "${ORT_VERSION}",
+            "onnxruntime_commit": "${ORT_COMMIT}",
+            "onnxruntime_source_asset_id": ${ORT_SOURCE_ASSET_ID},
+            "onnxruntime_source_sha256": "${ORT_SOURCE_SHA256}",
+            "onnxruntime_cmake_mirror_asset_id": ${ORT_MIRROR_ASSET_ID},
+            "onnxruntime_cmake_mirror_sha256": "${ORT_MIRROR_SHA256}",
+            "qairt_version": "${QAIRT_VERSION}",
+            "qairt_asset_id": ${QAIRT_ASSET_ID},
+            "qairt_sha256": "${QAIRT_SHA256}",
+            "qnn_ep_linkage": "shared_lib",
+            "cpu_fallback_authorized": false,
+            "threshold_relaxation_authorized": false,
+            "production_integration_authorized": false,
+            "workflow_run_id": ${GITHUB_RUN_ID},
+            "workflow_sha": "${GITHUB_SHA}"
+          }
+          EOF
+
+      - name: Runtime provider probe and dynamic-link audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m venv verify-venv
+          verify-venv/bin/pip install --upgrade 'pip<26' >/dev/null
+          verify-venv/bin/pip install 'numpy==1.26.4' >/dev/null
+          verify-venv/bin/pip install --no-deps payload/wheel/*.whl
+          export LD_LIBRARY_PATH="$PWD/payload/qnn/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+
+          {
+            echo '=== QNN CPU dlopen ==='
+            verify-venv/bin/python - <<'PY'
+          import ctypes
+          from pathlib import Path
+          p = Path('payload/qnn/lib/libQnnCpu.so').resolve()
+          ctypes.CDLL(str(p), mode=ctypes.RTLD_GLOBAL)
+          print('QNN_CPU_DLOPEN_PASS', p)
+          PY
+            echo '=== ORT provider probe ==='
+            verify-venv/bin/python - <<'PY'
+          import json, onnxruntime as ort
+          print('ORT_VERSION', ort.__version__)
+          providers = ort.get_available_providers()
+          print('PROVIDERS', json.dumps(providers))
+          assert ort.__version__ == '1.27.0'
+          assert 'QNNExecutionProvider' in providers
+          print('QNN_EXECUTION_PROVIDER_PASS=1')
+          PY
+            echo '=== QNN libs ldd ==='
+            ldd payload/qnn/lib/libQnnCpu.so || true
+            ldd payload/qnn/lib/libQnnHtp.so || true
+            echo '=== ORT QNN provider ldd ==='
+            find verify-venv -type f -name 'libonnxruntime_providers_qnn.so*' -print -exec ldd '{}' \; || true
+          } | tee payload/meta/PROVIDER_PROBE.txt
+
+          grep -q 'QNN_EXECUTION_PROVIDER_PASS=1' payload/meta/PROVIDER_PROBE.txt
+          find payload -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > payload/SHA256SUMS.txt
+
+      - name: Package durable host bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar -czf "$PAYLOAD_NAME" -C payload .
+          sha256sum "$PAYLOAD_NAME" > "${PAYLOAD_NAME}.sha256"
+          stat -c '%s' "$PAYLOAD_NAME" > "${PAYLOAD_NAME}.bytes"
+          cat "${PAYLOAD_NAME}.sha256"
+          cat "${PAYLOAD_NAME}.bytes"
+
+      - name: Upload build artifact for immediate reuse
+        uses: actions/upload-artifact@v4
+        with:
+          name: ort-1.27.0-qnn-2.44.0.260225-linux-x64-${{ github.run_id }}
+          path: |
+            ${{ env.PAYLOAD_NAME }}
+            ${{ env.PAYLOAD_NAME }}.sha256
+            ${{ env.PAYLOAD_NAME }}.bytes
+            payload/meta/PROVIDER_PROBE.txt
+            payload/meta/BUILD_PROVENANCE.json
+          compression-level: 0
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Publish immutable durable Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $RELEASE_TAG already exists; refusing mutable --clobber." >&2
+            exit 17
+          fi
+          notes="Durable Rev46 host foundation only. ORT ${ORT_VERSION} (${ORT_COMMIT}) + QAIRT ${QAIRT_VERSION}; QNN EP shared-lib runtime probe passed. No CPU fallback, threshold relaxation, or production integration is authorized by this release. Workflow run ${GITHUB_RUN_ID}."
+          gh release create "$RELEASE_TAG" \
+            "$PAYLOAD_NAME" "${PAYLOAD_NAME}.sha256" "${PAYLOAD_NAME}.bytes" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "$RELEASE_TAG" \
+            --notes "$notes"
+
+      - name: Record success on trigger issue
+        if: success() && github.event_name == 'issues'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          sha="$(awk '{print $1}' "${PAYLOAD_NAME}.sha256")"
+          bytes="$(cat "${PAYLOAD_NAME}.bytes")"
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "Durable ORT 1.27 + QAIRT 2.44 QNN host PASS.\n\n- Release: \`${RELEASE_TAG}\`\n- Asset: \`${PAYLOAD_NAME}\`\n- Bytes: \`${bytes}\`\n- SHA256: \`${sha}\`\n- ORT commit: \`${ORT_COMMIT}\`\n- QAIRT: \`${QAIRT_VERSION}\`\n- QNN linkage: \`shared_lib\`\n- Runtime provider probe: \`QNNExecutionProvider PASS\`\n- Run: \`${GITHUB_RUN_ID}\`\n\nThis is host-foundation evidence only; it does not authorize CPU fallback, threshold relaxation, or production integration."
+
+      - name: Upload failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ort-qnn244-build-failure-${{ github.run_id }}
+          path: |
+            ort-build.log
+            BUILD_COMMAND.txt
+            QNN_SELECTION.json
+            ort-archive/**/build/Release/CMakeCache.txt
+            ort-archive/**/build/Release/CMakeFiles/CMakeError.log
+            ort-archive/**/build/Release/CMakeFiles/CMakeOutput.log
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Record failure on trigger issue
+        if: failure() && github.event_name == 'issues'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "Durable ORT/QNN2.44 host build did not pass. No host bundle was qualified and downstream QNN-CPU/HTP work remains gated. Inspect Actions run \`${GITHUB_RUN_ID}\` and the failure-diagnostics artifact before retrying."
