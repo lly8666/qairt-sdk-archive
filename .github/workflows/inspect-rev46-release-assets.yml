@@ -1,0 +1,38 @@
+name: Inspect rev46 release assets
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  inspect:
+    if: github.event.issue.title == '[inspect-rev46-release-assets]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      RELEASE_REPO: lly8666/qairt-sdk-archive
+      RELEASE_TAG: '20260820.1'
+    steps:
+      - name: Inspect exact release asset inventory
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          json="$(gh release view "$RELEASE_TAG" --repo "$RELEASE_REPO" --json tagName,assets)"
+          printf '%s\n' "$json" | jq -e '.tagName == env.RELEASE_TAG' >/dev/null
+          printf '%s\n' "$json" > "$RUNNER_TEMP/release-assets.json"
+          table="$(printf '%s\n' "$json" | jq -r '.assets[] | "- `\(.name)` — \(.size) bytes"')"
+          printf -v body 'REV46_RELEASE_ASSET_INVENTORY\n\nRelease: **%s**\n\n%s\n\nInventory only; no APK/device action.' "$RELEASE_TAG" "$table"
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "$body"
+
+      - name: Publish machine-readable inventory
+        uses: actions/upload-artifact@v4
+        with:
+          name: rev46-release-assets-${{ github.run_id }}
+          path: ${{ runner.temp }}/release-assets.json
+          retention-days: 7
