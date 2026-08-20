@@ -61,6 +61,7 @@ jobs:
           qroot="$(dirname "$(dirname "$qbin")")"
           foundation_root="$(dirname "$qroot")"
           test -x "$foundation_root/python/bin/python3.10"
+          test -d "$foundation_root/site-packages"
           test -f "$foundation_root/qairt/lib/x86_64-linux-clang/libQnnCpu.so"
           test -f "$foundation_root/qairt/lib/x86_64-linux-clang/libQnnSaver.so"
 
@@ -69,6 +70,9 @@ jobs:
           echo "FOUNDATION_ROOT=$foundation_root" >> "$GITHUB_ENV"
           echo "PAYLOAD_ROOT=$payload_root" >> "$GITHUB_ENV"
           echo "MATRIX_ROOT=$RUNNER_TEMP/block4-gelu-2x2-v4" >> "$GITHUB_ENV"
+          echo "PYTHONPATH=$foundation_root/site-packages:$foundation_root/qairt/lib/python" >> "$GITHUB_ENV"
+          echo "LD_LIBRARY_PATH=$foundation_root/cxx:$foundation_root/python/lib:$foundation_root/qairt/bin/lib:$foundation_root/qairt/lib/x86_64-linux-clang${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" >> "$GITHUB_ENV"
+          echo "$foundation_root/qairt/bin/x86_64-linux-clang" >> "$GITHUB_PATH"
           echo "FOUNDATION_ROOT=$foundation_root"
           echo "PAYLOAD_ROOT=$payload_root"
 
