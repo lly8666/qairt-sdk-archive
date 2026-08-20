@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "purpose": "MeanVC2 Rev46 host foundation -> frozen rev25 QNN CPU semantic reference",
+  "safe_start": "SIMADMIN_AGENT_SAFE_START_REQUIRED=1",
+  "production_integration": false,
+  "threshold_relaxation": false,
+  "cpu_ep_fallback": false,
+  "runtime": {
+    "onnxruntime": "1.27.0",
+    "onnxruntime_commit": "8f0278c77bf44b0cc83c098c6c722b92a36ac4b5",
+    "qairt_sdk": "2.44.0.260225",
+    "qnn_backend_type": "cpu",
+    "session_disable_cpu_ep_fallback": true,
+    "durable_host_release": "ort-1.27.0-qnn-2.44.0.260225-linux-x64-v1"
+  },
+  "frozen_rev25": {
+    "cold4": {
+      "bytes": 33249679,
+      "sha256": "323c194e5da29f0be962ea8b72ca2fa2d1a9fc2481d80b95e5590f79e9485f65"
+    },
+    "warm6": {
+      "bytes": 33243869,
+      "sha256": "e2b7ab608a6b37a6dd9896589719cab446edf95287f59dfc7b5693da6ec98f6c"
+    },
+    "raw_mel_full48": {
+      "bytes": 61440,
+      "sha256": "dc58af153c7c0dd6ab0a450a5f77648203e7f82a800a17837e09095ce48c9963"
+    },
+    "route": "cold4 once -> warm6 reuse x47",
+    "input": "features [1,80,4] cold; [1,80,6] warm; raw values transformed (x+1)/2; warm prefixes prior raw block final two frames",
+    "outputs": ["spec_real", "spec_imag"]
+  },
+  "authority_apk": {
+    "bytes": 147504599,
+    "sha256": "aa1163e354008d78edde050511a81dce22b61650e8d45e860ce0d163669b4af8",
+    "parts": [
+      ["1cSkMUgkMM9vdztUGr0DBEM8VCKSGDQ1z", 25000000, "0080f0eea4510b67c6552b3a2dc9ad6e5b15f02afe36aecf95df939ce4d10d77"],
+      ["1Ys0zGBb514zEL1FiMNxezbAtpESiXK-4", 25000000, "e6478ccce95136775ae97db4ab67c682143b6a5104cfd095ec35a00d66c4deac"],
+      ["13eV2shxkMQOtHUHYpvpM4RvVWHdP-QRP", 25000000, "b8631c59966607ca78fad62dc2b7627a74281c2a16d9eac765ac60f0d203a627"],
+      ["1isnSHDaEOYO9rYN9R00c6XJieh4MLMW1", 25000000, "cec50e5d8aa9eda2f9925b46df86e3eded38ccc440f6ac4a2f80409bf4177c5d"],
+      ["1WmpVW_tK8-_JRpUcKY8Qdayk1yx3SECV", 25000000, "5c7097c223de667ad38b550bcd6c2f7e0c7f44e44ffb7a677ba4558da2bf9b3e"],
+      ["1vj62ejLUqpIfJnb3sFIIZ2zoQpGRK5E4", 22504599, "8bfd5d6b4ea95b1ef888894a5586ba55a9eba56a31e96b0057070ce686b08207"]
+    ]
+  },
+  "direct_expected_waveform": {
+    "bytes": 122240,
+    "sha256": "5c92627e3a7ede5a0850fa1a95f1eb3125e381478bf05342980505a398ab9a53",
+    "direct_bytes_currently_available": false,
+    "policy": "do not substitute another waveform; compare same-input FP32 CPU vs QNN CPU and preserve the historical expected-waveform identity separately"
+  },
+  "next_after_reference": "Only after qnn_cpu_semantic evidence is frozen: same-version compiled-QNN/Saver/optrace -> HTP residual calibration surrogate -> PW1->activation->PW2 wider redesign -> strict device A/B"
+}
