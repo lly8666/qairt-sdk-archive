@@ -1,0 +1,126 @@
+name: Build MeanVC2 rev46 Block4 HTP Batch APK
+
+on:
+  workflow_dispatch:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  build-apk:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.issue.title == '[build-rev46-block4-htp-batch-apk]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: android-labs/rev46-block4-htp-batch
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Start build clock
+        shell: bash
+        run: |
+          echo "BUILD_START_EPOCH=$(date +%s)" >> "$GITHUB_ENV"
+          echo "BUILD_START_UTC=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Generate deterministic rev46 GELU matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check 'numpy==1.26.4' 'onnx==1.17.0'
+          python tools/generate_gelu_matrix.py | tee model-generation.txt
+          test -f app/src/main/assets/MODEL_MANIFEST.json
+          test "$(find app/src/main/assets/models -name '*.onnx' | wc -l)" -eq 6
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Resolve exact Android runtime dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          gradle --no-daemon --max-workers=2 :app:dependencies --configuration debugRuntimeClasspath | tee dependency-report.txt
+          grep -F 'com.microsoft.onnxruntime:onnxruntime-android-qnn:1.27.0' dependency-report.txt
+          grep -F 'com.qualcomm.qti:qnn-runtime:2.44.0' dependency-report.txt
+          if grep -F 'com.qualcomm.qti:qnn-runtime:2.42.0' dependency-report.txt; then
+            echo 'unexpected QNN 2.42 runtime survived dependency resolution' >&2
+            exit 1
+          fi
+
+      - name: Assemble debug APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          gradle --no-daemon --max-workers=2 :app:assembleDebug --stacktrace
+
+      - name: Verify and name installable artifact
+        id: package
+        shell: bash
+        run: |
+          set -euo pipefail
+          src=app/build/outputs/apk/debug/app-debug.apk
+          test -f "$src"
+          mkdir -p dist
+          apk=dist/MeanVc2Rev46Block4HtpBatch-v1-debug.apk
+          cp "$src" "$apk"
+          unzip -l "$apk" > dist/APK_CONTENTS.txt
+          grep -E 'lib/arm64-v8a/.*onnxruntime' dist/APK_CONTENTS.txt
+          grep -E 'lib/arm64-v8a/.*QnnHtp' dist/APK_CONTENTS.txt
+          grep -E 'lib/arm64-v8a/.*QnnSystem' dist/APK_CONTENTS.txt
+          sha256sum "$apk" > dist/SHA256SUMS.txt
+          cp dependency-report.txt model-generation.txt app/src/main/assets/MODEL_MANIFEST.json dist/
+          end=$(date +%s)
+          duration=$((end-BUILD_START_EPOCH))
+          cat > dist/BUILD_INFO.txt <<EOF
+          workflow=Build MeanVC2 rev46 Block4 HTP Batch APK
+          artifact=MeanVc2Rev46Block4HtpBatch-v1
+          apk=MeanVc2Rev46Block4HtpBatch-v1-debug.apk
+          git_sha=${GITHUB_SHA}
+          build_start_utc=${BUILD_START_UTC}
+          build_end_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          wall_seconds=${duration}
+          ort_qnn=1.27.0
+          qnn_runtime=2.44.0
+          strict_device_policy=session.disable_cpu_ep_fallback=1
+          test_matrix=cold4+warm6 x gelu_op+canonical_erf+decanonicalized_erf x critical+sweep+wave x fresh_session_repeat
+          EOF
+          echo "wall_seconds=$duration" >> "$GITHUB_OUTPUT"
+          echo "apk_sha256=$(awk '{print $1}' dist/SHA256SUMS.txt)" >> "$GITHUB_OUTPUT"
+          cat dist/BUILD_INFO.txt
+          cat dist/SHA256SUMS.txt
+
+      - name: Upload APK and build evidence
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: MeanVc2Rev46Block4HtpBatch-v1
+          path: android-labs/rev46-block4-htp-batch/dist/
+          compression-level: 0
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Post build identity to trigger issue
+        if: github.event_name == 'issues'
+        shell: bash
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "REV46_BLOCK4_HTP_BATCH_APK_BUILD_PASS\n\nWorkflow: **Build MeanVC2 rev46 Block4 HTP Batch APK**\nArtifact: **MeanVc2Rev46Block4HtpBatch-v1**\nArtifact id: \`${{ steps.upload.outputs.artifact-id }}\`\nAPK: \`MeanVc2Rev46Block4HtpBatch-v1-debug.apk\`\nBuild wall time: \`${{ steps.package.outputs.wall_seconds }} s\`\nAPK SHA256: \`${{ steps.package.outputs.apk_sha256 }}\`\n\nInstall the APK manually, launch it once, let the automatic batch finish, then copy the complete UTF-8 log."
