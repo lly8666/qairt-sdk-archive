@@ -4,6 +4,11 @@
 
 Canonical machine-readable file: `release-manifest/AGENT_RELEASE_INDEX.json`.
 
+## `20260820.1`
+Published: `2026-08-20T04:27:41Z`
+
+- `qairt244-native-host-foundation-v4.tar.gz` — id `521748069`, bytes `377592420`, `sha256:44753f03f7b2c0a21ff751258137a3673321bbd10aaa8817ebf1f00badb17b22`
+
 ## `20260819.4`
 Published: `2026-08-19T15:38:49Z`
 

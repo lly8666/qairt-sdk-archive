@@ -1,9 +1,30 @@
 {
   "schema": 1,
   "repository": "lly8666/qairt-sdk-archive",
-  "generated_at_utc": "2026-08-20T03:43:19.008236+00:00",
+  "generated_at_utc": "2026-08-20T04:27:48.501264+00:00",
   "note": "Stable, non-secret metadata index for agents. browser_download_url is not a signed credential; private asset download still requires authenticated GitHub access or an export workflow.",
   "releases": [
+    {
+      "tag_name": "20260820.1",
+      "name": "qairt244-native-host-foundation-v4",
+      "draft": false,
+      "prerelease": false,
+      "created_at": "2026-08-20T03:43:19Z",
+      "published_at": "2026-08-20T04:27:41Z",
+      "html_url": "https://github.com/lly8666/qairt-sdk-archive/releases/tag/20260820.1",
+      "assets": [
+        {
+          "name": "qairt244-native-host-foundation-v4.tar.gz",
+          "id": 521748069,
+          "size": 377592420,
+          "digest": "sha256:44753f03f7b2c0a21ff751258137a3673321bbd10aaa8817ebf1f00badb17b22",
+          "created_at": "2026-08-20T04:22:29Z",
+          "updated_at": "2026-08-20T04:23:57Z",
+          "browser_download_url": "https://github.com/lly8666/qairt-sdk-archive/releases/download/20260820.1/qairt244-native-host-foundation-v4.tar.gz",
+          "api_url": "https://api.github.com/repos/lly8666/qairt-sdk-archive/releases/assets/521748069"
+        }
+      ]
+    },
     {
       "tag_name": "20260819.4",
       "name": "qairt244-py310-wheelhouse v2",
