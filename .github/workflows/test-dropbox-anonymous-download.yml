@@ -6,17 +6,33 @@ on:
       - '.github/dropbox-download-test-trigger.txt'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   download:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
       - name: Download from Dropbox without authentication
         shell: bash
         run: |
           set -euo pipefail
-          url='https://uc066d8c836e4cbd25423081d10c.dl.dropboxusercontent.com/cd/0/get/DGgojzw90AQxgLMFXTMbrwEoHIyarN-FtZmWyoqmCiVsVbsHLHauZaYXxxtcpmlxsqeuGy2squBGEjrHJPO1PYpH-GlnfF9G7URuaySqJQH2Pis2H_4mMRZmVvXj1STITRs94D0EGdlv3kdJKky0MoCW8WK86KHbsNuIwJ49zcOVGw/file?c_luid=7d0bd46c'
+          url='https://ucd81f2244727f36876f11469e65.dl.dropboxusercontent.com/cd/0/get/DGglmA3-xN5PNox7ztstI2CpXTSTukvu8CM5GTv6sq1cQNhjz2RdFPpHypoTSz9HvX4Kugu4zKpaFZjL8cIt-k4aB4HJQxCXzm8K1e5RzWiiZG2hNHi32DqXU0NlNny660qFvwSa5xM2ECxmSTi0zJliC3mmySavfitdXRL871TU1g/file?c_luid=7d0bd46c'
           curl --fail --location --show-error --silent "$url" --output downloaded-test.txt
-          test "$(wc -c < downloaded-test.txt)" -eq 272
+          bytes="$(wc -c < downloaded-test.txt | tr -d ' ')"
+          test "$bytes" -eq 272
           grep -F 'QAIRT-SDK-ARCHIVE Dropbox anonymous download smoke test' downloaded-test.txt
-          sha256sum downloaded-test.txt
-          ls -lh downloaded-test.txt
+          sha="$(sha256sum downloaded-test.txt | awk '{print $1}')"
+          printf 'status=success\nbytes=%s\nsha256=%s\nrunner=%s\n' "$bytes" "$sha" "$RUNNER_NAME" > .github/dropbox-download-test-result.txt
+
+      - name: Commit verification result
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/dropbox-download-test-result.txt
+          git commit -m 'test: record Dropbox anonymous download result'
+          git push
