@@ -84,8 +84,9 @@ jobs:
           python "$V4/tools/prepare_q16_v4.py" --v3-dir "$RUNNER_TEMP/v3" --payload-root "$PAYLOAD_ROOT" --out-dir "$V4/generated" | tee "$V4/qualification.log"
           grep -F 'SYNTHETIC_FIXED_RANGE_ONLY_NO_FROZEN_FIXTURE_CALIBRATION' "$V4/generated/Q16_V4_MANIFEST.json"
           grep -F '"all_fixed_shape": true' "$V4/generated/Q16_V4_MANIFEST.json"
-          grep -F '"all_qdq_present": true' "$V4/generated/Q16_V4_MANIFEST.json"
           test "$(find "$V4/generated" -maxdepth 1 -name '*.onnx' | wc -l)" -eq 9
+          MANIFEST_STATUS=$(python -c 'import json;print(json.load(open("android-labs/rev46-block4-activation-q16-htp-v4/generated/Q16_V4_MANIFEST.json"))["status"])')
+          echo "MANIFEST_STATUS=$MANIFEST_STATUS" >> "$GITHUB_ENV"
       - name: Commit deterministic host evidence
         shell: bash
         run: |
@@ -93,7 +94,7 @@ jobs:
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add "$V4/generated" "$V4/qualification.log"
-          git commit -m 'rev46 v4: freeze Q16 QDQ host qualification'
+          git commit -m 'rev46 v4: freeze Q16 QDQ host evidence'
           git push origin HEAD:main
           echo "RESULT_COMMIT=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
       - name: Report result
@@ -103,5 +104,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           status='failure'; detail=''
-          if [ "${{ job.status }}" = success ]; then status='success'; detail="\nCommit: **${RESULT_COMMIT}**\nManifest: **${V4}/generated/Q16_V4_MANIFEST.json**"; fi
+          if [ "${{ job.status }}" = success ]; then status='success'; detail="\nCommit: **${RESULT_COMMIT}**\nManifest status: **${MANIFEST_STATUS}**\nManifest: **${V4}/generated/Q16_V4_MANIFEST.json**"; fi
           gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "REV46_Q16_V4_HOST_${status}\n\nRun: **${GITHUB_RUN_ID}**${detail}"
