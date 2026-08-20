@@ -76,14 +76,23 @@ jobs:
           test -f "$root/SHA256SUMS.txt"
           (cd "$root" && sha256sum -c SHA256SUMS.txt >/dev/null)
           echo "PAYLOAD_ROOT=$root" >> "$GITHUB_ENV"
-      - name: Prepare Q16 QDQ targets and capability ladder
+      - name: Prepare Q16 QDQ targets and paired capability ladder
         shell: bash
         run: |
           set -euo pipefail
           rm -rf "$V4/generated"; mkdir -p "$V4/generated"
           python "$V4/tools/prepare_q16_v4.py" --v3-dir "$RUNNER_TEMP/v3" --payload-root "$PAYLOAD_ROOT" --out-dir "$V4/generated" | tee "$V4/qualification.log"
           grep -F 'SYNTHETIC_FIXED_RANGE_ONLY_NO_FROZEN_FIXTURE_CALIBRATION' "$V4/generated/Q16_V4_MANIFEST.json"
-          grep -F '"all_fixed_shape": true' "$V4/generated/Q16_V4_MANIFEST.json"
+          python - "$V4/generated/Q16_V4_MANIFEST.json" <<'PY'
+          import json,sys
+          x=json.load(open(sys.argv[1])); q=x['qualification']
+          assert q['targets_fixed_shape'] is True
+          assert q['targets_qdq_present'] is True
+          assert q['micro_fixed_shape'] is True
+          assert q['micro_qdq_present'] is True
+          assert len(x['variants'])==4 and len(x['micro_ladder'])==5
+          print('manifest_status='+x['status'])
+          PY
           test "$(find "$V4/generated" -maxdepth 1 -name '*.onnx' | wc -l)" -eq 9
           MANIFEST_STATUS=$(python -c 'import json;print(json.load(open("android-labs/rev46-block4-activation-q16-htp-v4/generated/Q16_V4_MANIFEST.json"))["status"])')
           echo "MANIFEST_STATUS=$MANIFEST_STATUS" >> "$GITHUB_ENV"
@@ -94,7 +103,7 @@ jobs:
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add "$V4/generated" "$V4/qualification.log"
-          git commit -m 'rev46 v4: freeze Q16 QDQ host evidence'
+          git commit -m 'rev46 v4: freeze paired Q16 QDQ host evidence'
           git push origin HEAD:main
           echo "RESULT_COMMIT=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
       - name: Report result
