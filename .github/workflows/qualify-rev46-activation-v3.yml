@@ -1,0 +1,79 @@
+name: Qualify rev46 activation-only strict-HTP v3 models
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  qualify:
+    if: github.event.issue.title == '[qualify-rev46-activation-v3]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      LAB: android-labs/rev46-block4-activation-strict-htp-v3
+      PAYLOAD_NAME: rev46-block4-focused-payload-v2.tar.gz
+      PAYLOAD_BYTES: '4176967'
+      PAYLOAD_SHA256: 42493454ece1060a5100f28e5bf35a15d09bb48f8b46f82c5b69a12fd0f6a1c9
+      RELEASE_TAG: '20260820.1'
+      RELEASE_REPO: lly8666/qairt-sdk-archive
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Download exact frozen focused-v2 payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          p="$RUNNER_TEMP/$PAYLOAD_NAME"
+          curl --fail --location --retry 3 --silent --show-error \
+            "https://github.com/${RELEASE_REPO}/releases/download/${RELEASE_TAG}/${PAYLOAD_NAME}" -o "$p"
+          test "$(stat -c%s "$p")" = "$PAYLOAD_BYTES"
+          echo "$PAYLOAD_SHA256  $p" | sha256sum -c -
+          mkdir -p "$RUNNER_TEMP/rev46-v3-payload"
+          tar -xzf "$p" -C "$RUNNER_TEMP/rev46-v3-payload"
+          root=$(dirname "$(find "$RUNNER_TEMP/rev46-v3-payload" -type f -name PAYLOAD_MANIFEST.json -print -quit)")
+          test -n "$root"
+          echo "PAYLOAD_ROOT=$root" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Prepare and host-qualify fixed-shape activation-only models
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check 'numpy==1.26.4' 'onnx==1.17.0' 'onnxruntime==1.27.0'
+          rm -rf "$LAB/generated"
+          mkdir -p "$LAB/generated"
+          python "$LAB/tools/prepare_activation_v3.py" --payload-root "$PAYLOAD_ROOT" --out-dir "$LAB/generated" | tee "$LAB/host-qualification.txt"
+          grep -F 'REV46_ACTIVATION_V3_HOST_QUALIFICATION_PASS' "$LAB/host-qualification.txt"
+
+      - name: Commit reusable qualified models and evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add "$LAB/generated" "$LAB/host-qualification.txt"
+          git commit -m 'rev46: freeze activation-only v3 host qualification PASS'
+          git push origin HEAD:main
+          echo "RESULT_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+
+      - name: Report result
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "${{ job.status }}" = success ]; then
+            body="REV46_ACTIVATION_V3_HOST_QUALIFICATION_PASS\n\nRun: **${GITHUB_RUN_ID}**\nCommit: **${RESULT_SHA}**"
+          else
+            body="REV46_ACTIVATION_V3_HOST_QUALIFICATION_${{ job.status }}\n\nRun: **${GITHUB_RUN_ID}**"
+          fi
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "$body"
