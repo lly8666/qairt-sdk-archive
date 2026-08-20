@@ -32,6 +32,13 @@ jobs:
           echo 'NO_THRESHOLD_RELAXATION=1'
           echo 'NO_PRODUCTION_INTEGRATION=1'
 
+      - name: Install pinned Drive transport helper
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install --disable-pip-version-check 'gdown==5.2.0'
+          gdown --version
+
       - name: Recover exact authority APK from frozen Drive parts
         shell: bash
         run: |
@@ -48,8 +55,7 @@ jobs:
           n=0
           while IFS=$'\t' read -r id bytes sha; do
             n=$((n+1)); out="parts/part-$(printf '%03d' "$n").bin"
-            curl --fail --location --retry 5 --retry-all-errors \
-              "https://drive.usercontent.google.com/download?id=${id}&export=download&confirm=t" -o "$out"
+            gdown "https://drive.google.com/uc?id=${id}" --output "$out" --fuzzy
             test "$(stat -c %s "$out")" = "$bytes"
             echo "$sha  $out" | sha256sum -c -
           done < parts/parts.tsv
@@ -164,4 +170,4 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body 'Frozen rev25 host-input archival did not pass. No durable authority package was qualified. Do not substitute model/fixture identities.'
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "Frozen rev25 host-input archival did not pass. No durable authority package was qualified. Inspect run \`${GITHUB_RUN_ID}\`; do not substitute model/fixture identities."
