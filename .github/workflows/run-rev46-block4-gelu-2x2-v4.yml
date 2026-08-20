@@ -1,0 +1,161 @@
+name: Run rev46 block4 GELU 2x2 host matrix v4
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  matrix:
+    if: github.event.issue.title == '[run-rev46-block4-gelu-2x2-v4]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      RELEASE_REPO: lly8666/qairt-sdk-archive
+      RELEASE_TAG: '20260820.1'
+      FOUNDATION_NAME: qairt244-native-host-foundation-v4.tar.gz
+      FOUNDATION_BYTES: '377592420'
+      FOUNDATION_SHA256: 44753f03f7b2c0a21ff751258137a3673321bbd10aaa8817ebf1f00badb17b22
+      PAYLOAD_NAME: rev46-block4-focused-payload-v2.tar.gz
+      PAYLOAD_BYTES: '4176967'
+      PAYLOAD_SHA256: 42493454ece1060a5100f28e5bf35a15d09bb48f8b46f82c5b69a12fd0f6a1c9
+      TOOL_ROOT: host-tools/rev46_block4_gelu_2x2
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Acquire exact QAIRT 2.44 foundation and focused-v2 payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          f="$RUNNER_TEMP/$FOUNDATION_NAME"
+          p="$RUNNER_TEMP/$PAYLOAD_NAME"
+          curl --fail --location --retry 3 --silent --show-error \
+            "https://github.com/${RELEASE_REPO}/releases/download/${RELEASE_TAG}/${FOUNDATION_NAME}" -o "$f"
+          test "$(stat -c%s "$f")" = "$FOUNDATION_BYTES"
+          echo "$FOUNDATION_SHA256  $f" | sha256sum -c -
+          curl --fail --location --retry 3 --silent --show-error \
+            "https://github.com/${RELEASE_REPO}/releases/download/${RELEASE_TAG}/${PAYLOAD_NAME}" -o "$p"
+          test "$(stat -c%s "$p")" = "$PAYLOAD_BYTES"
+          echo "$PAYLOAD_SHA256  $p" | sha256sum -c -
+
+          mkdir -p "$RUNNER_TEMP/foundation" "$RUNNER_TEMP/payload"
+          tar -xzf "$f" -C "$RUNNER_TEMP/foundation"
+          tar -xzf "$p" -C "$RUNNER_TEMP/payload"
+
+          qbin="$(find "$RUNNER_TEMP/foundation" -type d -path '*/qairt/bin/x86_64-linux-clang' -print -quit)"
+          test -n "$qbin"
+          qroot="$(dirname "$(dirname "$qbin")")"
+          foundation_root="$(dirname "$qroot")"
+          test -x "$foundation_root/python/bin/python3.10"
+          test -f "$foundation_root/qairt/lib/x86_64-linux-clang/libQnnCpu.so"
+          test -f "$foundation_root/qairt/lib/x86_64-linux-clang/libQnnSaver.so"
+
+          payload_root="$(dirname "$(find "$RUNNER_TEMP/payload" -type f -name PAYLOAD_MANIFEST.json -print -quit)")"
+          test -n "$payload_root"
+          echo "FOUNDATION_ROOT=$foundation_root" >> "$GITHUB_ENV"
+          echo "PAYLOAD_ROOT=$payload_root" >> "$GITHUB_ENV"
+          echo "MATRIX_ROOT=$RUNNER_TEMP/block4-gelu-2x2-v4" >> "$GITHUB_ENV"
+          echo "FOUNDATION_ROOT=$foundation_root"
+          echo "PAYLOAD_ROOT=$payload_root"
+
+      - name: Generate A/B/C/D and run ORT 1.27 cold0 semantic gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$MATRIX_ROOT"
+          "$FOUNDATION_ROOT/python/bin/python3.10" "$TOOL_ROOT/run_block4_gelu_2x2_v4.py" \
+            --payload-root "$PAYLOAD_ROOT" --out-dir "$MATRIX_ROOT" | tee "$MATRIX_ROOT/pre-qairt.log"
+          grep -F 'REV46_BLOCK4_GELU_2X2_PRE_QAIRT_PASS' "$MATRIX_ROOT/pre-qairt.log"
+
+      - name: Run stable graph-contract audit across all four cases
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$FOUNDATION_ROOT/python/bin/python3.10" tools/qnn_graph_contract_audit.py \
+            "$MATRIX_ROOT/A_dynamic_erf/model.onnx" \
+            "$MATRIX_ROOT/B_staticT4_erf/model.onnx" \
+            "$MATRIX_ROOT/C_dynamic_canonicalGelu/model.onnx" \
+            "$MATRIX_ROOT/D_staticT4_canonicalGelu/model.onnx" \
+            --output "$MATRIX_ROOT/GRAPH_CONTRACT_AUDIT.json"
+          test -s "$MATRIX_ROOT/GRAPH_CONTRACT_AUDIT.json"
+
+      - name: Run QAIRT 2.44 converter model-lib QNN-CPU Saver matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          FOUNDATION_ROOT="$FOUNDATION_ROOT" MATRIX_ROOT="$MATRIX_ROOT" \
+            bash "$TOOL_ROOT/run_qairt_cases_v4.sh" | tee "$MATRIX_ROOT/qairt-matrix.log"
+          grep -F 'REV46_BLOCK4_GELU_2X2_QAIRT_CASES_COMPLETE' "$MATRIX_ROOT/qairt-matrix.log"
+
+      - name: Analyze factor isolation and full-Vocos fusion boundary
+        id: analyze
+        shell: bash
+        run: |
+          set +e
+          "$FOUNDATION_ROOT/python/bin/python3.10" "$TOOL_ROOT/analyze_block4_gelu_2x2_v4.py" \
+            --matrix-root "$MATRIX_ROOT" \
+            --graph-audit "$MATRIX_ROOT/GRAPH_CONTRACT_AUDIT.json" \
+            --full-vocos-saver-evidence evidence/rev46/rev25-block4-saver-htp-structural-20260820.json \
+            --out "$MATRIX_ROOT/HOST_SIMULATION_MATRIX_V4_REPORT.json" \
+            2>&1 | tee "$MATRIX_ROOT/final-analysis.log"
+          rc=${PIPESTATUS[0]}
+          echo "analysis_rc=$rc" >> "$GITHUB_OUTPUT"
+          echo "ANALYSIS_RC=$rc" >> "$GITHUB_ENV"
+          test -s "$MATRIX_ROOT/HOST_SIMULATION_MATRIX_V4_REPORT.json"
+          exit 0
+
+      - name: Publish host evidence artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rev46-block4-gelu-2x2-host-v4-${{ github.run_id }}
+          path: ${{ env.MATRIX_ROOT }}
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Report host-only result to trigger issue
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          report="$MATRIX_ROOT/HOST_SIMULATION_MATRIX_V4_REPORT.json"
+          if [ -s "$report" ]; then
+            status="$(jq -r '.status' "$report")"
+            selected="$(jq -r '.selected_minimal_host_recovery_case // "none"' "$report")"
+            shape="$(jq -r '.causal_factor_readout.shape_only_A_to_B.interpretation' "$report")"
+            gelu="$(jq -r '.causal_factor_readout.gelu_only_A_to_C.interpretation' "$report")"
+            combined="$(jq -r '.causal_factor_readout.combined_D.interpretation' "$report")"
+            device="$(jq -r '.device_gate' "$report")"
+            body=$(cat <<EOF
+REV46_BLOCK4_GELU_2X2_HOST_SIMULATION_${status}
+
+Run: **${GITHUB_RUN_ID}**
+Selected minimal host recovery case: **${selected}**
+Device gate: **${device}**
+
+- Shape factor: ${shape}
+- GELU factor: ${gelu}
+- Combined: ${combined}
+
+This run is host-only. It does not authorize an APK or device run.
+EOF
+)
+          else
+            body="REV46_BLOCK4_GELU_2X2_HOST_SIMULATION_INFRA_FAILURE\n\nRun: **${GITHUB_RUN_ID}**\nNo final report was produced. No APK/device action is authorized."
+          fi
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "$body"
+
+      - name: Enforce host recovery gate
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${ANALYSIS_RC:-99}" = 0
+          grep -F 'REV46_BLOCK4_GELU_2X2_HOST_SIMULATION_PASS' "$MATRIX_ROOT/final-analysis.log"
