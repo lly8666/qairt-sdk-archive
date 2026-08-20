@@ -2,6 +2,10 @@ name: Build MeanVC2 rev46 Block4 HTP Batch APK
 
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - 'android-labs/rev46-block4-htp-batch/**'
+      - '.github/workflows/build-rev46-block4-htp-batch-apk.yml'
   issues:
     types: [opened]
 
@@ -13,6 +17,7 @@ jobs:
   build-apk:
     if: >-
       github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'push' ||
       github.event.issue.title == '[build-rev46-block4-htp-batch-apk]'
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -115,12 +120,12 @@ jobs:
           retention-days: 14
           if-no-files-found: error
 
-      - name: Post build identity to trigger issue
-        if: github.event_name == 'issues'
+      - name: Report run to issue 76
+        if: always()
         shell: bash
         working-directory: .
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "REV46_BLOCK4_HTP_BATCH_APK_BUILD_PASS\n\nWorkflow: **Build MeanVC2 rev46 Block4 HTP Batch APK**\nArtifact: **MeanVc2Rev46Block4HtpBatch-v1**\nArtifact id: \`${{ steps.upload.outputs.artifact-id }}\`\nAPK: \`MeanVc2Rev46Block4HtpBatch-v1-debug.apk\`\nBuild wall time: \`${{ steps.package.outputs.wall_seconds }} s\`\nAPK SHA256: \`${{ steps.package.outputs.apk_sha256 }}\`\n\nInstall the APK manually, launch it once, let the automatic batch finish, then copy the complete UTF-8 log."
+          gh issue comment 76 --repo "$GITHUB_REPOSITORY" --body "REV46_BLOCK4_HTP_BATCH_APK_RUN_STATUS\n\nWorkflow: **Build MeanVC2 rev46 Block4 HTP Batch APK**\nRun: **${GITHUB_RUN_ID}**\nGit SHA: \`${GITHUB_SHA}\`\nJob status: **${{ job.status }}**\nArtifact: **MeanVc2Rev46Block4HtpBatch-v1**\nArtifact id: \`${{ steps.upload.outputs.artifact-id }}\`\nAPK: \`MeanVc2Rev46Block4HtpBatch-v1-debug.apk\`\nBuild wall time: \`${{ steps.package.outputs.wall_seconds }} s\`\nAPK SHA256: \`${{ steps.package.outputs.apk_sha256 }}\`\n\nIf status is success, install the APK manually, launch it once, let the automatic batch finish, then copy the complete UTF-8 log."
