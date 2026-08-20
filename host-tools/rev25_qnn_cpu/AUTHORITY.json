@@ -1,17 +1,37 @@
 {
-  "schema": 1,
-  "purpose": "MeanVC2 Rev46 host foundation -> frozen rev25 QNN CPU semantic reference",
-  "safe_start": "SIMADMIN_AGENT_SAFE_START_REQUIRED=1",
+  "schema": 2,
+  "purpose": "MeanVC2 rev46 frozen rev25 host reference identity and role separation",
+  "public_workspace": true,
+  "public_hygiene": "model/test/generated numerical assets may be public; omit credentials, private transport identifiers, signing material, temporary signed URLs, and unrelated private data",
   "production_integration": false,
   "threshold_relaxation": false,
   "cpu_ep_fallback": false,
-  "runtime": {
-    "onnxruntime": "1.27.0",
-    "onnxruntime_commit": "8f0278c77bf44b0cc83c098c6c722b92a36ac4b5",
+  "native_qnn_foundation": {
     "qairt_sdk": "2.44.0.260225",
-    "qnn_backend_type": "cpu",
+    "release": "20260820.1",
+    "asset": "qairt244-native-host-foundation-v4.tar.gz",
+    "asset_id": 521748069,
+    "bytes": 377592420,
+    "sha256": "44753f03f7b2c0a21ff751258137a3673321bbd10aaa8817ebf1f00badb17b22",
+    "validated_flow": "qnn-onnx-converter -> qnn-model-lib-generator -> qnn-net-run/libQnnCpu.so"
+  },
+  "ort127_cpu_oracle": {
+    "version": "1.27.0",
+    "provider": "CPUExecutionProvider",
+    "stock_package_sha256": "547e40a48f1fe73e3f812d7c88a948612c23f896b91e4e2ee1e232d7b468246f",
+    "spectrum_sha256": "1c98b1ef3aababc64e0bef53889cfe86a294190d37f4b94b476ab4697cf17d8a",
+    "waveform_sha256": "a9d23b56592014e4ad3bb84d49da25f6d10478551ceeba7ccaf0b54d30ff4853",
+    "repeat": "bit-exact"
+  },
+  "ort_qnn_frontend_parity": {
+    "role": "separate optional/frontend-parity control; not equivalent to native qnn-net-run/libQnnCpu.so",
+    "onnxruntime": "1.27.0",
+    "source_commit": "8f0278c77bf44b0cc83c098c6c722b92a36ac4b5",
+    "qairt_sdk": "2.44.0.260225",
+    "required_provider": "QNNExecutionProvider",
+    "required_backend_type": "cpu",
     "session_disable_cpu_ep_fallback": true,
-    "durable_host_release": "ort-1.27.0-qnn-2.44.0.260225-linux-x64-v1"
+    "status": "pending separate qualification; does not block native QNN structural work"
   },
   "frozen_rev25": {
     "cold4": {
@@ -27,26 +47,26 @@
       "sha256": "dc58af153c7c0dd6ab0a450a5f77648203e7f82a800a17837e09095ce48c9963"
     },
     "route": "cold4 once -> warm6 reuse x47",
-    "input": "features [1,80,4] cold; [1,80,6] warm; raw values transformed (x+1)/2; warm prefixes prior raw block final two frames",
-    "outputs": ["spec_real", "spec_imag"]
+    "input": "features [1,80,4] cold; [1,80,6] warm; transform (raw+1)/2; warm prefix uses previous raw block final two frames",
+    "outputs": ["spec_real", "spec_imag"],
+    "transport_identity_policy": "exact bytes/SHA are authority; historical Drive/APK transport identifiers are intentionally omitted from this public authority"
   },
-  "authority_apk": {
-    "bytes": 147504599,
-    "sha256": "aa1163e354008d78edde050511a81dce22b61650e8d45e860ce0d163669b4af8",
-    "parts": [
-      ["1cSkMUgkMM9vdztUGr0DBEM8VCKSGDQ1z", 25000000, "0080f0eea4510b67c6552b3a2dc9ad6e5b15f02afe36aecf95df939ce4d10d77"],
-      ["1Ys0zGBb514zEL1FiMNxezbAtpESiXK-4", 25000000, "e6478ccce95136775ae97db4ab67c682143b6a5104cfd095ec35a00d66c4deac"],
-      ["13eV2shxkMQOtHUHYpvpM4RvVWHdP-QRP", 25000000, "b8631c59966607ca78fad62dc2b7627a74281c2a16d9eac765ac60f0d203a627"],
-      ["1isnSHDaEOYO9rYN9R00c6XJieh4MLMW1", 25000000, "cec50e5d8aa9eda2f9925b46df86e3eded38ccc440f6ac4a2f80409bf4177c5d"],
-      ["1WmpVW_tK8-_JRpUcKY8Qdayk1yx3SECV", 25000000, "5c7097c223de667ad38b550bcd6c2f7e0c7f44e44ffb7a677ba4558da2bf9b3e"],
-      ["1vj62ejLUqpIfJnb3sFIIZ2zoQpGRK5E4", 22504599, "8bfd5d6b4ea95b1ef888894a5586ba55a9eba56a31e96b0057070ce686b08207"]
-    ]
-  },
-  "direct_expected_waveform": {
+  "historical_expected_waveform_identity": {
     "bytes": 122240,
     "sha256": "5c92627e3a7ede5a0850fa1a95f1eb3125e381478bf05342980505a398ab9a53",
     "direct_bytes_currently_available": false,
-    "policy": "do not substitute another waveform; compare same-input FP32 CPU vs QNN CPU and preserve the historical expected-waveform identity separately"
+    "policy": "do not substitute another waveform; preserve historical identity separately from same-input ORT/QNN comparisons"
   },
-  "next_after_reference": "Only after qnn_cpu_semantic evidence is frozen: same-version compiled-QNN/Saver/optrace -> HTP residual calibration surrogate -> PW1->activation->PW2 wider redesign -> strict device A/B"
+  "current_native_qnn_status": {
+    "repeat_whole_spectrum_bit_exact": true,
+    "repeat_waveform_bit_exact": true,
+    "repeat_per_block_bit_exact": true,
+    "first_material_host_residual_layer": "ConvNeXt block4",
+    "diagnostic": "block4 mathematically-equivalent decanonicalized activation nearly removes native QNN drift while preserving ORT CPU semantics",
+    "next": "target-device/same-runtime compiled graph or optrace structural A/B for canonicalized vs block4-decanonicalized models"
+  },
+  "evidence": [
+    "evidence/rev46/rev25-native-qnn-cpu-block4-diagnostic-20260820.json",
+    "evidence/rev46/rev25-block4-saver-htp-structural-20260820.json"
+  ]
 }
