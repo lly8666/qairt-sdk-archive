@@ -1,9 +1,30 @@
 {
   "schema": 1,
   "repository": "lly8666/qairt-sdk-archive",
-  "generated_at_utc": "2026-08-20T10:25:58.040923+00:00",
+  "generated_at_utc": "2026-08-20T11:21:34.356489+00:00",
   "note": "Stable, non-secret metadata index for agents. browser_download_url is not a signed credential; private asset download still requires authenticated GitHub access or an export workflow.",
   "releases": [
+    {
+      "tag_name": "20260820.2",
+      "name": "MeanVc2QnnLab-v69-rev43-b6-sigpoly15-hardware-aware-ab-fixedsigner",
+      "draft": false,
+      "prerelease": false,
+      "created_at": "2026-08-20T10:26:13Z",
+      "published_at": "2026-08-20T11:21:27Z",
+      "html_url": "https://github.com/lly8666/qairt-sdk-archive/releases/tag/20260820.2",
+      "assets": [
+        {
+          "name": "MeanVc2QnnLab-v69-rev43-b6-sigpoly15-hardware-aware-ab-fixedsigner.apk",
+          "id": 522156340,
+          "size": 147639670,
+          "digest": "sha256:f0041f9994413b3fac496612bd15e3da922c4b6ff3712da51d81326b717dc86c",
+          "created_at": "2026-08-20T11:20:07Z",
+          "updated_at": "2026-08-20T11:20:40Z",
+          "browser_download_url": "https://github.com/lly8666/qairt-sdk-archive/releases/download/20260820.2/MeanVc2QnnLab-v69-rev43-b6-sigpoly15-hardware-aware-ab-fixedsigner.apk",
+          "api_url": "https://api.github.com/repos/lly8666/qairt-sdk-archive/releases/assets/522156340"
+        }
+      ]
+    },
     {
       "tag_name": "20260820.1",
       "name": "qairt244-native-host-foundation-v4",

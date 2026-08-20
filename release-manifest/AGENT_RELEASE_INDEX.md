@@ -4,6 +4,11 @@
 
 Canonical machine-readable file: `release-manifest/AGENT_RELEASE_INDEX.json`.
 
+## `20260820.2`
+Published: `2026-08-20T11:21:27Z`
+
+- `MeanVc2QnnLab-v69-rev43-b6-sigpoly15-hardware-aware-ab-fixedsigner.apk` — id `522156340`, bytes `147639670`, `sha256:f0041f9994413b3fac496612bd15e3da922c4b6ff3712da51d81326b717dc86c`
+
 ## `20260820.1`
 Published: `2026-08-20T04:27:41Z`
 
