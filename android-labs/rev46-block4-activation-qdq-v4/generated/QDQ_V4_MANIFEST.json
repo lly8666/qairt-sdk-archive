@@ -1,0 +1,316 @@
+{
+  "all_frozen_pass": false,
+  "all_holdout_pass": false,
+  "final_gate": {
+    "cosine": 0.99999,
+    "max_abs": 0.0003,
+    "mean_abs": 1e-05,
+    "rmse": 2e-05
+  },
+  "ort_version": "1.27.0",
+  "quantization": {
+    "activation_type": "QUInt16",
+    "calibration": "deterministic synthetic only",
+    "calibration_range_design": "fixed [-12,12] plus critical/wave/small-signal coverage",
+    "format": "QDQ",
+    "search_or_sweep": false,
+    "weight_type": "QUInt8"
+  },
+  "role": "single prescribed QDQ-v4 qualification; synthetic-only calibration; frozen fixtures validation-only; no fitting/search; no threshold relaxation",
+  "schema": 1,
+  "status": "REVIEW",
+  "variants": [
+    {
+      "float_ops": {
+        "com.microsoft:Gelu": 1
+      },
+      "float_sha256": "96e2e309a22e41cc3040c88e339ddef24065e30cbf5ffa08a8be9550c899f40f",
+      "frozen": [
+        {
+          "gate_pass": false,
+          "id": "cold0",
+          "metric": {
+            "cosine": 0.9999999695011287,
+            "max_abs": 0.0002900362014770508,
+            "mean_abs": 5.467694709622902e-05,
+            "rmse": 6.771307882768694e-05
+          }
+        }
+      ],
+      "holdout": [
+        {
+          "gate_pass": false,
+          "id": "holdout_wave",
+          "metric": {
+            "cosine": 0.9999999997149215,
+            "max_abs": 0.00028693675994873047,
+            "mean_abs": 6.0491117984689626e-05,
+            "rmse": 8.752936891453867e-05
+          }
+        },
+        {
+          "gate_pass": false,
+          "id": "holdout_lcg",
+          "metric": {
+            "cosine": 0.9999999997721012,
+            "max_abs": 0.00028264522552490234,
+            "mean_abs": 6.090778389662016e-05,
+            "rmse": 8.848261011264085e-05
+          }
+        },
+        {
+          "gate_pass": false,
+          "id": "holdout_sweep",
+          "metric": {
+            "cosine": 0.9999999997376728,
+            "max_abs": 0.0002802610397338867,
+            "mean_abs": 6.149966769186203e-05,
+            "rmse": 8.877653336311513e-05
+          }
+        }
+      ],
+      "model": "baseline",
+      "qdq_bytes": 1018,
+      "qdq_ops": {
+        "com.microsoft:DequantizeLinear": 2,
+        "com.microsoft:Gelu": 1,
+        "com.microsoft:QuantizeLinear": 2
+      },
+      "qdq_sha256": "5f4c09808597106c344adbab9560da40f2b5f52db319c75b8fb6856a4930307f",
+      "shape": "cold4",
+      "t": 4
+    },
+    {
+      "float_ops": {
+        "ai.onnx:Add": 35,
+        "ai.onnx:Clip": 1,
+        "ai.onnx:Mul": 52,
+        "ai.onnx:Relu": 1
+      },
+      "float_sha256": "3825f01208c5ba351bc70cbd6c967025a23014ee74c48b88dbf18552e6ecc1cd",
+      "frozen": [
+        {
+          "gate_pass": false,
+          "id": "cold0",
+          "metric": {
+            "cosine": 0.9999999029899833,
+            "max_abs": 0.00042666494846343994,
+            "mean_abs": 9.607808561895581e-05,
+            "rmse": 0.00012076934905803872
+          }
+        }
+      ],
+      "holdout": [
+        {
+          "gate_pass": false,
+          "id": "holdout_wave",
+          "metric": {
+            "cosine": 0.9999999995887637,
+            "max_abs": 0.00046296417713165283,
+            "mean_abs": 7.373678485815087e-05,
+            "rmse": 0.00010689629255634032
+          }
+        },
+        {
+          "gate_pass": false,
+          "id": "holdout_lcg",
+          "metric": {
+            "cosine": 0.9999999996850819,
+            "max_abs": 0.0004285871982574463,
+            "mean_abs": 7.29011741877154e-05,
+            "rmse": 0.00010662537998781914
+          }
+        },
+        {
+          "gate_pass": false,
+          "id": "holdout_sweep",
+          "metric": {
+            "cosine": 0.9999999996351617,
+            "max_abs": 0.0004000663757324219,
+            "mean_abs": 7.391668215935472e-05,
+            "rmse": 0.00010680399373274674
+          }
+        }
+      ],
+      "model": "candidate",
+      "qdq_bytes": 68319,
+      "qdq_ops": {
+        "ai.onnx:Add": 35,
+        "ai.onnx:Clip": 1,
+        "ai.onnx:Mul": 52,
+        "ai.onnx:Relu": 1,
+        "com.microsoft:DequantizeLinear": 112,
+        "com.microsoft:QuantizeLinear": 90
+      },
+      "qdq_sha256": "cd96b18ae4ca252d7d1273b3b1bd9d38784c4a03abdb067479deb71ee264632f",
+      "shape": "cold4",
+      "t": 4
+    },
+    {
+      "float_ops": {
+        "com.microsoft:Gelu": 1
+      },
+      "float_sha256": "455516875b73b3ffcf3231260030c934ba752489b9eda8400c77f6179ac4a7e1",
+      "frozen": [
+        {
+          "gate_pass": false,
+          "id": "warm1",
+          "metric": {
+            "cosine": 0.9999999695832105,
+            "max_abs": 0.00029647350311279297,
+            "mean_abs": 5.413321812257806e-05,
+            "rmse": 6.697854933839237e-05
+          }
+        },
+        {
+          "gate_pass": false,
+          "id": "warm18",
+          "metric": {
+            "cosine": 0.9999999673187145,
+            "max_abs": 0.0002791285514831543,
+            "mean_abs": 5.4921667167461154e-05,
+            "rmse": 6.772692167950027e-05
+          }
+        },
+        {
+          "gate_pass": false,
+          "id": "warm47",
+          "metric": {
+            "cosine": 0.9999999721900851,
+            "max_abs": 0.00029098987579345703,
+            "mean_abs": 5.5819555908427474e-05,
+            "rmse": 6.922289032905535e-05
+          }
+        }
+      ],
+      "holdout": [
+        {
+          "gate_pass": false,
+          "id": "holdout_wave",
+          "metric": {
+            "cosine": 0.9999999997115293,
+            "max_abs": 0.0002912282943725586,
+            "mean_abs": 6.041553412303632e-05,
+            "rmse": 8.77010794933552e-05
+          }
+        },
+        {
+          "gate_pass": false,
+          "id": "holdout_lcg",
+          "metric": {
+            "cosine": 0.9999999997726993,
+            "max_abs": 0.00028574466705322266,
+            "mean_abs": 6.036906335118072e-05,
+            "rmse": 8.768651482185022e-05
+          }
+        },
+        {
+          "gate_pass": false,
+          "id": "holdout_sweep",
+          "metric": {
+            "cosine": 0.9999999997396362,
+            "max_abs": 0.00027751922607421875,
+            "mean_abs": 6.119298744502084e-05,
+            "rmse": 8.843911282665833e-05
+          }
+        }
+      ],
+      "model": "baseline",
+      "qdq_bytes": 1018,
+      "qdq_ops": {
+        "com.microsoft:DequantizeLinear": 2,
+        "com.microsoft:Gelu": 1,
+        "com.microsoft:QuantizeLinear": 2
+      },
+      "qdq_sha256": "9e0dd61d082bf17e7ec96f1a0afacf0fe1f60df0f6f0b6dab5b7f8b693806c48",
+      "shape": "warm6",
+      "t": 6
+    },
+    {
+      "float_ops": {
+        "ai.onnx:Add": 35,
+        "ai.onnx:Clip": 1,
+        "ai.onnx:Mul": 52,
+        "ai.onnx:Relu": 1
+      },
+      "float_sha256": "00c10909e547e83ab87a70b7b71b4a6108992e5293198e41bc97ad2d508648e7",
+      "frozen": [
+        {
+          "gate_pass": false,
+          "id": "warm1",
+          "metric": {
+            "cosine": 0.9999998983262628,
+            "max_abs": 0.0004681050777435303,
+            "mean_abs": 9.732408457491854e-05,
+            "rmse": 0.00012246334749064938
+          }
+        },
+        {
+          "gate_pass": false,
+          "id": "warm18",
+          "metric": {
+            "cosine": 0.9999998897984739,
+            "max_abs": 0.0005260109901428223,
+            "mean_abs": 9.906147208798504e-05,
+            "rmse": 0.0001243747393089565
+          }
+        },
+        {
+          "gate_pass": false,
+          "id": "warm47",
+          "metric": {
+            "cosine": 0.9999999125341481,
+            "max_abs": 0.0005123019218444824,
+            "mean_abs": 9.778062559936036e-05,
+            "rmse": 0.00012277502988201542
+          }
+        }
+      ],
+      "holdout": [
+        {
+          "gate_pass": false,
+          "id": "holdout_wave",
+          "metric": {
+            "cosine": 0.9999999995845102,
+            "max_abs": 0.00046296417713165283,
+            "mean_abs": 7.36715210491765e-05,
+            "rmse": 0.00010702625642094222
+          }
+        },
+        {
+          "gate_pass": false,
+          "id": "holdout_lcg",
+          "metric": {
+            "cosine": 0.9999999996842592,
+            "max_abs": 0.0004665851593017578,
+            "mean_abs": 7.2330611993089e-05,
+            "rmse": 0.00010559728965629664
+          }
+        },
+        {
+          "gate_pass": false,
+          "id": "holdout_sweep",
+          "metric": {
+            "cosine": 0.999999999633985,
+            "max_abs": 0.00045925378799438477,
+            "mean_abs": 7.378228500777418e-05,
+            "rmse": 0.00010712345955499158
+          }
+        }
+      ],
+      "model": "candidate",
+      "qdq_bytes": 68319,
+      "qdq_ops": {
+        "ai.onnx:Add": 35,
+        "ai.onnx:Clip": 1,
+        "ai.onnx:Mul": 52,
+        "ai.onnx:Relu": 1,
+        "com.microsoft:DequantizeLinear": 112,
+        "com.microsoft:QuantizeLinear": 90
+      },
+      "qdq_sha256": "cd5f9444057f943edc73788f9d6eb6594062ebfb44bb49a38ffd7b95801b6405",
+      "shape": "warm6",
+      "t": 6
+    }
+  ]
+}
