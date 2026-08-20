@@ -1,0 +1,24 @@
+name: Report durable ORT QNN2.44 build status
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  actions: read
+  contents: read
+  issues: write
+
+jobs:
+  report:
+    if: github.event.issue.title == '[status-ort-1.27-qnn2.44-linux-x64-durable]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Report latest durable build run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          data="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow build-ort127-qnn244-durable.yml --limit 5 --json databaseId,status,conclusion,event,headSha,createdAt,updatedAt,url)"
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "Latest durable ORT/QNN2.44 workflow runs:\n\n\`\`\`json\n${data}\n\`\`\`"
