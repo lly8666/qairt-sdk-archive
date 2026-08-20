@@ -70,26 +70,35 @@ jobs:
           echo "FOUNDATION_ROOT=$foundation_root" >> "$GITHUB_ENV"
           echo "PAYLOAD_ROOT=$payload_root" >> "$GITHUB_ENV"
           echo "MATRIX_ROOT=$RUNNER_TEMP/block4-gelu-2x2-v4" >> "$GITHUB_ENV"
-          echo "PYTHONPATH=$foundation_root/site-packages:$foundation_root/qairt/lib/python" >> "$GITHUB_ENV"
-          echo "LD_LIBRARY_PATH=$foundation_root/cxx:$foundation_root/python/lib:$foundation_root/qairt/bin/lib:$foundation_root/qairt/lib/x86_64-linux-clang${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" >> "$GITHUB_ENV"
-          echo "$foundation_root/qairt/bin/x86_64-linux-clang" >> "$GITHUB_PATH"
           echo "FOUNDATION_ROOT=$foundation_root"
           echo "PAYLOAD_ROOT=$payload_root"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install and verify frozen ORT 1.27 host oracle environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check 'numpy==1.26.4' 'onnx==1.17.0' 'onnxruntime==1.27.0'
+          python -c "import numpy,onnx,onnxruntime as ort; assert numpy.__version__=='1.26.4'; assert onnx.__version__=='1.17.0'; assert ort.__version__=='1.27.0'; print('ORT_ORACLE_ENV_PASS', numpy.__version__, onnx.__version__, ort.__version__)"
 
       - name: Generate A/B/C/D and run ORT 1.27 cold0 semantic gate
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p "$MATRIX_ROOT"
-          "$FOUNDATION_ROOT/python/bin/python3.10" "$TOOL_ROOT/run_block4_gelu_2x2_v4.py" \
+          python "$TOOL_ROOT/run_block4_gelu_2x2_v4.py" \
             --payload-root "$PAYLOAD_ROOT" --out-dir "$MATRIX_ROOT" | tee "$MATRIX_ROOT/pre-qairt.log"
           grep -F 'REV46_BLOCK4_GELU_2X2_PRE_QAIRT_PASS' "$MATRIX_ROOT/pre-qairt.log"
+          python -c "import json; r=json.load(open('$MATRIX_ROOT/MATRIX_PRE_QAIRT_REPORT.json')); assert r['ort_version']=='1.27.0'; print('PRE_QAIRT_ORT_127_IDENTITY_PASS')"
 
       - name: Run stable graph-contract audit across all four cases
         shell: bash
         run: |
           set -euo pipefail
-          "$FOUNDATION_ROOT/python/bin/python3.10" tools/qnn_graph_contract_audit.py \
+          python tools/qnn_graph_contract_audit.py \
             "$MATRIX_ROOT/A_dynamic_erf/model.onnx" \
             "$MATRIX_ROOT/B_staticT4_erf/model.onnx" \
             "$MATRIX_ROOT/C_dynamic_canonicalGelu/model.onnx" \
@@ -110,7 +119,7 @@ jobs:
         shell: bash
         run: |
           set +e
-          "$FOUNDATION_ROOT/python/bin/python3.10" "$TOOL_ROOT/analyze_block4_gelu_2x2_v4.py" \
+          python "$TOOL_ROOT/analyze_block4_gelu_2x2_v4.py" \
             --matrix-root "$MATRIX_ROOT" \
             --graph-audit "$MATRIX_ROOT/GRAPH_CONTRACT_AUDIT.json" \
             --full-vocos-saver-evidence evidence/rev46/rev25-block4-saver-htp-structural-20260820.json \
