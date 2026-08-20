@@ -6,6 +6,7 @@ on:
 
 permissions:
   contents: read
+  issues: write
 
 jobs:
   export:
@@ -62,6 +63,7 @@ jobs:
           # Do not execute Python or mutate payload after this point.
 
       - name: Upload short-lived runtime artifact
+        id: upload
         uses: actions/upload-artifact@v4
         with:
           name: gate0d-cpython310-runtime
@@ -70,3 +72,19 @@ jobs:
           retention-days: 1
           include-hidden-files: true
           if-no-files-found: error
+
+      - name: Record transport identity
+        if: success()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "Portable CPython 3.10.20 transport ready. Artifact id: \`${{ steps.upload.outputs.artifact-id }}\`. Verify SHA256SUMS.txt after download; no project compilation performed."
+
+      - name: Report failure
+        if: failure()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "Portable CPython 3.10 transport export failed in run ${GITHUB_RUN_ID}; inspect the failed step. No artifact is qualified."
