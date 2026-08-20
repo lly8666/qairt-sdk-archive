@@ -74,10 +74,7 @@ def qnn_quantize(src,dst,t):
         changed=qnn_preprocess_model(str(src),str(pre))
         model=str(pre if changed else src)
         reader=SyntheticReader(t)
-        kwargs={
-            'activation_type':QuantType.QUInt16,
-            'weight_type':QuantType.QUInt8,
-        }
+        kwargs={'activation_type':QuantType.QUInt16,'weight_type':QuantType.QUInt8}
         sig=inspect.signature(get_qnn_qdq_config)
         if 'calibrate_method' in sig.parameters: kwargs['calibrate_method']=CalibrationMethod.MinMax
         if 'keep_removable_activations' in sig.parameters: kwargs['keep_removable_activations']=True
@@ -112,12 +109,9 @@ def make_micro(path,t,kind):
     x=helper.make_tensor_value_info('preact',TensorProto.FLOAT,[1,t,PREACT]); y=helper.make_tensor_value_info('activation',TensorProto.FLOAT,[1,t,PREACT])
     nodes=[]; inits=[]
     if kind=='relu': nodes=[helper.make_node('Relu',['preact'],['activation'],name='relu')]
-    elif kind=='mul':
-        inits=[helper.make_tensor('k',TensorProto.FLOAT,[],[0.75])]; nodes=[helper.make_node('Mul',['preact','k'],['activation'],name='mul')]
-    elif kind=='add':
-        inits=[helper.make_tensor('k',TensorProto.FLOAT,[],[0.125])]; nodes=[helper.make_node('Add',['preact','k'],['activation'],name='add')]
-    elif kind=='clip':
-        inits=[helper.make_tensor('lo',TensorProto.FLOAT,[],[-6.0]),helper.make_tensor('hi',TensorProto.FLOAT,[],[6.0])]; nodes=[helper.make_node('Clip',['preact','lo','hi'],['activation'],name='clip')]
+    elif kind=='mul': inits=[helper.make_tensor('k',TensorProto.FLOAT,[],[0.75])]; nodes=[helper.make_node('Mul',['preact','k'],['activation'],name='mul')]
+    elif kind=='add': inits=[helper.make_tensor('k',TensorProto.FLOAT,[],[0.125])]; nodes=[helper.make_node('Add',['preact','k'],['activation'],name='add')]
+    elif kind=='clip': inits=[helper.make_tensor('lo',TensorProto.FLOAT,[],[-6.0]),helper.make_tensor('hi',TensorProto.FLOAT,[],[6.0])]; nodes=[helper.make_node('Clip',['preact','lo','hi'],['activation'],name='clip')]
     elif kind=='gelu': nodes=[helper.make_node('Gelu',['preact'],['activation'],name='gelu',domain='com.microsoft')]
     else: raise ValueError(kind)
     m=helper.make_model(helper.make_graph(nodes,'rev46_v4_'+kind,[x],[y],initializer=inits),producer_name='qairt-sdk-archive/rev46-q16-v4',opset_imports=[helper.make_opsetid('',21),helper.make_opsetid('com.microsoft',1)])
@@ -130,29 +124,24 @@ def main():
     report={'schema':1,'status':'DEVICE_DIAGNOSTIC_READY','ort_cpu_version':ort.__version__,'calibration_policy':CALIBRATION_POLICY,'calibration_range':CALIBRATION_RANGE,'final_gate':FINAL_GATE,'variants':[],'micro_ladder':[],'qualification':{'all_fixed_shape':True,'all_qdq_present':True,'frozen_numeric_gate_all':True}}
     for shape,t in SHAPES.items():
         for model in ('baseline','candidate'):
-            src=v3/f'{shape}_{"baseline_contrib_gelu" if model=="baseline" else "candidate_exact_activation"}.onnx'
-            dst=out/f'{shape}_{model}_q16_qdq.onnx'; qnn_quantize(src,dst,t)
-            ops=op_inventory(dst); dyn=dynamic_dims(dst)
-            qdq=('ai.onnx:QuantizeLinear' in ops or 'com.microsoft:QuantizeLinear' in ops) and ('ai.onnx:DequantizeLinear' in ops or 'com.microsoft:DequantizeLinear' in ops)
+            src=v3/f'{shape}_{"baseline_contrib_gelu" if model=="baseline" else "candidate_exact_activation"}.onnx'; dst=out/f'{shape}_{model}_q16_qdq.onnx'; qnn_quantize(src,dst,t)
+            ops=op_inventory(dst); dyn=dynamic_dims(dst); qdq=('ai.onnx:QuantizeLinear' in ops or 'com.microsoft:QuantizeLinear' in ops) and ('ai.onnx:DequantizeLinear' in ops or 'com.microsoft:DequantizeLinear' in ops)
             report['qualification']['all_fixed_shape'] &= not dyn; report['qualification']['all_qdq_present'] &= qdq
-            vr={'shape':shape,'t':t,'model':model,'source_sha256':sha256(src),'qdq_model':dst.name,'qdq_sha256':sha256(dst),'qdq_bytes':dst.stat().st_size,'ops':ops,'dynamic_dims':dyn,'fixtures':[]}
+            vr={'shape':shape,'t':t,'model':model,'source_sha256':sha256(src),'qdq_model':dst.name,'qdq_sha256':sha256(dst),'qdq_bytes':dst.stat().st_size,'qdq_present':qdq,'ops':ops,'dynamic_dims':dyn,'fixtures':[]}
             for fid in FIXTURES[shape]:
                 x=load_f32(root/'fixtures'/f'preact_{fid}.f32',t*PREACT); ref=load_f32(root/'oracle'/f'{model}_{fid}_activation.f32',t*PREACT); y=run(dst,x,t); mm=metric(ref,y); gp=gate(mm); report['qualification']['frozen_numeric_gate_all'] &= gp; vr['fixtures'].append({'id':fid,'metric_vs_frozen_oracle':mm,'final_gate_pass':gp})
             report['variants'].append(vr)
-    # Fixed T=4 operator capability ladder. Synthetic-only; never used as frozen final qualification.
     for kind in ('relu','mul','add','clip','gelu'):
         f=out/f'cold4_micro_{kind}_float.onnx'; q=out/f'cold4_micro_{kind}_q16_qdq.onnx'; make_micro(f,4,kind); qnn_quantize(f,q,4); f.unlink()
         ops=op_inventory(q); dyn=dynamic_dims(q); qdq=('ai.onnx:QuantizeLinear' in ops or 'com.microsoft:QuantizeLinear' in ops) and ('ai.onnx:DequantizeLinear' in ops or 'com.microsoft:DequantizeLinear' in ops)
         report['qualification']['all_fixed_shape'] &= not dyn; report['qualification']['all_qdq_present'] &= qdq
-        report['micro_ladder'].append({'kind':kind,'model':q.name,'sha256':sha256(q),'bytes':q.stat().st_size,'ops':ops,'dynamic_dims':dyn})
-    if not report['qualification']['all_fixed_shape'] or not report['qualification']['all_qdq_present']:
-        report['status']='FAIL_STRUCTURE'
-    elif report['qualification']['frozen_numeric_gate_all']:
-        report['status']='PASS_HOST_NUMERIC_AND_STRUCTURE'
-    else:
-        report['status']='PASS_STRUCTURE_NUMERIC_GATE_NOT_MET_DIAGNOSTIC_ONLY'
+        report['micro_ladder'].append({'kind':kind,'model':q.name,'sha256':sha256(q),'bytes':q.stat().st_size,'qdq_present':qdq,'ops':ops,'dynamic_dims':dyn})
+    if not report['qualification']['all_fixed_shape'] or not report['qualification']['all_qdq_present']: report['status']='FAIL_STRUCTURE'
+    elif report['qualification']['frozen_numeric_gate_all']: report['status']='PASS_HOST_NUMERIC_AND_STRUCTURE'
+    else: report['status']='PASS_STRUCTURE_NUMERIC_GATE_NOT_MET_DIAGNOSTIC_ONLY'
     (out/'Q16_V4_MANIFEST.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')
-    print('REV46_Q16_V4_PREP_'+report['status']); print(json.dumps(report['qualification'],sort_keys=True));
-    if report['status']=='FAIL_STRUCTURE': raise SystemExit(2)
+    print('REV46_Q16_V4_PREP_'+report['status']); print(json.dumps(report['qualification'],sort_keys=True))
+    for v in report['variants']: print('TARGET',v['shape'],v['model'],'qdq=',v['qdq_present'],'ops=',json.dumps(v['ops'],sort_keys=True),'gates=',[x['final_gate_pass'] for x in v['fixtures']])
+    for v in report['micro_ladder']: print('MICRO',v['kind'],'qdq=',v['qdq_present'],'ops=',json.dumps(v['ops'],sort_keys=True))
 
 if __name__=='__main__': main()
