@@ -8,6 +8,7 @@ Canonical machine-readable file: `release-manifest/AGENT_RELEASE_INDEX.json`.
 Published: `2026-08-20T04:27:41Z`
 
 - `qairt244-native-host-foundation-v4.tar.gz` — id `521748069`, bytes `377592420`, `sha256:44753f03f7b2c0a21ff751258137a3673321bbd10aaa8817ebf1f00badb17b22`
+- `rev46-block4-focused-payload-v2.tar.gz` — id `521915275`, bytes `4176967`, `sha256:42493454ece1060a5100f28e5bf35a15d09bb48f8b46f82c5b69a12fd0f6a1c9`
 
 ## `20260819.4`
 Published: `2026-08-19T15:38:49Z`

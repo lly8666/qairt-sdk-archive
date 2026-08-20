@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "repository": "lly8666/qairt-sdk-archive",
-  "generated_at_utc": "2026-08-20T06:25:49.591586+00:00",
+  "generated_at_utc": "2026-08-20T07:37:08.885158+00:00",
   "note": "Stable, non-secret metadata index for agents. browser_download_url is not a signed credential; private asset download still requires authenticated GitHub access or an export workflow.",
   "releases": [
     {
@@ -22,6 +22,16 @@
           "updated_at": "2026-08-20T04:23:57Z",
           "browser_download_url": "https://github.com/lly8666/qairt-sdk-archive/releases/download/20260820.1/qairt244-native-host-foundation-v4.tar.gz",
           "api_url": "https://api.github.com/repos/lly8666/qairt-sdk-archive/releases/assets/521748069"
+        },
+        {
+          "name": "rev46-block4-focused-payload-v2.tar.gz",
+          "id": 521915275,
+          "size": 4176967,
+          "digest": "sha256:42493454ece1060a5100f28e5bf35a15d09bb48f8b46f82c5b69a12fd0f6a1c9",
+          "created_at": "2026-08-20T07:29:06Z",
+          "updated_at": "2026-08-20T07:29:09Z",
+          "browser_download_url": "https://github.com/lly8666/qairt-sdk-archive/releases/download/20260820.1/rev46-block4-focused-payload-v2.tar.gz",
+          "api_url": "https://api.github.com/repos/lly8666/qairt-sdk-archive/releases/assets/521915275"
         }
       ]
     },
