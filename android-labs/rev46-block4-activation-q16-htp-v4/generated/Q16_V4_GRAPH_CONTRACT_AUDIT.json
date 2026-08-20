@@ -1,0 +1,3820 @@
+{
+  "models": [
+    {
+      "bytes": 1018,
+      "domain_counts": {
+        "com.microsoft": 5
+      },
+      "dynamic_io_names": [],
+      "functions": [],
+      "graph_contract_flags": {
+        "custom_domains": [
+          "com.microsoft"
+        ],
+        "has_dynamic_io": false,
+        "has_qdq": true,
+        "has_scalar_initializer": true,
+        "multiple_runtime_inputs": false
+      },
+      "initializer_count": 4,
+      "inputs": [
+        {
+          "dtype": "FLOAT",
+          "name": "preact",
+          "shape": [
+            1,
+            4,
+            1536
+          ]
+        }
+      ],
+      "ir_version": 9,
+      "node_count": 5,
+      "op_counts": {
+        "com.microsoft::DequantizeLinear": 2,
+        "com.microsoft::Gelu": 1,
+        "com.microsoft::QuantizeLinear": 2
+      },
+      "opsets": [
+        {
+          "domain": "ai.onnx",
+          "version": 21
+        },
+        {
+          "domain": "com.microsoft",
+          "version": 1
+        }
+      ],
+      "outputs": [
+        {
+          "dtype": "FLOAT",
+          "name": "activation",
+          "shape": [
+            1,
+            4,
+            1536
+          ]
+        }
+      ],
+      "path": "android-labs/rev46-block4-activation-q16-htp-v4/generated/cold4_baseline_q16_qdq.onnx",
+      "producer_name": "onnx.quantize",
+      "producer_version": "0.1.0",
+      "qdq_node_count": 4,
+      "qdq_nodes": [
+        {
+          "domain": "com.microsoft",
+          "index": 0,
+          "inputs": [
+            "preact",
+            "preact_scale",
+            "preact_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "preact_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 1,
+          "inputs": [
+            "preact_QuantizeLinear_Output",
+            "preact_scale",
+            "preact_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "preact_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 3,
+          "inputs": [
+            "activation_QuantizeLinear_Input",
+            "activation_scale",
+            "activation_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "activation_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 4,
+          "inputs": [
+            "activation_QuantizeLinear_Output",
+            "activation_scale",
+            "activation_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "activation"
+          ]
+        }
+      ],
+      "runtime_inputs": [
+        "preact"
+      ],
+      "scalar_initializer_names": [
+        "activation_scale",
+        "activation_zero_point",
+        "preact_scale",
+        "preact_zero_point"
+      ],
+      "sha256": "678d08a14a3c336fa7caf25c333adc279a7af5aa7134fc329357de1a5b415835"
+    },
+    {
+      "bytes": 68319,
+      "domain_counts": {
+        "ai.onnx": 89,
+        "com.microsoft": 202
+      },
+      "dynamic_io_names": [],
+      "functions": [],
+      "graph_contract_flags": {
+        "custom_domains": [
+          "com.microsoft"
+        ],
+        "has_dynamic_io": false,
+        "has_qdq": true,
+        "has_scalar_initializer": true,
+        "multiple_runtime_inputs": false
+      },
+      "initializer_count": 248,
+      "inputs": [
+        {
+          "dtype": "FLOAT",
+          "name": "preact",
+          "shape": [
+            1,
+            4,
+            1536
+          ]
+        }
+      ],
+      "ir_version": 8,
+      "node_count": 291,
+      "op_counts": {
+        "ai.onnx::Add": 35,
+        "ai.onnx::Clip": 1,
+        "ai.onnx::Mul": 52,
+        "ai.onnx::Relu": 1,
+        "com.microsoft::DequantizeLinear": 112,
+        "com.microsoft::QuantizeLinear": 90
+      },
+      "opsets": [
+        {
+          "domain": "ai.onnx",
+          "version": 21
+        },
+        {
+          "domain": "com.microsoft",
+          "version": 1
+        }
+      ],
+      "outputs": [
+        {
+          "dtype": "FLOAT",
+          "name": "activation",
+          "shape": [
+            1,
+            4,
+            1536
+          ]
+        }
+      ],
+      "path": "android-labs/rev46-block4-activation-q16-htp-v4/generated/cold4_candidate_q16_qdq.onnx",
+      "producer_name": "onnx.quantize",
+      "producer_version": "0.1.0",
+      "qdq_node_count": 202,
+      "qdq_nodes": [
+        {
+          "domain": "com.microsoft",
+          "index": 0,
+          "inputs": [
+            "preact",
+            "preact_scale",
+            "preact_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "preact_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 1,
+          "inputs": [
+            "r20_b5d16___c0_quantized",
+            "r20_b5d16___c0_scale",
+            "r20_b5d16___c0_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r20_b5d16___c0_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 2,
+          "inputs": [
+            "r20_b5d16___c10_quantized",
+            "r20_b5d16___c10_scale",
+            "r20_b5d16___c10_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r20_b5d16___c10_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 3,
+          "inputs": [
+            "r20_b5d16___c11_quantized",
+            "r20_b5d16___c11_scale",
+            "r20_b5d16___c11_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r20_b5d16___c11_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 4,
+          "inputs": [
+            "r20_b5d16___c12_quantized",
+            "r20_b5d16___c12_scale",
+            "r20_b5d16___c12_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r20_b5d16___c12_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 5,
+          "inputs": [
+            "r20_b5d16___c13_quantized",
+            "r20_b5d16___c13_scale",
+            "r20_b5d16___c13_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r20_b5d16___c13_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 6,
+          "inputs": [
+            "r20_b5d16___c14_quantized",
+            "r20_b5d16___c14_scale",
+            "r20_b5d16___c14_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r20_b5d16___c14_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 7,
+          "inputs": [
+            "r20_b5d16___c15_quantized",
+            "r20_b5d16___c15_scale",
+            "r20_b5d16___c15_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r20_b5d16___c15_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 8,
+          "inputs": [
+            "r20_b5d16___c16_quantized",
+            "r20_b5d16___c16_scale",
+            "r20_b5d16___c16_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r20_b5d16___c16_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 9,
+          "inputs": [
+            "r20_b5d16___c1_quantized",
+            "r20_b5d16___c1_scale",
+            "r20_b5d16___c1_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r20_b5d16___c1_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 10,
+          "inputs": [
+            "r20_b5d16___c2_quantized",
+            "r20_b5d16___c2_scale",
+            "r20_b5d16___c2_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r20_b5d16___c2_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 11,
+          "inputs": [
+            "r20_b5d16___c3_quantized",
+            "r20_b5d16___c3_scale",
+            "r20_b5d16___c3_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r20_b5d16___c3_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 12,
+          "inputs": [
+            "r20_b5d16___c4_quantized",
+            "r20_b5d16___c4_scale",
+            "r20_b5d16___c4_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r20_b5d16___c4_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 13,
+          "inputs": [
+            "r20_b5d16___c5_quantized",
+            "r20_b5d16___c5_scale",
+            "r20_b5d16___c5_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r20_b5d16___c5_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 14,
+          "inputs": [
+            "r20_b5d16___c6_quantized",
+            "r20_b5d16___c6_scale",
+            "r20_b5d16___c6_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r20_b5d16___c6_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 15,
+          "inputs": [
+            "r20_b5d16___c7_quantized",
+            "r20_b5d16___c7_scale",
+            "r20_b5d16___c7_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r20_b5d16___c7_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 16,
+          "inputs": [
+            "r20_b5d16___c8_quantized",
+            "r20_b5d16___c8_scale",
+            "r20_b5d16___c8_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r20_b5d16___c8_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 17,
+          "inputs": [
+            "r20_b5d16___c9_quantized",
+            "r20_b5d16___c9_scale",
+            "r20_b5d16___c9_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r20_b5d16___c9_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 18,
+          "inputs": [
+            "r20_b5d16___half_quantized",
+            "r20_b5d16___half_scale",
+            "r20_b5d16___half_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r20_b5d16___half_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 19,
+          "inputs": [
+            "r20_b5d16___invclip_quantized",
+            "r20_b5d16___invclip_scale",
+            "r20_b5d16___invclip_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r20_b5d16___invclip_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 20,
+          "inputs": [
+            "r20_b5d16___negclip_quantized",
+            "r20_b5d16___negclip_scale",
+            "r20_b5d16___negclip_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r20_b5d16___negclip_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 21,
+          "inputs": [
+            "r20_b5d16___negone_quantized",
+            "r20_b5d16___negone_scale",
+            "r20_b5d16___negone_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r20_b5d16___negone_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 22,
+          "inputs": [
+            "r20_b5d16___two_quantized",
+            "r20_b5d16___two_scale",
+            "r20_b5d16___two_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r20_b5d16___two_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 23,
+          "inputs": [
+            "preact_QuantizeLinear_Output",
+            "preact_scale",
+            "preact_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "preact_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 27,
+          "inputs": [
+            "r24_diag_b4_FP_T0",
+            "r24_diag_b4_FP_T0_scale",
+            "r24_diag_b4_FP_T0_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T0_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 28,
+          "inputs": [
+            "r24_diag_b4_FP_xc",
+            "r24_diag_b4_FP_xc_scale",
+            "r24_diag_b4_FP_xc_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_xc_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 29,
+          "inputs": [
+            "r24_diag_b4_FP_tailarg",
+            "r24_diag_b4_FP_tailarg_scale",
+            "r24_diag_b4_FP_tailarg_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_tailarg_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 30,
+          "inputs": [
+            "r24_diag_b4_FP_T0_QuantizeLinear_Output",
+            "r24_diag_b4_FP_T0_scale",
+            "r24_diag_b4_FP_T0_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T0_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 31,
+          "inputs": [
+            "r24_diag_b4_FP_xc_QuantizeLinear_Output",
+            "r24_diag_b4_FP_xc_scale",
+            "r24_diag_b4_FP_xc_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_xc_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 32,
+          "inputs": [
+            "r24_diag_b4_FP_tailarg_QuantizeLinear_Output",
+            "r24_diag_b4_FP_tailarg_scale",
+            "r24_diag_b4_FP_tailarg_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_tailarg_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 37,
+          "inputs": [
+            "r24_diag_b4_FP_T2neg",
+            "r24_diag_b4_FP_T2neg_scale",
+            "r24_diag_b4_FP_T2neg_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T2neg_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 38,
+          "inputs": [
+            "r24_diag_b4_FP_scaled",
+            "r24_diag_b4_FP_scaled_scale",
+            "r24_diag_b4_FP_scaled_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_scaled_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 39,
+          "inputs": [
+            "r24_diag_b4_FP_xhalf",
+            "r24_diag_b4_FP_xhalf_scale",
+            "r24_diag_b4_FP_xhalf_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_xhalf_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 40,
+          "inputs": [
+            "r24_diag_b4_FP_tail",
+            "r24_diag_b4_FP_tail_scale",
+            "r24_diag_b4_FP_tail_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_tail_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 41,
+          "inputs": [
+            "r24_diag_b4_FP_T2neg_QuantizeLinear_Output",
+            "r24_diag_b4_FP_T2neg_scale",
+            "r24_diag_b4_FP_T2neg_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T2neg_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 42,
+          "inputs": [
+            "r24_diag_b4_FP_scaled_QuantizeLinear_Output",
+            "r24_diag_b4_FP_scaled_scale",
+            "r24_diag_b4_FP_scaled_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_scaled_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 43,
+          "inputs": [
+            "r24_diag_b4_FP_xhalf_QuantizeLinear_Output",
+            "r24_diag_b4_FP_xhalf_scale",
+            "r24_diag_b4_FP_xhalf_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_xhalf_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 44,
+          "inputs": [
+            "r24_diag_b4_FP_tail_QuantizeLinear_Output",
+            "r24_diag_b4_FP_tail_scale",
+            "r24_diag_b4_FP_tail_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_tail_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 46,
+          "inputs": [
+            "r24_diag_b4_FP_u",
+            "r24_diag_b4_FP_u_scale",
+            "r24_diag_b4_FP_u_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_u_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 47,
+          "inputs": [
+            "r24_diag_b4_FP_u_QuantizeLinear_Output",
+            "r24_diag_b4_FP_u_scale",
+            "r24_diag_b4_FP_u_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_u_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 49,
+          "inputs": [
+            "r24_diag_b4_FP_two_u",
+            "r24_diag_b4_FP_two_u_scale",
+            "r24_diag_b4_FP_two_u_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_two_u_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 50,
+          "inputs": [
+            "r24_diag_b4_FP_two_u_QuantizeLinear_Output",
+            "r24_diag_b4_FP_two_u_scale",
+            "r24_diag_b4_FP_two_u_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_two_u_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 52,
+          "inputs": [
+            "r24_diag_b4_FP_t",
+            "r24_diag_b4_FP_t_scale",
+            "r24_diag_b4_FP_t_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_t_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 53,
+          "inputs": [
+            "r24_diag_b4_FP_t_QuantizeLinear_Output",
+            "r24_diag_b4_FP_t_scale",
+            "r24_diag_b4_FP_t_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_t_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 57,
+          "inputs": [
+            "r24_diag_b4_FP_two_t",
+            "r24_diag_b4_FP_two_t_scale",
+            "r24_diag_b4_FP_two_t_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_two_t_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 58,
+          "inputs": [
+            "r24_diag_b4_FP_T3neg",
+            "r24_diag_b4_FP_T3neg_scale",
+            "r24_diag_b4_FP_T3neg_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T3neg_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 59,
+          "inputs": [
+            "r24_diag_b4_FP_term1",
+            "r24_diag_b4_FP_term1_scale",
+            "r24_diag_b4_FP_term1_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_term1_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 60,
+          "inputs": [
+            "r24_diag_b4_FP_two_t_QuantizeLinear_Output",
+            "r24_diag_b4_FP_two_t_scale",
+            "r24_diag_b4_FP_two_t_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_two_t_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 61,
+          "inputs": [
+            "r24_diag_b4_FP_T3neg_QuantizeLinear_Output",
+            "r24_diag_b4_FP_T3neg_scale",
+            "r24_diag_b4_FP_T3neg_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T3neg_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 62,
+          "inputs": [
+            "r24_diag_b4_FP_term1_QuantizeLinear_Output",
+            "r24_diag_b4_FP_term1_scale",
+            "r24_diag_b4_FP_term1_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_term1_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 65,
+          "inputs": [
+            "r24_diag_b4_FP_T2mul",
+            "r24_diag_b4_FP_T2mul_scale",
+            "r24_diag_b4_FP_T2mul_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T2mul_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 66,
+          "inputs": [
+            "r24_diag_b4_FP_psum0_0",
+            "r24_diag_b4_FP_psum0_0_scale",
+            "r24_diag_b4_FP_psum0_0_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_psum0_0_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 67,
+          "inputs": [
+            "r24_diag_b4_FP_T2mul_QuantizeLinear_Output",
+            "r24_diag_b4_FP_T2mul_scale",
+            "r24_diag_b4_FP_T2mul_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T2mul_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 68,
+          "inputs": [
+            "r24_diag_b4_FP_psum0_0_QuantizeLinear_Output",
+            "r24_diag_b4_FP_psum0_0_scale",
+            "r24_diag_b4_FP_psum0_0_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_psum0_0_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 70,
+          "inputs": [
+            "r24_diag_b4_FP_T2",
+            "r24_diag_b4_FP_T2_scale",
+            "r24_diag_b4_FP_T2_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T2_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 71,
+          "inputs": [
+            "r24_diag_b4_FP_T2_QuantizeLinear_Output",
+            "r24_diag_b4_FP_T2_scale",
+            "r24_diag_b4_FP_T2_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T2_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 75,
+          "inputs": [
+            "r24_diag_b4_FP_T3mul",
+            "r24_diag_b4_FP_T3mul_scale",
+            "r24_diag_b4_FP_T3mul_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T3mul_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 76,
+          "inputs": [
+            "r24_diag_b4_FP_T4neg",
+            "r24_diag_b4_FP_T4neg_scale",
+            "r24_diag_b4_FP_T4neg_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T4neg_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 77,
+          "inputs": [
+            "r24_diag_b4_FP_term2",
+            "r24_diag_b4_FP_term2_scale",
+            "r24_diag_b4_FP_term2_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_term2_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 78,
+          "inputs": [
+            "r24_diag_b4_FP_T3mul_QuantizeLinear_Output",
+            "r24_diag_b4_FP_T3mul_scale",
+            "r24_diag_b4_FP_T3mul_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T3mul_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 79,
+          "inputs": [
+            "r24_diag_b4_FP_T4neg_QuantizeLinear_Output",
+            "r24_diag_b4_FP_T4neg_scale",
+            "r24_diag_b4_FP_T4neg_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T4neg_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 80,
+          "inputs": [
+            "r24_diag_b4_FP_term2_QuantizeLinear_Output",
+            "r24_diag_b4_FP_term2_scale",
+            "r24_diag_b4_FP_term2_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_term2_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 82,
+          "inputs": [
+            "r24_diag_b4_FP_T3",
+            "r24_diag_b4_FP_T3_scale",
+            "r24_diag_b4_FP_T3_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T3_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 83,
+          "inputs": [
+            "r24_diag_b4_FP_T3_QuantizeLinear_Output",
+            "r24_diag_b4_FP_T3_scale",
+            "r24_diag_b4_FP_T3_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T3_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 87,
+          "inputs": [
+            "r24_diag_b4_FP_T4mul",
+            "r24_diag_b4_FP_T4mul_scale",
+            "r24_diag_b4_FP_T4mul_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T4mul_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 88,
+          "inputs": [
+            "r24_diag_b4_FP_T5neg",
+            "r24_diag_b4_FP_T5neg_scale",
+            "r24_diag_b4_FP_T5neg_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T5neg_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 89,
+          "inputs": [
+            "r24_diag_b4_FP_term3",
+            "r24_diag_b4_FP_term3_scale",
+            "r24_diag_b4_FP_term3_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_term3_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 90,
+          "inputs": [
+            "r24_diag_b4_FP_T4mul_QuantizeLinear_Output",
+            "r24_diag_b4_FP_T4mul_scale",
+            "r24_diag_b4_FP_T4mul_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T4mul_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 91,
+          "inputs": [
+            "r24_diag_b4_FP_T5neg_QuantizeLinear_Output",
+            "r24_diag_b4_FP_T5neg_scale",
+            "r24_diag_b4_FP_T5neg_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T5neg_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 92,
+          "inputs": [
+            "r24_diag_b4_FP_term3_QuantizeLinear_Output",
+            "r24_diag_b4_FP_term3_scale",
+            "r24_diag_b4_FP_term3_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_term3_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 95,
+          "inputs": [
+            "r24_diag_b4_FP_T4",
+            "r24_diag_b4_FP_T4_scale",
+            "r24_diag_b4_FP_T4_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T4_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 96,
+          "inputs": [
+            "r24_diag_b4_FP_psum0_1",
+            "r24_diag_b4_FP_psum0_1_scale",
+            "r24_diag_b4_FP_psum0_1_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_psum0_1_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 97,
+          "inputs": [
+            "r24_diag_b4_FP_T4_QuantizeLinear_Output",
+            "r24_diag_b4_FP_T4_scale",
+            "r24_diag_b4_FP_T4_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T4_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 98,
+          "inputs": [
+            "r24_diag_b4_FP_psum0_1_QuantizeLinear_Output",
+            "r24_diag_b4_FP_psum0_1_scale",
+            "r24_diag_b4_FP_psum0_1_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_psum0_1_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 103,
+          "inputs": [
+            "r24_diag_b4_FP_T5mul",
+            "r24_diag_b4_FP_T5mul_scale",
+            "r24_diag_b4_FP_T5mul_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T5mul_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 104,
+          "inputs": [
+            "r24_diag_b4_FP_T6neg",
+            "r24_diag_b4_FP_T6neg_scale",
+            "r24_diag_b4_FP_T6neg_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T6neg_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 105,
+          "inputs": [
+            "r24_diag_b4_FP_term4",
+            "r24_diag_b4_FP_term4_scale",
+            "r24_diag_b4_FP_term4_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_term4_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 106,
+          "inputs": [
+            "r24_diag_b4_FP_psum1_0",
+            "r24_diag_b4_FP_psum1_0_scale",
+            "r24_diag_b4_FP_psum1_0_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_psum1_0_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 107,
+          "inputs": [
+            "r24_diag_b4_FP_T5mul_QuantizeLinear_Output",
+            "r24_diag_b4_FP_T5mul_scale",
+            "r24_diag_b4_FP_T5mul_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T5mul_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 108,
+          "inputs": [
+            "r24_diag_b4_FP_T6neg_QuantizeLinear_Output",
+            "r24_diag_b4_FP_T6neg_scale",
+            "r24_diag_b4_FP_T6neg_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T6neg_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 109,
+          "inputs": [
+            "r24_diag_b4_FP_term4_QuantizeLinear_Output",
+            "r24_diag_b4_FP_term4_scale",
+            "r24_diag_b4_FP_term4_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_term4_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 110,
+          "inputs": [
+            "r24_diag_b4_FP_psum1_0_QuantizeLinear_Output",
+            "r24_diag_b4_FP_psum1_0_scale",
+            "r24_diag_b4_FP_psum1_0_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_psum1_0_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 112,
+          "inputs": [
+            "r24_diag_b4_FP_T5",
+            "r24_diag_b4_FP_T5_scale",
+            "r24_diag_b4_FP_T5_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T5_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 113,
+          "inputs": [
+            "r24_diag_b4_FP_T5_QuantizeLinear_Output",
+            "r24_diag_b4_FP_T5_scale",
+            "r24_diag_b4_FP_T5_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T5_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 117,
+          "inputs": [
+            "r24_diag_b4_FP_T6mul",
+            "r24_diag_b4_FP_T6mul_scale",
+            "r24_diag_b4_FP_T6mul_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T6mul_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 118,
+          "inputs": [
+            "r24_diag_b4_FP_T7neg",
+            "r24_diag_b4_FP_T7neg_scale",
+            "r24_diag_b4_FP_T7neg_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T7neg_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 119,
+          "inputs": [
+            "r24_diag_b4_FP_term5",
+            "r24_diag_b4_FP_term5_scale",
+            "r24_diag_b4_FP_term5_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_term5_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 120,
+          "inputs": [
+            "r24_diag_b4_FP_T6mul_QuantizeLinear_Output",
+            "r24_diag_b4_FP_T6mul_scale",
+            "r24_diag_b4_FP_T6mul_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T6mul_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 121,
+          "inputs": [
+            "r24_diag_b4_FP_T7neg_QuantizeLinear_Output",
+            "r24_diag_b4_FP_T7neg_scale",
+            "r24_diag_b4_FP_T7neg_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T7neg_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 122,
+          "inputs": [
+            "r24_diag_b4_FP_term5_QuantizeLinear_Output",
+            "r24_diag_b4_FP_term5_scale",
+            "r24_diag_b4_FP_term5_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_term5_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 125,
+          "inputs": [
+            "r24_diag_b4_FP_T6",
+            "r24_diag_b4_FP_T6_scale",
+            "r24_diag_b4_FP_T6_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T6_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 126,
+          "inputs": [
+            "r24_diag_b4_FP_psum0_2",
+            "r24_diag_b4_FP_psum0_2_scale",
+            "r24_diag_b4_FP_psum0_2_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_psum0_2_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 127,
+          "inputs": [
+            "r24_diag_b4_FP_T6_QuantizeLinear_Output",
+            "r24_diag_b4_FP_T6_scale",
+            "r24_diag_b4_FP_T6_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T6_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 128,
+          "inputs": [
+            "r24_diag_b4_FP_psum0_2_QuantizeLinear_Output",
+            "r24_diag_b4_FP_psum0_2_scale",
+            "r24_diag_b4_FP_psum0_2_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_psum0_2_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 132,
+          "inputs": [
+            "r24_diag_b4_FP_T7mul",
+            "r24_diag_b4_FP_T7mul_scale",
+            "r24_diag_b4_FP_T7mul_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T7mul_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 133,
+          "inputs": [
+            "r24_diag_b4_FP_T8neg",
+            "r24_diag_b4_FP_T8neg_scale",
+            "r24_diag_b4_FP_T8neg_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T8neg_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 134,
+          "inputs": [
+            "r24_diag_b4_FP_term6",
+            "r24_diag_b4_FP_term6_scale",
+            "r24_diag_b4_FP_term6_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_term6_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 135,
+          "inputs": [
+            "r24_diag_b4_FP_T7mul_QuantizeLinear_Output",
+            "r24_diag_b4_FP_T7mul_scale",
+            "r24_diag_b4_FP_T7mul_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T7mul_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 136,
+          "inputs": [
+            "r24_diag_b4_FP_T8neg_QuantizeLinear_Output",
+            "r24_diag_b4_FP_T8neg_scale",
+            "r24_diag_b4_FP_T8neg_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T8neg_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 137,
+          "inputs": [
+            "r24_diag_b4_FP_term6_QuantizeLinear_Output",
+            "r24_diag_b4_FP_term6_scale",
+            "r24_diag_b4_FP_term6_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_term6_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 139,
+          "inputs": [
+            "r24_diag_b4_FP_T7",
+            "r24_diag_b4_FP_T7_scale",
+            "r24_diag_b4_FP_T7_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T7_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 140,
+          "inputs": [
+            "r24_diag_b4_FP_T7_QuantizeLinear_Output",
+            "r24_diag_b4_FP_T7_scale",
+            "r24_diag_b4_FP_T7_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T7_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 144,
+          "inputs": [
+            "r24_diag_b4_FP_T8mul",
+            "r24_diag_b4_FP_T8mul_scale",
+            "r24_diag_b4_FP_T8mul_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T8mul_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 145,
+          "inputs": [
+            "r24_diag_b4_FP_T9neg",
+            "r24_diag_b4_FP_T9neg_scale",
+            "r24_diag_b4_FP_T9neg_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T9neg_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 146,
+          "inputs": [
+            "r24_diag_b4_FP_term7",
+            "r24_diag_b4_FP_term7_scale",
+            "r24_diag_b4_FP_term7_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_term7_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 147,
+          "inputs": [
+            "r24_diag_b4_FP_T8mul_QuantizeLinear_Output",
+            "r24_diag_b4_FP_T8mul_scale",
+            "r24_diag_b4_FP_T8mul_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T8mul_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 148,
+          "inputs": [
+            "r24_diag_b4_FP_T9neg_QuantizeLinear_Output",
+            "r24_diag_b4_FP_T9neg_scale",
+            "r24_diag_b4_FP_T9neg_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T9neg_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 149,
+          "inputs": [
+            "r24_diag_b4_FP_term7_QuantizeLinear_Output",
+            "r24_diag_b4_FP_term7_scale",
+            "r24_diag_b4_FP_term7_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_term7_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 152,
+          "inputs": [
+            "r24_diag_b4_FP_T8",
+            "r24_diag_b4_FP_T8_scale",
+            "r24_diag_b4_FP_T8_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T8_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 153,
+          "inputs": [
+            "r24_diag_b4_FP_psum0_3",
+            "r24_diag_b4_FP_psum0_3_scale",
+            "r24_diag_b4_FP_psum0_3_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_psum0_3_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 154,
+          "inputs": [
+            "r24_diag_b4_FP_T8_QuantizeLinear_Output",
+            "r24_diag_b4_FP_T8_scale",
+            "r24_diag_b4_FP_T8_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T8_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 155,
+          "inputs": [
+            "r24_diag_b4_FP_psum0_3_QuantizeLinear_Output",
+            "r24_diag_b4_FP_psum0_3_scale",
+            "r24_diag_b4_FP_psum0_3_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_psum0_3_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 160,
+          "inputs": [
+            "r24_diag_b4_FP_T9mul",
+            "r24_diag_b4_FP_T9mul_scale",
+            "r24_diag_b4_FP_T9mul_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T9mul_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 161,
+          "inputs": [
+            "r24_diag_b4_FP_T10neg",
+            "r24_diag_b4_FP_T10neg_scale",
+            "r24_diag_b4_FP_T10neg_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T10neg_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 162,
+          "inputs": [
+            "r24_diag_b4_FP_term8",
+            "r24_diag_b4_FP_term8_scale",
+            "r24_diag_b4_FP_term8_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_term8_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 163,
+          "inputs": [
+            "r24_diag_b4_FP_psum1_1",
+            "r24_diag_b4_FP_psum1_1_scale",
+            "r24_diag_b4_FP_psum1_1_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_psum1_1_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 164,
+          "inputs": [
+            "r24_diag_b4_FP_T9mul_QuantizeLinear_Output",
+            "r24_diag_b4_FP_T9mul_scale",
+            "r24_diag_b4_FP_T9mul_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T9mul_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 165,
+          "inputs": [
+            "r24_diag_b4_FP_T10neg_QuantizeLinear_Output",
+            "r24_diag_b4_FP_T10neg_scale",
+            "r24_diag_b4_FP_T10neg_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T10neg_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 166,
+          "inputs": [
+            "r24_diag_b4_FP_term8_QuantizeLinear_Output",
+            "r24_diag_b4_FP_term8_scale",
+            "r24_diag_b4_FP_term8_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_term8_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 167,
+          "inputs": [
+            "r24_diag_b4_FP_psum1_1_QuantizeLinear_Output",
+            "r24_diag_b4_FP_psum1_1_scale",
+            "r24_diag_b4_FP_psum1_1_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_psum1_1_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 170,
+          "inputs": [
+            "r24_diag_b4_FP_T9",
+            "r24_diag_b4_FP_T9_scale",
+            "r24_diag_b4_FP_T9_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T9_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 171,
+          "inputs": [
+            "r24_diag_b4_FP_psum2_0",
+            "r24_diag_b4_FP_psum2_0_scale",
+            "r24_diag_b4_FP_psum2_0_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_psum2_0_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 172,
+          "inputs": [
+            "r24_diag_b4_FP_T9_QuantizeLinear_Output",
+            "r24_diag_b4_FP_T9_scale",
+            "r24_diag_b4_FP_T9_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T9_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 173,
+          "inputs": [
+            "r24_diag_b4_FP_psum2_0_QuantizeLinear_Output",
+            "r24_diag_b4_FP_psum2_0_scale",
+            "r24_diag_b4_FP_psum2_0_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_psum2_0_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 177,
+          "inputs": [
+            "r24_diag_b4_FP_T10mul",
+            "r24_diag_b4_FP_T10mul_scale",
+            "r24_diag_b4_FP_T10mul_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T10mul_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 178,
+          "inputs": [
+            "r24_diag_b4_FP_T11neg",
+            "r24_diag_b4_FP_T11neg_scale",
+            "r24_diag_b4_FP_T11neg_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T11neg_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 179,
+          "inputs": [
+            "r24_diag_b4_FP_term9",
+            "r24_diag_b4_FP_term9_scale",
+            "r24_diag_b4_FP_term9_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_term9_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 180,
+          "inputs": [
+            "r24_diag_b4_FP_T10mul_QuantizeLinear_Output",
+            "r24_diag_b4_FP_T10mul_scale",
+            "r24_diag_b4_FP_T10mul_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T10mul_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 181,
+          "inputs": [
+            "r24_diag_b4_FP_T11neg_QuantizeLinear_Output",
+            "r24_diag_b4_FP_T11neg_scale",
+            "r24_diag_b4_FP_T11neg_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T11neg_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 182,
+          "inputs": [
+            "r24_diag_b4_FP_term9_QuantizeLinear_Output",
+            "r24_diag_b4_FP_term9_scale",
+            "r24_diag_b4_FP_term9_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_term9_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 185,
+          "inputs": [
+            "r24_diag_b4_FP_T10",
+            "r24_diag_b4_FP_T10_scale",
+            "r24_diag_b4_FP_T10_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T10_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 186,
+          "inputs": [
+            "r24_diag_b4_FP_psum0_4",
+            "r24_diag_b4_FP_psum0_4_scale",
+            "r24_diag_b4_FP_psum0_4_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_psum0_4_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 187,
+          "inputs": [
+            "r24_diag_b4_FP_T10_QuantizeLinear_Output",
+            "r24_diag_b4_FP_T10_scale",
+            "r24_diag_b4_FP_T10_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T10_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 188,
+          "inputs": [
+            "r24_diag_b4_FP_psum0_4_QuantizeLinear_Output",
+            "r24_diag_b4_FP_psum0_4_scale",
+            "r24_diag_b4_FP_psum0_4_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_psum0_4_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 192,
+          "inputs": [
+            "r24_diag_b4_FP_T11mul",
+            "r24_diag_b4_FP_T11mul_scale",
+            "r24_diag_b4_FP_T11mul_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T11mul_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 193,
+          "inputs": [
+            "r24_diag_b4_FP_T12neg",
+            "r24_diag_b4_FP_T12neg_scale",
+            "r24_diag_b4_FP_T12neg_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T12neg_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 194,
+          "inputs": [
+            "r24_diag_b4_FP_term10",
+            "r24_diag_b4_FP_term10_scale",
+            "r24_diag_b4_FP_term10_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_term10_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 195,
+          "inputs": [
+            "r24_diag_b4_FP_T11mul_QuantizeLinear_Output",
+            "r24_diag_b4_FP_T11mul_scale",
+            "r24_diag_b4_FP_T11mul_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T11mul_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 196,
+          "inputs": [
+            "r24_diag_b4_FP_T12neg_QuantizeLinear_Output",
+            "r24_diag_b4_FP_T12neg_scale",
+            "r24_diag_b4_FP_T12neg_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T12neg_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 197,
+          "inputs": [
+            "r24_diag_b4_FP_term10_QuantizeLinear_Output",
+            "r24_diag_b4_FP_term10_scale",
+            "r24_diag_b4_FP_term10_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_term10_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 199,
+          "inputs": [
+            "r24_diag_b4_FP_T11",
+            "r24_diag_b4_FP_T11_scale",
+            "r24_diag_b4_FP_T11_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T11_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 200,
+          "inputs": [
+            "r24_diag_b4_FP_T11_QuantizeLinear_Output",
+            "r24_diag_b4_FP_T11_scale",
+            "r24_diag_b4_FP_T11_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T11_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 204,
+          "inputs": [
+            "r24_diag_b4_FP_T12mul",
+            "r24_diag_b4_FP_T12mul_scale",
+            "r24_diag_b4_FP_T12mul_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T12mul_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 205,
+          "inputs": [
+            "r24_diag_b4_FP_T13neg",
+            "r24_diag_b4_FP_T13neg_scale",
+            "r24_diag_b4_FP_T13neg_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T13neg_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 206,
+          "inputs": [
+            "r24_diag_b4_FP_term11",
+            "r24_diag_b4_FP_term11_scale",
+            "r24_diag_b4_FP_term11_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_term11_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 207,
+          "inputs": [
+            "r24_diag_b4_FP_T12mul_QuantizeLinear_Output",
+            "r24_diag_b4_FP_T12mul_scale",
+            "r24_diag_b4_FP_T12mul_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T12mul_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 208,
+          "inputs": [
+            "r24_diag_b4_FP_T13neg_QuantizeLinear_Output",
+            "r24_diag_b4_FP_T13neg_scale",
+            "r24_diag_b4_FP_T13neg_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T13neg_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 209,
+          "inputs": [
+            "r24_diag_b4_FP_term11_QuantizeLinear_Output",
+            "r24_diag_b4_FP_term11_scale",
+            "r24_diag_b4_FP_term11_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_term11_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 212,
+          "inputs": [
+            "r24_diag_b4_FP_T12",
+            "r24_diag_b4_FP_T12_scale",
+            "r24_diag_b4_FP_T12_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T12_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 213,
+          "inputs": [
+            "r24_diag_b4_FP_psum0_5",
+            "r24_diag_b4_FP_psum0_5_scale",
+            "r24_diag_b4_FP_psum0_5_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_psum0_5_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 214,
+          "inputs": [
+            "r24_diag_b4_FP_T12_QuantizeLinear_Output",
+            "r24_diag_b4_FP_T12_scale",
+            "r24_diag_b4_FP_T12_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T12_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 215,
+          "inputs": [
+            "r24_diag_b4_FP_psum0_5_QuantizeLinear_Output",
+            "r24_diag_b4_FP_psum0_5_scale",
+            "r24_diag_b4_FP_psum0_5_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_psum0_5_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 220,
+          "inputs": [
+            "r24_diag_b4_FP_T13mul",
+            "r24_diag_b4_FP_T13mul_scale",
+            "r24_diag_b4_FP_T13mul_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T13mul_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 221,
+          "inputs": [
+            "r24_diag_b4_FP_T14neg",
+            "r24_diag_b4_FP_T14neg_scale",
+            "r24_diag_b4_FP_T14neg_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T14neg_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 222,
+          "inputs": [
+            "r24_diag_b4_FP_term12",
+            "r24_diag_b4_FP_term12_scale",
+            "r24_diag_b4_FP_term12_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_term12_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 223,
+          "inputs": [
+            "r24_diag_b4_FP_psum1_2",
+            "r24_diag_b4_FP_psum1_2_scale",
+            "r24_diag_b4_FP_psum1_2_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_psum1_2_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 224,
+          "inputs": [
+            "r24_diag_b4_FP_T13mul_QuantizeLinear_Output",
+            "r24_diag_b4_FP_T13mul_scale",
+            "r24_diag_b4_FP_T13mul_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T13mul_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 225,
+          "inputs": [
+            "r24_diag_b4_FP_T14neg_QuantizeLinear_Output",
+            "r24_diag_b4_FP_T14neg_scale",
+            "r24_diag_b4_FP_T14neg_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T14neg_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 226,
+          "inputs": [
+            "r24_diag_b4_FP_term12_QuantizeLinear_Output",
+            "r24_diag_b4_FP_term12_scale",
+            "r24_diag_b4_FP_term12_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_term12_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 227,
+          "inputs": [
+            "r24_diag_b4_FP_psum1_2_QuantizeLinear_Output",
+            "r24_diag_b4_FP_psum1_2_scale",
+            "r24_diag_b4_FP_psum1_2_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_psum1_2_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 229,
+          "inputs": [
+            "r24_diag_b4_FP_T13",
+            "r24_diag_b4_FP_T13_scale",
+            "r24_diag_b4_FP_T13_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T13_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 230,
+          "inputs": [
+            "r24_diag_b4_FP_T13_QuantizeLinear_Output",
+            "r24_diag_b4_FP_T13_scale",
+            "r24_diag_b4_FP_T13_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T13_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 234,
+          "inputs": [
+            "r24_diag_b4_FP_T14mul",
+            "r24_diag_b4_FP_T14mul_scale",
+            "r24_diag_b4_FP_T14mul_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T14mul_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 235,
+          "inputs": [
+            "r24_diag_b4_FP_T15neg",
+            "r24_diag_b4_FP_T15neg_scale",
+            "r24_diag_b4_FP_T15neg_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T15neg_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 236,
+          "inputs": [
+            "r24_diag_b4_FP_term13",
+            "r24_diag_b4_FP_term13_scale",
+            "r24_diag_b4_FP_term13_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_term13_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 237,
+          "inputs": [
+            "r24_diag_b4_FP_T14mul_QuantizeLinear_Output",
+            "r24_diag_b4_FP_T14mul_scale",
+            "r24_diag_b4_FP_T14mul_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T14mul_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 238,
+          "inputs": [
+            "r24_diag_b4_FP_T15neg_QuantizeLinear_Output",
+            "r24_diag_b4_FP_T15neg_scale",
+            "r24_diag_b4_FP_T15neg_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T15neg_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 239,
+          "inputs": [
+            "r24_diag_b4_FP_term13_QuantizeLinear_Output",
+            "r24_diag_b4_FP_term13_scale",
+            "r24_diag_b4_FP_term13_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_term13_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 242,
+          "inputs": [
+            "r24_diag_b4_FP_T14",
+            "r24_diag_b4_FP_T14_scale",
+            "r24_diag_b4_FP_T14_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T14_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 243,
+          "inputs": [
+            "r24_diag_b4_FP_psum0_6",
+            "r24_diag_b4_FP_psum0_6_scale",
+            "r24_diag_b4_FP_psum0_6_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_psum0_6_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 244,
+          "inputs": [
+            "r24_diag_b4_FP_T14_QuantizeLinear_Output",
+            "r24_diag_b4_FP_T14_scale",
+            "r24_diag_b4_FP_T14_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T14_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 245,
+          "inputs": [
+            "r24_diag_b4_FP_psum0_6_QuantizeLinear_Output",
+            "r24_diag_b4_FP_psum0_6_scale",
+            "r24_diag_b4_FP_psum0_6_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_psum0_6_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 249,
+          "inputs": [
+            "r24_diag_b4_FP_T15mul",
+            "r24_diag_b4_FP_T15mul_scale",
+            "r24_diag_b4_FP_T15mul_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T15mul_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 250,
+          "inputs": [
+            "r24_diag_b4_FP_T16neg",
+            "r24_diag_b4_FP_T16neg_scale",
+            "r24_diag_b4_FP_T16neg_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T16neg_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 251,
+          "inputs": [
+            "r24_diag_b4_FP_term14",
+            "r24_diag_b4_FP_term14_scale",
+            "r24_diag_b4_FP_term14_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_term14_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 252,
+          "inputs": [
+            "r24_diag_b4_FP_T15mul_QuantizeLinear_Output",
+            "r24_diag_b4_FP_T15mul_scale",
+            "r24_diag_b4_FP_T15mul_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T15mul_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 253,
+          "inputs": [
+            "r24_diag_b4_FP_T16neg_QuantizeLinear_Output",
+            "r24_diag_b4_FP_T16neg_scale",
+            "r24_diag_b4_FP_T16neg_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T16neg_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 254,
+          "inputs": [
+            "r24_diag_b4_FP_term14_QuantizeLinear_Output",
+            "r24_diag_b4_FP_term14_scale",
+            "r24_diag_b4_FP_term14_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_term14_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 256,
+          "inputs": [
+            "r24_diag_b4_FP_T15",
+            "r24_diag_b4_FP_T15_scale",
+            "r24_diag_b4_FP_T15_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T15_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 257,
+          "inputs": [
+            "r24_diag_b4_FP_T15_QuantizeLinear_Output",
+            "r24_diag_b4_FP_T15_scale",
+            "r24_diag_b4_FP_T15_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T15_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 260,
+          "inputs": [
+            "r24_diag_b4_FP_T16mul",
+            "r24_diag_b4_FP_T16mul_scale",
+            "r24_diag_b4_FP_T16mul_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T16mul_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 261,
+          "inputs": [
+            "r24_diag_b4_FP_term15",
+            "r24_diag_b4_FP_term15_scale",
+            "r24_diag_b4_FP_term15_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_term15_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 262,
+          "inputs": [
+            "r24_diag_b4_FP_T16mul_QuantizeLinear_Output",
+            "r24_diag_b4_FP_T16mul_scale",
+            "r24_diag_b4_FP_T16mul_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T16mul_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 263,
+          "inputs": [
+            "r24_diag_b4_FP_term15_QuantizeLinear_Output",
+            "r24_diag_b4_FP_term15_scale",
+            "r24_diag_b4_FP_term15_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_term15_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 266,
+          "inputs": [
+            "r24_diag_b4_FP_T16",
+            "r24_diag_b4_FP_T16_scale",
+            "r24_diag_b4_FP_T16_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T16_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 267,
+          "inputs": [
+            "r24_diag_b4_FP_psum0_7",
+            "r24_diag_b4_FP_psum0_7_scale",
+            "r24_diag_b4_FP_psum0_7_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_psum0_7_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 268,
+          "inputs": [
+            "r24_diag_b4_FP_T16_QuantizeLinear_Output",
+            "r24_diag_b4_FP_T16_scale",
+            "r24_diag_b4_FP_T16_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_T16_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 269,
+          "inputs": [
+            "r24_diag_b4_FP_psum0_7_QuantizeLinear_Output",
+            "r24_diag_b4_FP_psum0_7_scale",
+            "r24_diag_b4_FP_psum0_7_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_psum0_7_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 272,
+          "inputs": [
+            "r24_diag_b4_FP_term16",
+            "r24_diag_b4_FP_term16_scale",
+            "r24_diag_b4_FP_term16_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_term16_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 273,
+          "inputs": [
+            "r24_diag_b4_FP_psum1_3",
+            "r24_diag_b4_FP_psum1_3_scale",
+            "r24_diag_b4_FP_psum1_3_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_psum1_3_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 274,
+          "inputs": [
+            "r24_diag_b4_FP_term16_QuantizeLinear_Output",
+            "r24_diag_b4_FP_term16_scale",
+            "r24_diag_b4_FP_term16_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_term16_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 275,
+          "inputs": [
+            "r24_diag_b4_FP_psum1_3_QuantizeLinear_Output",
+            "r24_diag_b4_FP_psum1_3_scale",
+            "r24_diag_b4_FP_psum1_3_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_psum1_3_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 277,
+          "inputs": [
+            "r24_diag_b4_FP_psum2_1",
+            "r24_diag_b4_FP_psum2_1_scale",
+            "r24_diag_b4_FP_psum2_1_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_psum2_1_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 278,
+          "inputs": [
+            "r24_diag_b4_FP_psum2_1_QuantizeLinear_Output",
+            "r24_diag_b4_FP_psum2_1_scale",
+            "r24_diag_b4_FP_psum2_1_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_psum2_1_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 280,
+          "inputs": [
+            "r24_diag_b4_FP_psum3_0",
+            "r24_diag_b4_FP_psum3_0_scale",
+            "r24_diag_b4_FP_psum3_0_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_psum3_0_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 281,
+          "inputs": [
+            "r24_diag_b4_FP_psum3_0_QuantizeLinear_Output",
+            "r24_diag_b4_FP_psum3_0_scale",
+            "r24_diag_b4_FP_psum3_0_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_psum3_0_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 283,
+          "inputs": [
+            "r24_diag_b4_FP_psum4_0",
+            "r24_diag_b4_FP_psum4_0_scale",
+            "r24_diag_b4_FP_psum4_0_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_psum4_0_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 284,
+          "inputs": [
+            "r24_diag_b4_FP_psum4_0_QuantizeLinear_Output",
+            "r24_diag_b4_FP_psum4_0_scale",
+            "r24_diag_b4_FP_psum4_0_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_psum4_0_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 286,
+          "inputs": [
+            "r24_diag_b4_FP_base",
+            "r24_diag_b4_FP_base_scale",
+            "r24_diag_b4_FP_base_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_base_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 287,
+          "inputs": [
+            "r24_diag_b4_FP_base_QuantizeLinear_Output",
+            "r24_diag_b4_FP_base_scale",
+            "r24_diag_b4_FP_base_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "r24_diag_b4_FP_base_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 289,
+          "inputs": [
+            "activation_QuantizeLinear_Input",
+            "activation_scale",
+            "activation_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "activation_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "com.microsoft",
+          "index": 290,
+          "inputs": [
+            "activation_QuantizeLinear_Output",
+            "activation_scale",
+            "activation_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "activation"
+          ]
+        }
+      ],
+      "runtime_inputs": [
+        "preact"
+      ],
+      "scalar_initializer_names": [
+        "activation_scale",
+        "activation_zero_point",
+        "preact_scale",
+        "preact_zero_point",
+        "r20_b5d16___c0_quantized",
+        "r20_b5d16___c0_scale",
+        "r20_b5d16___c0_zero_point",
+        "r20_b5d16___c10_quantized",
+        "r20_b5d16___c10_scale",
+        "r20_b5d16___c10_zero_point",
+        "r20_b5d16___c11_quantized",
+        "r20_b5d16___c11_scale",
+        "r20_b5d16___c11_zero_point",
+        "r20_b5d16___c12_quantized",
+        "r20_b5d16___c12_scale",
+        "r20_b5d16___c12_zero_point",
+        "r20_b5d16___c13_quantized",
+        "r20_b5d16___c13_scale",
+        "r20_b5d16___c13_zero_point",
+        "r20_b5d16___c14_quantized",
+        "r20_b5d16___c14_scale",
+        "r20_b5d16___c14_zero_point",
+        "r20_b5d16___c15_quantized",
+        "r20_b5d16___c15_scale",
+        "r20_b5d16___c15_zero_point",
+        "r20_b5d16___c16_quantized",
+        "r20_b5d16___c16_scale",
+        "r20_b5d16___c16_zero_point",
+        "r20_b5d16___c1_quantized",
+        "r20_b5d16___c1_scale",
+        "r20_b5d16___c1_zero_point",
+        "r20_b5d16___c2_quantized",
+        "r20_b5d16___c2_scale",
+        "r20_b5d16___c2_zero_point",
+        "r20_b5d16___c3_quantized",
+        "r20_b5d16___c3_scale",
+        "r20_b5d16___c3_zero_point",
+        "r20_b5d16___c4_quantized",
+        "r20_b5d16___c4_scale",
+        "r20_b5d16___c4_zero_point",
+        "r20_b5d16___c5_quantized",
+        "r20_b5d16___c5_scale",
+        "r20_b5d16___c5_zero_point",
+        "r20_b5d16___c6_quantized",
+        "r20_b5d16___c6_scale",
+        "r20_b5d16___c6_zero_point",
+        "r20_b5d16___c7_quantized",
+        "r20_b5d16___c7_scale",
+        "r20_b5d16___c7_zero_point",
+        "r20_b5d16___c8_quantized",
+        "r20_b5d16___c8_scale",
+        "r20_b5d16___c8_zero_point",
+        "r20_b5d16___c9_quantized",
+        "r20_b5d16___c9_scale",
+        "r20_b5d16___c9_zero_point",
+        "r20_b5d16___half_quantized",
+        "r20_b5d16___half_scale",
+        "r20_b5d16___half_zero_point",
+        "r20_b5d16___invclip_quantized",
+        "r20_b5d16___invclip_scale",
+        "r20_b5d16___invclip_zero_point",
+        "r20_b5d16___max",
+        "r20_b5d16___min",
+        "r20_b5d16___negclip_quantized",
+        "r20_b5d16___negclip_scale",
+        "r20_b5d16___negclip_zero_point",
+        "r20_b5d16___negone_quantized",
+        "r20_b5d16___negone_scale",
+        "r20_b5d16___negone_zero_point",
+        "r20_b5d16___two_quantized",
+        "r20_b5d16___two_scale",
+        "r20_b5d16___two_zero_point",
+        "r24_diag_b4_FP_T0_scale",
+        "r24_diag_b4_FP_T0_zero_point",
+        "r24_diag_b4_FP_T10_scale",
+        "r24_diag_b4_FP_T10_zero_point",
+        "r24_diag_b4_FP_T10mul_scale",
+        "r24_diag_b4_FP_T10mul_zero_point",
+        "r24_diag_b4_FP_T10neg_scale",
+        "r24_diag_b4_FP_T10neg_zero_point",
+        "r24_diag_b4_FP_T11_scale",
+        "r24_diag_b4_FP_T11_zero_point",
+        "r24_diag_b4_FP_T11mul_scale",
+        "r24_diag_b4_FP_T11mul_zero_point",
+        "r24_diag_b4_FP_T11neg_scale",
+        "r24_diag_b4_FP_T11neg_zero_point",
+        "r24_diag_b4_FP_T12_scale",
+        "r24_diag_b4_FP_T12_zero_point",
+        "r24_diag_b4_FP_T12mul_scale",
+        "r24_diag_b4_FP_T12mul_zero_point",
+        "r24_diag_b4_FP_T12neg_scale",
+        "r24_diag_b4_FP_T12neg_zero_point",
+        "r24_diag_b4_FP_T13_scale",
+        "r24_diag_b4_FP_T13_zero_point",
+        "r24_diag_b4_FP_T13mul_scale",
+        "r24_diag_b4_FP_T13mul_zero_point",
+        "r24_diag_b4_FP_T13neg_scale",
+        "r24_diag_b4_FP_T13neg_zero_point",
+        "r24_diag_b4_FP_T14_scale",
+        "r24_diag_b4_FP_T14_zero_point",
+        "r24_diag_b4_FP_T14mul_scale",
+        "r24_diag_b4_FP_T14mul_zero_point",
+        "r24_diag_b4_FP_T14neg_scale",
+        "r24_diag_b4_FP_T14neg_zero_point",
+        "r24_diag_b4_FP_T15_scale",
+        "r24_diag_b4_FP_T15_zero_point",
+        "r24_diag_b4_FP_T15mul_scale",
+        "r24_diag_b4_FP_T15mul_zero_point",
+        "r24_diag_b4_FP_T15neg_scale",
+        "r24_diag_b4_FP_T15neg_zero_point",
+        "r24_diag_b4_FP_T16_scale",
+        "r24_diag_b4_FP_T16_zero_point",
+        "r24_diag_b4_FP_T16mul_scale",
+        "r24_diag_b4_FP_T16mul_zero_point",
+        "r24_diag_b4_FP_T16neg_scale",
+        "r24_diag_b4_FP_T16neg_zero_point",
+        "r24_diag_b4_FP_T2_scale",
+        "r24_diag_b4_FP_T2_zero_point",
+        "r24_diag_b4_FP_T2mul_scale",
+        "r24_diag_b4_FP_T2mul_zero_point",
+        "r24_diag_b4_FP_T2neg_scale",
+        "r24_diag_b4_FP_T2neg_zero_point",
+        "r24_diag_b4_FP_T3_scale",
+        "r24_diag_b4_FP_T3_zero_point",
+        "r24_diag_b4_FP_T3mul_scale",
+        "r24_diag_b4_FP_T3mul_zero_point",
+        "r24_diag_b4_FP_T3neg_scale",
+        "r24_diag_b4_FP_T3neg_zero_point",
+        "r24_diag_b4_FP_T4_scale",
+        "r24_diag_b4_FP_T4_zero_point",
+        "r24_diag_b4_FP_T4mul_scale",
+        "r24_diag_b4_FP_T4mul_zero_point",
+        "r24_diag_b4_FP_T4neg_scale",
+        "r24_diag_b4_FP_T4neg_zero_point",
+        "r24_diag_b4_FP_T5_scale",
+        "r24_diag_b4_FP_T5_zero_point",
+        "r24_diag_b4_FP_T5mul_scale",
+        "r24_diag_b4_FP_T5mul_zero_point",
+        "r24_diag_b4_FP_T5neg_scale",
+        "r24_diag_b4_FP_T5neg_zero_point",
+        "r24_diag_b4_FP_T6_scale",
+        "r24_diag_b4_FP_T6_zero_point",
+        "r24_diag_b4_FP_T6mul_scale",
+        "r24_diag_b4_FP_T6mul_zero_point",
+        "r24_diag_b4_FP_T6neg_scale",
+        "r24_diag_b4_FP_T6neg_zero_point",
+        "r24_diag_b4_FP_T7_scale",
+        "r24_diag_b4_FP_T7_zero_point",
+        "r24_diag_b4_FP_T7mul_scale",
+        "r24_diag_b4_FP_T7mul_zero_point",
+        "r24_diag_b4_FP_T7neg_scale",
+        "r24_diag_b4_FP_T7neg_zero_point",
+        "r24_diag_b4_FP_T8_scale",
+        "r24_diag_b4_FP_T8_zero_point",
+        "r24_diag_b4_FP_T8mul_scale",
+        "r24_diag_b4_FP_T8mul_zero_point",
+        "r24_diag_b4_FP_T8neg_scale",
+        "r24_diag_b4_FP_T8neg_zero_point",
+        "r24_diag_b4_FP_T9_scale",
+        "r24_diag_b4_FP_T9_zero_point",
+        "r24_diag_b4_FP_T9mul_scale",
+        "r24_diag_b4_FP_T9mul_zero_point",
+        "r24_diag_b4_FP_T9neg_scale",
+        "r24_diag_b4_FP_T9neg_zero_point",
+        "r24_diag_b4_FP_base_scale",
+        "r24_diag_b4_FP_base_zero_point",
+        "r24_diag_b4_FP_psum0_0_scale",
+        "r24_diag_b4_FP_psum0_0_zero_point",
+        "r24_diag_b4_FP_psum0_1_scale",
+        "r24_diag_b4_FP_psum0_1_zero_point",
+        "r24_diag_b4_FP_psum0_2_scale",
+        "r24_diag_b4_FP_psum0_2_zero_point",
+        "r24_diag_b4_FP_psum0_3_scale",
+        "r24_diag_b4_FP_psum0_3_zero_point",
+        "r24_diag_b4_FP_psum0_4_scale",
+        "r24_diag_b4_FP_psum0_4_zero_point",
+        "r24_diag_b4_FP_psum0_5_scale",
+        "r24_diag_b4_FP_psum0_5_zero_point",
+        "r24_diag_b4_FP_psum0_6_scale",
+        "r24_diag_b4_FP_psum0_6_zero_point",
+        "r24_diag_b4_FP_psum0_7_scale",
+        "r24_diag_b4_FP_psum0_7_zero_point",
+        "r24_diag_b4_FP_psum1_0_scale",
+        "r24_diag_b4_FP_psum1_0_zero_point",
+        "r24_diag_b4_FP_psum1_1_scale",
+        "r24_diag_b4_FP_psum1_1_zero_point",
+        "r24_diag_b4_FP_psum1_2_scale",
+        "r24_diag_b4_FP_psum1_2_zero_point",
+        "r24_diag_b4_FP_psum1_3_scale",
+        "r24_diag_b4_FP_psum1_3_zero_point",
+        "r24_diag_b4_FP_psum2_0_scale",
+        "r24_diag_b4_FP_psum2_0_zero_point",
+        "r24_diag_b4_FP_psum2_1_scale",
+        "r24_diag_b4_FP_psum2_1_zero_point",
+        "r24_diag_b4_FP_psum3_0_scale",
+        "r24_diag_b4_FP_psum3_0_zero_point",
+        "r24_diag_b4_FP_psum4_0_scale",
+        "r24_diag_b4_FP_psum4_0_zero_point",
+        "r24_diag_b4_FP_scaled_scale",
+        "r24_diag_b4_FP_scaled_zero_point",
+        "r24_diag_b4_FP_t_scale",
+        "r24_diag_b4_FP_t_zero_point",
+        "r24_diag_b4_FP_tail_scale",
+        "r24_diag_b4_FP_tail_zero_point",
+        "r24_diag_b4_FP_tailarg_scale",
+        "r24_diag_b4_FP_tailarg_zero_point",
+        "r24_diag_b4_FP_term10_scale",
+        "r24_diag_b4_FP_term10_zero_point",
+        "r24_diag_b4_FP_term11_scale",
+        "r24_diag_b4_FP_term11_zero_point",
+        "r24_diag_b4_FP_term12_scale",
+        "r24_diag_b4_FP_term12_zero_point",
+        "r24_diag_b4_FP_term13_scale",
+        "r24_diag_b4_FP_term13_zero_point",
+        "r24_diag_b4_FP_term14_scale",
+        "r24_diag_b4_FP_term14_zero_point",
+        "r24_diag_b4_FP_term15_scale",
+        "r24_diag_b4_FP_term15_zero_point",
+        "r24_diag_b4_FP_term16_scale",
+        "r24_diag_b4_FP_term16_zero_point",
+        "r24_diag_b4_FP_term1_scale",
+        "r24_diag_b4_FP_term1_zero_point",
+        "r24_diag_b4_FP_term2_scale",
+        "r24_diag_b4_FP_term2_zero_point",
+        "r24_diag_b4_FP_term3_scale",
+        "r24_diag_b4_FP_term3_zero_point",
+        "r24_diag_b4_FP_term4_scale",
+        "r24_diag_b4_FP_term4_zero_point",
+        "r24_diag_b4_FP_term5_scale",
+        "r24_diag_b4_FP_term5_zero_point",
+        "r24_diag_b4_FP_term6_scale",
+        "r24_diag_b4_FP_term6_zero_point",
+        "r24_diag_b4_FP_term7_scale",
+        "r24_diag_b4_FP_term7_zero_point",
+        "r24_diag_b4_FP_term8_scale",
+        "r24_diag_b4_FP_term8_zero_point",
+        "r24_diag_b4_FP_term9_scale",
+        "r24_diag_b4_FP_term9_zero_point",
+        "r24_diag_b4_FP_two_t_scale",
+        "r24_diag_b4_FP_two_t_zero_point",
+        "r24_diag_b4_FP_two_u_scale",
+        "r24_diag_b4_FP_two_u_zero_point",
+        "r24_diag_b4_FP_u_scale",
+        "r24_diag_b4_FP_u_zero_point",
+        "r24_diag_b4_FP_xc_scale",
+        "r24_diag_b4_FP_xc_zero_point",
+        "r24_diag_b4_FP_xhalf_scale",
+        "r24_diag_b4_FP_xhalf_zero_point"
+      ],
+      "sha256": "fee3cd47cc74a5dda718c7af68034e2be1742475cbd981c84652aa74d2bed5c7"
+    },
+    {
+      "bytes": 1125,
+      "domain_counts": {
+        "ai.onnx": 6
+      },
+      "dynamic_io_names": [],
+      "functions": [],
+      "graph_contract_flags": {
+        "custom_domains": [],
+        "has_dynamic_io": false,
+        "has_qdq": true,
+        "has_scalar_initializer": true,
+        "multiple_runtime_inputs": false
+      },
+      "initializer_count": 7,
+      "inputs": [
+        {
+          "dtype": "FLOAT",
+          "name": "preact",
+          "shape": [
+            1,
+            4,
+            1536
+          ]
+        }
+      ],
+      "ir_version": 9,
+      "node_count": 6,
+      "op_counts": {
+        "ai.onnx::DequantizeLinear": 3,
+        "ai.onnx::Mul": 1,
+        "ai.onnx::QuantizeLinear": 2
+      },
+      "opsets": [
+        {
+          "domain": "ai.onnx",
+          "version": 21
+        },
+        {
+          "domain": "com.microsoft",
+          "version": 1
+        }
+      ],
+      "outputs": [
+        {
+          "dtype": "FLOAT",
+          "name": "activation",
+          "shape": [
+            1,
+            4,
+            1536
+          ]
+        }
+      ],
+      "path": "android-labs/rev46-block4-activation-q16-htp-v4/generated/cold4_micro_mul_q16_qdq.onnx",
+      "producer_name": "onnx.quantize",
+      "producer_version": "0.1.0",
+      "qdq_node_count": 5,
+      "qdq_nodes": [
+        {
+          "domain": "ai.onnx",
+          "index": 0,
+          "inputs": [
+            "k_mul_quantized",
+            "k_mul_scale",
+            "k_mul_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "k_mul_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "ai.onnx",
+          "index": 1,
+          "inputs": [
+            "preact",
+            "preact_scale",
+            "preact_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "preact_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "ai.onnx",
+          "index": 2,
+          "inputs": [
+            "preact_QuantizeLinear_Output",
+            "preact_scale",
+            "preact_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "preact_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "ai.onnx",
+          "index": 4,
+          "inputs": [
+            "activation_QuantizeLinear_Input",
+            "activation_scale",
+            "activation_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "activation_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "ai.onnx",
+          "index": 5,
+          "inputs": [
+            "activation_QuantizeLinear_Output",
+            "activation_scale",
+            "activation_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "activation"
+          ]
+        }
+      ],
+      "runtime_inputs": [
+        "preact"
+      ],
+      "scalar_initializer_names": [
+        "activation_scale",
+        "activation_zero_point",
+        "k_mul_quantized",
+        "k_mul_scale",
+        "k_mul_zero_point",
+        "preact_scale",
+        "preact_zero_point"
+      ],
+      "sha256": "0274a8b8d0dba64f2836882f6bab532ddba162633a43ee8536d36172240e71ed"
+    },
+    {
+      "bytes": 1531,
+      "domain_counts": {
+        "ai.onnx": 9
+      },
+      "dynamic_io_names": [],
+      "functions": [],
+      "graph_contract_flags": {
+        "custom_domains": [],
+        "has_dynamic_io": false,
+        "has_qdq": true,
+        "has_scalar_initializer": true,
+        "multiple_runtime_inputs": false
+      },
+      "initializer_count": 9,
+      "inputs": [
+        {
+          "dtype": "FLOAT",
+          "name": "preact",
+          "shape": [
+            1,
+            4,
+            1536
+          ]
+        }
+      ],
+      "ir_version": 9,
+      "node_count": 9,
+      "op_counts": {
+        "ai.onnx::DequantizeLinear": 4,
+        "ai.onnx::Mul": 1,
+        "ai.onnx::QuantizeLinear": 3,
+        "ai.onnx::Relu": 1
+      },
+      "opsets": [
+        {
+          "domain": "ai.onnx",
+          "version": 21
+        },
+        {
+          "domain": "com.microsoft",
+          "version": 1
+        }
+      ],
+      "outputs": [
+        {
+          "dtype": "FLOAT",
+          "name": "activation",
+          "shape": [
+            1,
+            4,
+            1536
+          ]
+        }
+      ],
+      "path": "android-labs/rev46-block4-activation-q16-htp-v4/generated/cold4_micro_mul_relu_q16_qdq.onnx",
+      "producer_name": "onnx.quantize",
+      "producer_version": "0.1.0",
+      "qdq_node_count": 7,
+      "qdq_nodes": [
+        {
+          "domain": "ai.onnx",
+          "index": 0,
+          "inputs": [
+            "k_mul_quantized",
+            "k_mul_scale",
+            "k_mul_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "k_mul_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "ai.onnx",
+          "index": 1,
+          "inputs": [
+            "preact",
+            "preact_scale",
+            "preact_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "preact_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "ai.onnx",
+          "index": 2,
+          "inputs": [
+            "preact_QuantizeLinear_Output",
+            "preact_scale",
+            "preact_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "preact_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "ai.onnx",
+          "index": 4,
+          "inputs": [
+            "mul_out",
+            "mul_out_scale",
+            "mul_out_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "mul_out_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "ai.onnx",
+          "index": 5,
+          "inputs": [
+            "mul_out_QuantizeLinear_Output",
+            "mul_out_scale",
+            "mul_out_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "mul_out_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "ai.onnx",
+          "index": 7,
+          "inputs": [
+            "activation_QuantizeLinear_Input",
+            "activation_scale",
+            "activation_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "activation_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "ai.onnx",
+          "index": 8,
+          "inputs": [
+            "activation_QuantizeLinear_Output",
+            "activation_scale",
+            "activation_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "activation"
+          ]
+        }
+      ],
+      "runtime_inputs": [
+        "preact"
+      ],
+      "scalar_initializer_names": [
+        "activation_scale",
+        "activation_zero_point",
+        "k_mul_quantized",
+        "k_mul_scale",
+        "k_mul_zero_point",
+        "mul_out_scale",
+        "mul_out_zero_point",
+        "preact_scale",
+        "preact_zero_point"
+      ],
+      "sha256": "60c0a7c2b71ab5f9b2e790afa657cd332125b54cb26cc857d27cbd94eb46a2e0"
+    },
+    {
+      "bytes": 1125,
+      "domain_counts": {
+        "ai.onnx": 6
+      },
+      "dynamic_io_names": [],
+      "functions": [],
+      "graph_contract_flags": {
+        "custom_domains": [],
+        "has_dynamic_io": false,
+        "has_qdq": true,
+        "has_scalar_initializer": true,
+        "multiple_runtime_inputs": false
+      },
+      "initializer_count": 7,
+      "inputs": [
+        {
+          "dtype": "FLOAT",
+          "name": "preact",
+          "shape": [
+            1,
+            4,
+            1536
+          ]
+        }
+      ],
+      "ir_version": 9,
+      "node_count": 6,
+      "op_counts": {
+        "ai.onnx::Add": 1,
+        "ai.onnx::DequantizeLinear": 3,
+        "ai.onnx::QuantizeLinear": 2
+      },
+      "opsets": [
+        {
+          "domain": "ai.onnx",
+          "version": 21
+        },
+        {
+          "domain": "com.microsoft",
+          "version": 1
+        }
+      ],
+      "outputs": [
+        {
+          "dtype": "FLOAT",
+          "name": "activation",
+          "shape": [
+            1,
+            4,
+            1536
+          ]
+        }
+      ],
+      "path": "android-labs/rev46-block4-activation-q16-htp-v4/generated/cold4_micro_add_q16_qdq.onnx",
+      "producer_name": "onnx.quantize",
+      "producer_version": "0.1.0",
+      "qdq_node_count": 5,
+      "qdq_nodes": [
+        {
+          "domain": "ai.onnx",
+          "index": 0,
+          "inputs": [
+            "k_add_quantized",
+            "k_add_scale",
+            "k_add_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "k_add_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "ai.onnx",
+          "index": 1,
+          "inputs": [
+            "preact",
+            "preact_scale",
+            "preact_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "preact_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "ai.onnx",
+          "index": 2,
+          "inputs": [
+            "preact_QuantizeLinear_Output",
+            "preact_scale",
+            "preact_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "preact_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "ai.onnx",
+          "index": 4,
+          "inputs": [
+            "activation_QuantizeLinear_Input",
+            "activation_scale",
+            "activation_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "activation_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "ai.onnx",
+          "index": 5,
+          "inputs": [
+            "activation_QuantizeLinear_Output",
+            "activation_scale",
+            "activation_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "activation"
+          ]
+        }
+      ],
+      "runtime_inputs": [
+        "preact"
+      ],
+      "scalar_initializer_names": [
+        "activation_scale",
+        "activation_zero_point",
+        "k_add_quantized",
+        "k_add_scale",
+        "k_add_zero_point",
+        "preact_scale",
+        "preact_zero_point"
+      ],
+      "sha256": "77c707e17d0b994fd1e16994aa15b5df87c0e036b9acbc2925cfcc49af2f36b8"
+    },
+    {
+      "bytes": 1571,
+      "domain_counts": {
+        "ai.onnx": 9
+      },
+      "dynamic_io_names": [],
+      "functions": [],
+      "graph_contract_flags": {
+        "custom_domains": [],
+        "has_dynamic_io": false,
+        "has_qdq": true,
+        "has_scalar_initializer": true,
+        "multiple_runtime_inputs": false
+      },
+      "initializer_count": 11,
+      "inputs": [
+        {
+          "dtype": "FLOAT",
+          "name": "preact",
+          "shape": [
+            1,
+            4,
+            1536
+          ]
+        }
+      ],
+      "ir_version": 9,
+      "node_count": 9,
+      "op_counts": {
+        "ai.onnx::Add": 1,
+        "ai.onnx::Clip": 1,
+        "ai.onnx::DequantizeLinear": 4,
+        "ai.onnx::QuantizeLinear": 3
+      },
+      "opsets": [
+        {
+          "domain": "ai.onnx",
+          "version": 21
+        },
+        {
+          "domain": "com.microsoft",
+          "version": 1
+        }
+      ],
+      "outputs": [
+        {
+          "dtype": "FLOAT",
+          "name": "activation",
+          "shape": [
+            1,
+            4,
+            1536
+          ]
+        }
+      ],
+      "path": "android-labs/rev46-block4-activation-q16-htp-v4/generated/cold4_micro_add_clip_q16_qdq.onnx",
+      "producer_name": "onnx.quantize",
+      "producer_version": "0.1.0",
+      "qdq_node_count": 7,
+      "qdq_nodes": [
+        {
+          "domain": "ai.onnx",
+          "index": 0,
+          "inputs": [
+            "k_add_quantized",
+            "k_add_scale",
+            "k_add_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "k_add_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "ai.onnx",
+          "index": 1,
+          "inputs": [
+            "preact",
+            "preact_scale",
+            "preact_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "preact_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "ai.onnx",
+          "index": 2,
+          "inputs": [
+            "preact_QuantizeLinear_Output",
+            "preact_scale",
+            "preact_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "preact_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "ai.onnx",
+          "index": 4,
+          "inputs": [
+            "add_out",
+            "add_out_scale",
+            "add_out_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "add_out_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "ai.onnx",
+          "index": 5,
+          "inputs": [
+            "add_out_QuantizeLinear_Output",
+            "add_out_scale",
+            "add_out_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "add_out_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "ai.onnx",
+          "index": 7,
+          "inputs": [
+            "activation_QuantizeLinear_Input",
+            "activation_scale",
+            "activation_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "activation_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "ai.onnx",
+          "index": 8,
+          "inputs": [
+            "activation_QuantizeLinear_Output",
+            "activation_scale",
+            "activation_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "activation"
+          ]
+        }
+      ],
+      "runtime_inputs": [
+        "preact"
+      ],
+      "scalar_initializer_names": [
+        "activation_scale",
+        "activation_zero_point",
+        "add_out_scale",
+        "add_out_zero_point",
+        "hi",
+        "k_add_quantized",
+        "k_add_scale",
+        "k_add_zero_point",
+        "lo",
+        "preact_scale",
+        "preact_zero_point"
+      ],
+      "sha256": "e44edbc6bce300fc9ab67890e2b5cea0c9c476d58eab4f8e8343ed00df1a9067"
+    },
+    {
+      "bytes": 915,
+      "domain_counts": {
+        "ai.onnx": 4,
+        "com.microsoft": 1
+      },
+      "dynamic_io_names": [],
+      "functions": [],
+      "graph_contract_flags": {
+        "custom_domains": [
+          "com.microsoft"
+        ],
+        "has_dynamic_io": false,
+        "has_qdq": true,
+        "has_scalar_initializer": true,
+        "multiple_runtime_inputs": false
+      },
+      "initializer_count": 4,
+      "inputs": [
+        {
+          "dtype": "FLOAT",
+          "name": "preact",
+          "shape": [
+            1,
+            4,
+            1536
+          ]
+        }
+      ],
+      "ir_version": 9,
+      "node_count": 5,
+      "op_counts": {
+        "ai.onnx::DequantizeLinear": 2,
+        "ai.onnx::QuantizeLinear": 2,
+        "com.microsoft::Gelu": 1
+      },
+      "opsets": [
+        {
+          "domain": "ai.onnx",
+          "version": 21
+        },
+        {
+          "domain": "com.microsoft",
+          "version": 1
+        }
+      ],
+      "outputs": [
+        {
+          "dtype": "FLOAT",
+          "name": "activation",
+          "shape": [
+            1,
+            4,
+            1536
+          ]
+        }
+      ],
+      "path": "android-labs/rev46-block4-activation-q16-htp-v4/generated/cold4_micro_gelu_q16_qdq.onnx",
+      "producer_name": "onnx.quantize",
+      "producer_version": "0.1.0",
+      "qdq_node_count": 4,
+      "qdq_nodes": [
+        {
+          "domain": "ai.onnx",
+          "index": 0,
+          "inputs": [
+            "preact",
+            "preact_scale",
+            "preact_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "preact_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "ai.onnx",
+          "index": 1,
+          "inputs": [
+            "preact_QuantizeLinear_Output",
+            "preact_scale",
+            "preact_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "preact_DequantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "ai.onnx",
+          "index": 3,
+          "inputs": [
+            "activation_QuantizeLinear_Input",
+            "activation_scale",
+            "activation_zero_point"
+          ],
+          "op": "QuantizeLinear",
+          "outputs": [
+            "activation_QuantizeLinear_Output"
+          ]
+        },
+        {
+          "domain": "ai.onnx",
+          "index": 4,
+          "inputs": [
+            "activation_QuantizeLinear_Output",
+            "activation_scale",
+            "activation_zero_point"
+          ],
+          "op": "DequantizeLinear",
+          "outputs": [
+            "activation"
+          ]
+        }
+      ],
+      "runtime_inputs": [
+        "preact"
+      ],
+      "scalar_initializer_names": [
+        "activation_scale",
+        "activation_zero_point",
+        "preact_scale",
+        "preact_zero_point"
+      ],
+      "sha256": "507adbba031ca26bfc2ccedb1442a27ad0d2f28de160fc4532c0fcaf49b03ced"
+    }
+  ],
+  "purpose": "QNN_GETCAPABILITY_FUSION_PARTITION_GRAPH_CONTRACT_AUDIT",
+  "schema": 1
+}
