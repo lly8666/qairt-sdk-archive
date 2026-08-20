@@ -1,0 +1,167 @@
+name: Archive durable frozen rev25 host inputs
+
+on:
+  issues:
+    types: [opened]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  archive:
+    if: github.event_name == 'workflow_dispatch' || github.event.issue.title == '[archive-rev25-frozen-host-inputs]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      RELEASE_TAG: meanvc2-rev25-frozen-host-inputs-v1
+      PAYLOAD: meanvc2-rev25-frozen-host-inputs-v1.tar.gz
+      APK_BYTES: '147504599'
+      APK_SHA256: aa1163e354008d78edde050511a81dce22b61650e8d45e860ce0d163669b4af8
+      SAFE_START: SIMADMIN_AGENT_SAFE_START_REQUIRED=1
+
+    steps:
+      - name: Record archive-only scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "$SAFE_START"
+          echo 'ARCHIVE_ONLY_NO_MODEL_EXECUTION=1'
+          echo 'NO_CPU_FALLBACK=1'
+          echo 'NO_THRESHOLD_RELAXATION=1'
+          echo 'NO_PRODUCTION_INTEGRATION=1'
+
+      - name: Recover exact authority APK from frozen Drive parts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p parts
+          cat > parts/parts.tsv <<'EOF'
+          1cSkMUgkMM9vdztUGr0DBEM8VCKSGDQ1z	25000000	0080f0eea4510b67c6552b3a2dc9ad6e5b15f02afe36aecf95df939ce4d10d77
+          1Ys0zGBb514zEL1FiMNxezbAtpESiXK-4	25000000	e6478ccce95136775ae97db4ab67c682143b6a5104cfd095ec35a00d66c4deac
+          13eV2shxkMQOtHUHYpvpM4RvVWHdP-QRP	25000000	b8631c59966607ca78fad62dc2b7627a74281c2a16d9eac765ac60f0d203a627
+          1isnSHDaEOYO9rYN9R00c6XJieh4MLMW1	25000000	cec50e5d8aa9eda2f9925b46df86e3eded38ccc440f6ac4a2f80409bf4177c5d
+          1WmpVW_tK8-_JRpUcKY8Qdayk1yx3SECV	25000000	5c7097c223de667ad38b550bcd6c2f7e0c7f44e44ffb7a677ba4558da2bf9b3e
+          1vj62ejLUqpIfJnb3sFIIZ2zoQpGRK5E4	22504599	8bfd5d6b4ea95b1ef888894a5586ba55a9eba56a31e96b0057070ce686b08207
+          EOF
+          n=0
+          while IFS=$'\t' read -r id bytes sha; do
+            n=$((n+1)); out="parts/part-$(printf '%03d' "$n").bin"
+            curl --fail --location --retry 5 --retry-all-errors \
+              "https://drive.usercontent.google.com/download?id=${id}&export=download&confirm=t" -o "$out"
+            test "$(stat -c %s "$out")" = "$bytes"
+            echo "$sha  $out" | sha256sum -c -
+          done < parts/parts.tsv
+          cat parts/part-*.bin > authority.apk
+          test "$(stat -c %s authority.apk)" = "$APK_BYTES"
+          echo "$APK_SHA256  authority.apk" | sha256sum -c -
+          unzip -tq authority.apk
+
+      - name: Extract exact host inputs and reconstruct rev25 pair
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p payload/base payload/rev25 payload/fixtures payload/meta
+          unzip -p authority.apk assets/models/vocos_gate0c_cold4.onnx > payload/base/vocos_gate0c_cold4.onnx
+          unzip -p authority.apk assets/models/vocos_gate0c_warm6.onnx > payload/base/vocos_gate0c_warm6.onnx
+          unzip -p authority.apk assets/patches/rev25/vocos_gate0c_cold4_rev25_b0123567.patch.json > payload/rev25/cold.patch.json
+          unzip -p authority.apk assets/patches/rev25/vocos_gate0c_warm6_rev25_b0123567.patch.json > payload/rev25/warm.patch.json
+          unzip -p authority.apk assets/fixtures/file2file_expected_raw_mel_48x1x80x4_f32le.bin > payload/fixtures/file2file_expected_raw_mel_48x1x80x4_f32le.bin
+          unzip -p authority.apk assets/fixtures/file2file_fixture_manifest.json > payload/fixtures/file2file_fixture_manifest.json
+          echo 'd32cb4b116bfe6aeee12f2ab726cf617b3aca6e8043bdf4d533c843769e00a7f  payload/base/vocos_gate0c_cold4.onnx' | sha256sum -c -
+          echo '5981bfc5d6850baaef7f44af2da18ecd149782e0ffcabf731bcf658d953e0909  payload/base/vocos_gate0c_warm6.onnx' | sha256sum -c -
+          echo '25170399554d351158c9d96753f05feceb429fbf9b4acba12b7214f99b3ba44a  payload/rev25/cold.patch.json' | sha256sum -c -
+          echo 'b7426abd298106cd256e7e6bd4498d032e2fc89b630d67821b827af8d4646988  payload/rev25/warm.patch.json' | sha256sum -c -
+          echo 'dc58af153c7c0dd6ab0a450a5f77648203e7f82a800a17837e09095ce48c9963  payload/fixtures/file2file_expected_raw_mel_48x1x80x4_f32le.bin' | sha256sum -c -
+          echo 'e0d8d2142cc346ecda782f50651af68d09f45eae5037f90525f426b693a13251  payload/fixtures/file2file_fixture_manifest.json' | sha256sum -c -
+          python - <<'PY'
+          import hashlib, json, pathlib
+          def sha(b): return hashlib.sha256(b).hexdigest()
+          def rebuild(base, patch, out):
+              b=pathlib.Path(base).read_bytes(); p=json.loads(pathlib.Path(patch).read_text())
+              assert len(b)==p['base_bytes'] and sha(b)==p['base_sha256']
+              pos=0; chunks=[]
+              for s in p['splices']:
+                  off=int(s['offset']); delete=int(s['delete_bytes'])
+                  assert off>=pos
+                  chunks.append(b[pos:off]); chunks.append(bytes.fromhex(s['insert_hex'])); pos=off+delete
+              chunks.append(b[pos:])
+              raw=b''.join(chunks); pathlib.Path(out).write_bytes(raw)
+              assert len(raw)==p['output_bytes'] and sha(raw)==p['output_sha256']
+          rebuild('payload/base/vocos_gate0c_cold4.onnx','payload/rev25/cold.patch.json','payload/rev25/vocos_rev25_cold4.onnx')
+          rebuild('payload/base/vocos_gate0c_warm6.onnx','payload/rev25/warm.patch.json','payload/rev25/vocos_rev25_warm6.onnx')
+          assert pathlib.Path('payload/rev25/vocos_rev25_cold4.onnx').stat().st_size==33249679
+          assert sha(pathlib.Path('payload/rev25/vocos_rev25_cold4.onnx').read_bytes())=='323c194e5da29f0be962ea8b72ca2fa2d1a9fc2481d80b95e5590f79e9485f65'
+          assert pathlib.Path('payload/rev25/vocos_rev25_warm6.onnx').stat().st_size==33243869
+          assert sha(pathlib.Path('payload/rev25/vocos_rev25_warm6.onnx').read_bytes())=='e2b7ab608a6b37a6dd9896589719cab446edf95287f59dfc7b5693da6ec98f6c'
+          PY
+
+      - name: Freeze authority and SHA manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > payload/meta/AUTHORITY.json <<'EOF'
+          {
+            "schema": 1,
+            "safe_start": "SIMADMIN_AGENT_SAFE_START_REQUIRED=1",
+            "source_authority_apk_bytes": 147504599,
+            "source_authority_apk_sha256": "aa1163e354008d78edde050511a81dce22b61650e8d45e860ce0d163669b4af8",
+            "frozen_rev25_cold4_sha256": "323c194e5da29f0be962ea8b72ca2fa2d1a9fc2481d80b95e5590f79e9485f65",
+            "frozen_rev25_warm6_sha256": "e2b7ab608a6b37a6dd9896589719cab446edf95287f59dfc7b5693da6ec98f6c",
+            "raw_mel_sha256": "dc58af153c7c0dd6ab0a450a5f77648203e7f82a800a17837e09095ce48c9963",
+            "route": "cold4 once -> warm6 reuse x47",
+            "expected_waveform_bytes_available_in_this_archive": false,
+            "expected_waveform_sha256_historical_identity": "5c92627e3a7ede5a0850fa1a95f1eb3125e381478bf05342980505a398ab9a53",
+            "production_integration": false,
+            "note": "Archive-only recovery of frozen authority. No model execution and no threshold changes."
+          }
+          EOF
+          find payload -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > payload/SHA256SUMS.txt
+          tar -czf "$PAYLOAD" -C payload .
+          sha256sum "$PAYLOAD" > "$PAYLOAD.sha256"
+          stat -c '%s' "$PAYLOAD" > "$PAYLOAD.bytes"
+
+      - name: Upload short-term artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: meanvc2-rev25-frozen-host-inputs-${{ github.run_id }}
+          path: |
+            ${{ env.PAYLOAD }}
+            ${{ env.PAYLOAD }}.sha256
+            ${{ env.PAYLOAD }}.bytes
+          compression-level: 0
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Publish immutable durable Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $RELEASE_TAG exists; refusing mutable replacement" >&2
+            exit 17
+          fi
+          gh release create "$RELEASE_TAG" "$PAYLOAD" "$PAYLOAD.sha256" "$PAYLOAD.bytes" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "$RELEASE_TAG" \
+            --notes 'Frozen MeanVC2 rev25 host inputs recovered from the SHA-locked authority APK. Contains exact base cold4/warm6, rev25 splice patches, reconstructed rev25 pair, file2file raw-mel fixture and manifest. Archive-only evidence; no production integration.'
+
+      - name: Report success
+        if: success() && github.event_name == 'issues'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          sha="$(awk '{print $1}' "$PAYLOAD.sha256")"; bytes="$(cat "$PAYLOAD.bytes")"
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "Durable frozen rev25 host-input archive PASS.\n\n- Release: \`${RELEASE_TAG}\`\n- Payload: \`${PAYLOAD}\`\n- Bytes: \`${bytes}\`\n- SHA256: \`${sha}\`\n- rev25 cold4: \`323c194e...5f65\`\n- rev25 warm6: \`e2b7ab60...8f6c\`\n- raw mel: \`dc58af15...c9963\`\n\nArchive-only; no model execution, fallback, threshold change, or production integration."
+
+      - name: Report failure
+        if: failure() && github.event_name == 'issues'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body 'Frozen rev25 host-input archival did not pass. No durable authority package was qualified. Do not substitute model/fixture identities.'
