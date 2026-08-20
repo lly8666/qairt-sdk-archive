@@ -35,10 +35,10 @@ jobs:
       - name: Install pinned host toolchain
         run: |
           python -m pip install --upgrade pip
-          python -m pip install 'numpy==2.2.6' 'onnx==1.18.0' 'onnxruntime==1.27.0'
+          python -m pip install 'numpy==2.2.6' 'ml_dtypes==0.5.3' 'onnx==1.18.0' 'onnxruntime==1.27.0'
           python - <<'PY'
-          import onnx,onnxruntime,numpy
-          print('onnx',onnx.__version__,'ort',onnxruntime.__version__,'numpy',numpy.__version__)
+          import onnx,onnxruntime,numpy,ml_dtypes
+          print('onnx',onnx.__version__,'ort',onnxruntime.__version__,'numpy',numpy.__version__,'ml_dtypes',ml_dtypes.__version__)
           assert onnxruntime.__version__=='1.27.0'
           PY
       - name: Fetch exact v3 float activation sources
