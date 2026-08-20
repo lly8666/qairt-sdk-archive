@@ -1,0 +1,65 @@
+name: Export stock ORT 1.27 CPython 3.10 CPU wheel
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  export:
+    if: github.event.issue.title == '[sdk-export-ort127-py310-cpu-wheel]'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Download exact binary-only ORT 1.27 CPU wheel
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p transport
+          python3 -m pip download \
+            --only-binary=:all: \
+            --no-deps \
+            --python-version 3.10 \
+            --implementation cp \
+            --abi cp310 \
+            --platform manylinux_2_27_x86_64 \
+            --dest transport \
+            'onnxruntime==1.27.0'
+          test "$(find transport -maxdepth 1 -type f -name 'onnxruntime-1.27.0-*.whl' | wc -l)" = 1
+          wheel="$(find transport -maxdepth 1 -type f -name 'onnxruntime-1.27.0-*.whl' -printf '%f\n')"
+          (cd transport && sha256sum "$wheel" > SHA256SUMS.txt)
+          bytes="$(stat -c %s "transport/$wheel")"
+          cat > transport/SOURCE_PROVENANCE.txt <<EOF
+          source=pypi
+          distribution=onnxruntime
+          version=1.27.0
+          provider_scope=stock_cpu_wheel_no_qnn_ep_requirement
+          python=cp310
+          platform=manylinux_2_27_x86_64
+          binary_only=true
+          no_deps=true
+          wheel=${wheel}
+          bytes=${bytes}
+          EOF
+          cat transport/SOURCE_PROVENANCE.txt
+          cat transport/SHA256SUMS.txt
+
+      - name: Upload one-day connector transport
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: ort127-py310-stock-cpu-wheel
+          path: transport
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: Record artifact identity
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "Stock ONNX Runtime 1.27.0 CPython 3.10 CPU wheel transport ready. Artifact id: \`${{ steps.upload.outputs.artifact-id }}\`. No ORT build and no QNN EP compilation performed; verify SOURCE_PROVENANCE.txt and SHA256SUMS.txt after download."
