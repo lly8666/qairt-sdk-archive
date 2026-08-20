@@ -28,6 +28,15 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Report run start
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          printf -v body 'REV46_BLOCK4_GELU_2X2_HOST_SIMULATION_STARTED\n\nRun: **%s**\nHost-only QAIRT 2.44 matrix; no APK/device action.' "$GITHUB_RUN_ID"
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "$body"
+
       - name: Acquire exact QAIRT 2.44 foundation and focused-v2 payload
         shell: bash
         run: |
@@ -114,8 +123,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: rev46-block4-gelu-2x2-host-v4-${{ github.run_id }}
-          path: ${{ env.MATRIX_ROOT }}
-          if-no-files-found: error
+          path: ${{ runner.temp }}/block4-gelu-2x2-v4
+          if-no-files-found: warn
           retention-days: 14
 
       - name: Report host-only result to trigger issue
@@ -125,7 +134,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          report="$MATRIX_ROOT/HOST_SIMULATION_MATRIX_V4_REPORT.json"
+          report="${MATRIX_ROOT:-$RUNNER_TEMP/block4-gelu-2x2-v4}/HOST_SIMULATION_MATRIX_V4_REPORT.json"
           if [ -s "$report" ]; then
             status="$(jq -r '.status' "$report")"
             selected="$(jq -r '.selected_minimal_host_recovery_case // "none"' "$report")"
@@ -133,22 +142,9 @@ jobs:
             gelu="$(jq -r '.causal_factor_readout.gelu_only_A_to_C.interpretation' "$report")"
             combined="$(jq -r '.causal_factor_readout.combined_D.interpretation' "$report")"
             device="$(jq -r '.device_gate' "$report")"
-            body=$(cat <<EOF
-REV46_BLOCK4_GELU_2X2_HOST_SIMULATION_${status}
-
-Run: **${GITHUB_RUN_ID}**
-Selected minimal host recovery case: **${selected}**
-Device gate: **${device}**
-
-- Shape factor: ${shape}
-- GELU factor: ${gelu}
-- Combined: ${combined}
-
-This run is host-only. It does not authorize an APK or device run.
-EOF
-)
+            printf -v body 'REV46_BLOCK4_GELU_2X2_HOST_SIMULATION_%s\n\nRun: **%s**\nSelected minimal host recovery case: **%s**\nDevice gate: **%s**\n\n- Shape factor: %s\n- GELU factor: %s\n- Combined: %s\n\nThis run is host-only. It does not authorize an APK or device run.' "$status" "$GITHUB_RUN_ID" "$selected" "$device" "$shape" "$gelu" "$combined"
           else
-            body="REV46_BLOCK4_GELU_2X2_HOST_SIMULATION_INFRA_FAILURE\n\nRun: **${GITHUB_RUN_ID}**\nNo final report was produced. No APK/device action is authorized."
+            printf -v body 'REV46_BLOCK4_GELU_2X2_HOST_SIMULATION_INFRA_FAILURE\n\nRun: **%s**\nNo final report was produced. No APK/device action is authorized.' "$GITHUB_RUN_ID"
           fi
           gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "$body"
 
@@ -158,4 +154,4 @@ EOF
         run: |
           set -euo pipefail
           test "${ANALYSIS_RC:-99}" = 0
-          grep -F 'REV46_BLOCK4_GELU_2X2_HOST_SIMULATION_PASS' "$MATRIX_ROOT/final-analysis.log"
+          grep -F 'REV46_BLOCK4_GELU_2X2_HOST_SIMULATION_PASS' "${MATRIX_ROOT:-$RUNNER_TEMP/block4-gelu-2x2-v4}/final-analysis.log"
