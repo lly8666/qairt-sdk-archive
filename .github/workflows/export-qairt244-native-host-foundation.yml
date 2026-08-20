@@ -1,0 +1,95 @@
+name: Export durable QAIRT 2.44 native host foundation
+
+on:
+  issues:
+    types: [opened]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  export:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.issue.title == '[sdk-export-qairt244-native-host-foundation]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve durable foundation from index
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY' >> "$GITHUB_ENV"
+          import json
+          idx=json.load(open('release-manifest/AGENT_RELEASE_INDEX.json'))
+          name='qairt244-native-host-foundation-v4.tar.gz'
+          hits=[(r,a) for r in idx['releases'] for a in r['assets'] if a['name']==name]
+          if len(hits)!=1:
+              raise SystemExit(f'expected exactly one {name}, found {len(hits)}')
+          rel,a=hits[0]
+          d=a.get('digest') or ''
+          if not d.startswith('sha256:'):
+              raise SystemExit('foundation asset missing sha256 digest')
+          print('FOUNDATION_RELEASE='+rel['tag_name'])
+          print('FOUNDATION_ASSET_ID='+str(a['id']))
+          print('FOUNDATION_ASSET_NAME='+a['name'])
+          print('FOUNDATION_BYTES='+str(a['size']))
+          print('FOUNDATION_SHA256='+d.split(':',1)[1])
+          PY
+
+      - name: Download, verify and inspect only
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl -fL --retry 5 --retry-all-errors \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H 'Accept: application/octet-stream' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/assets/${FOUNDATION_ASSET_ID}" \
+            -o "$FOUNDATION_ASSET_NAME"
+          test "$(stat -c %s "$FOUNDATION_ASSET_NAME")" = "$FOUNDATION_BYTES"
+          echo "$FOUNDATION_SHA256  $FOUNDATION_ASSET_NAME" | sha256sum -c -
+          mkdir inspect
+          tar -xzf "$FOUNDATION_ASSET_NAME" -C inspect \
+            foundation/FOUNDATION_PROVENANCE.txt \
+            foundation/smoke/FOUNDATION_PASS.txt \
+            foundation/meta/EXTRA_WHEEL_SHA256SUMS.txt
+          grep -q 'QAIRT244_NATIVE_FOUNDATION_PASS=1' inspect/foundation/smoke/FOUNDATION_PASS.txt
+          cat > inspect/RELEASE_AUTHORITY.txt <<EOF
+          repository=${GITHUB_REPOSITORY}
+          release=${FOUNDATION_RELEASE}
+          asset=${FOUNDATION_ASSET_NAME}
+          asset_id=${FOUNDATION_ASSET_ID}
+          bytes=${FOUNDATION_BYTES}
+          sha256=${FOUNDATION_SHA256}
+          transport_only=true
+          compilation_performed=false
+          EOF
+
+      - name: Upload short-lived transport
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: qairt244-native-host-foundation-v4-transport
+          path: |
+            qairt244-native-host-foundation-v4.tar.gz
+            inspect/RELEASE_AUTHORITY.txt
+            inspect/foundation/FOUNDATION_PROVENANCE.txt
+            inspect/foundation/smoke/FOUNDATION_PASS.txt
+            inspect/foundation/meta/EXTRA_WHEEL_SHA256SUMS.txt
+          retention-days: 7
+          compression-level: 0
+          if-no-files-found: error
+
+      - name: Report
+        if: github.event_name == 'issues'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "QAIRT244_FOUNDATION_TRANSPORT_READY\n\nRelease authority: \`${FOUNDATION_RELEASE}/${FOUNDATION_ASSET_NAME}\`\nAsset id: \`${FOUNDATION_ASSET_ID}\`\nBytes: \`${FOUNDATION_BYTES}\`\nSHA256: \`${FOUNDATION_SHA256}\`\nTransport artifact id: \`${{ steps.upload.outputs.artifact-id }}\`\n\nTransport only; no compilation performed. The private Release remains permanent authority."
