@@ -1,0 +1,22 @@
+name: Test Dropbox anonymous download
+
+on:
+  push:
+    paths:
+      - '.github/dropbox-download-test-trigger.txt'
+  workflow_dispatch:
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download from Dropbox without authentication
+        shell: bash
+        run: |
+          set -euo pipefail
+          url='https://uc066d8c836e4cbd25423081d10c.dl.dropboxusercontent.com/cd/0/get/DGgojzw90AQxgLMFXTMbrwEoHIyarN-FtZmWyoqmCiVsVbsHLHauZaYXxxtcpmlxsqeuGy2squBGEjrHJPO1PYpH-GlnfF9G7URuaySqJQH2Pis2H_4mMRZmVvXj1STITRs94D0EGdlv3kdJKky0MoCW8WK86KHbsNuIwJ49zcOVGw/file?c_luid=7d0bd46c'
+          curl --fail --location --show-error --silent "$url" --output downloaded-test.txt
+          test "$(wc -c < downloaded-test.txt)" -eq 272
+          grep -F 'QAIRT-SDK-ARCHIVE Dropbox anonymous download smoke test' downloaded-test.txt
+          sha256sum downloaded-test.txt
+          ls -lh downloaded-test.txt
