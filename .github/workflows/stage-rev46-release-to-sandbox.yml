@@ -1,0 +1,57 @@
+name: Stage rev46 release assets for sandbox
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  stage:
+    if: github.event.issue.title == '[stage-rev46-release-to-sandbox]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      RELEASE_REPO: lly8666/qairt-sdk-archive
+      RELEASE_TAG: '20260820.1'
+      FOUNDATION_NAME: qairt244-native-host-foundation-v4.tar.gz
+      FOUNDATION_BYTES: '377592420'
+      FOUNDATION_SHA256: 44753f03f7b2c0a21ff751258137a3673321bbd10aaa8817ebf1f00badb17b22
+      PAYLOAD_NAME: rev46-block4-focused-payload-v2.tar.gz
+      PAYLOAD_BYTES: '4176967'
+      PAYLOAD_SHA256: 42493454ece1060a5100f28e5bf35a15d09bb48f8b46f82c5b69a12fd0f6a1c9
+    steps:
+      - name: Download and validate exact release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/stage"
+          for name in "$FOUNDATION_NAME" "$PAYLOAD_NAME"; do
+            curl --fail --location --retry 3 --silent --show-error \
+              "https://github.com/${RELEASE_REPO}/releases/download/${RELEASE_TAG}/${name}" \
+              -o "$RUNNER_TEMP/stage/$name"
+          done
+          test "$(stat -c%s "$RUNNER_TEMP/stage/$FOUNDATION_NAME")" = "$FOUNDATION_BYTES"
+          test "$(stat -c%s "$RUNNER_TEMP/stage/$PAYLOAD_NAME")" = "$PAYLOAD_BYTES"
+          echo "$FOUNDATION_SHA256  $RUNNER_TEMP/stage/$FOUNDATION_NAME" | sha256sum -c -
+          echo "$PAYLOAD_SHA256  $RUNNER_TEMP/stage/$PAYLOAD_NAME" | sha256sum -c -
+          sha256sum "$RUNNER_TEMP/stage/$FOUNDATION_NAME" "$RUNNER_TEMP/stage/$PAYLOAD_NAME" > "$RUNNER_TEMP/stage/SHA256SUMS"
+
+      - name: Publish exact assets for one-time sandbox transfer
+        uses: actions/upload-artifact@v4
+        with:
+          name: rev46-release-sandbox-stage-${{ github.run_id }}
+          path: ${{ runner.temp }}/stage
+          compression-level: 0
+          retention-days: 1
+
+      - name: Report staging run
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          printf -v body 'REV46_RELEASE_SANDBOX_STAGE_PASS\n\nRun: **%s**\nValidated exact foundation + focused payload and published one-time transfer artifact. Host-only; no APK/device action.' "$GITHUB_RUN_ID"
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "$body"
