@@ -1,0 +1,62 @@
+name: Stage rev25 frozen host inputs for sandbox
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  stage:
+    if: github.event.issue.title == '[stage-rev25-frozen-host-inputs-to-sandbox]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      RELEASE_TAG: meanvc2-rev25-frozen-host-inputs-v1
+      PAYLOAD: meanvc2-rev25-frozen-host-inputs-v1.tar.gz
+    steps:
+      - name: Download and verify immutable frozen host-input release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/stage"
+          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
+            --pattern "$PAYLOAD" --pattern "$PAYLOAD.sha256" --pattern "$PAYLOAD.bytes" \
+            --dir "$RUNNER_TEMP/stage"
+          cd "$RUNNER_TEMP/stage"
+          sha256sum -c "$PAYLOAD.sha256"
+          test "$(stat -c%s "$PAYLOAD")" = "$(tr -d '[:space:]' < "$PAYLOAD.bytes")"
+          tar -tzf "$PAYLOAD" >/dev/null
+          printf 'release=%s\n' "$RELEASE_TAG" > STAGE_META.txt
+          cat "$PAYLOAD.bytes" >> STAGE_META.txt
+          cat "$PAYLOAD.sha256" >> STAGE_META.txt
+
+      - name: Publish one-time sandbox transport
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: rev25-frozen-host-inputs-sandbox-${{ github.run_id }}
+          path: ${{ runner.temp }}/stage
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: Report staging result
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if [ -s "$RUNNER_TEMP/stage/$PAYLOAD" ]; then
+            sha="$(sha256sum "$RUNNER_TEMP/stage/$PAYLOAD" | awk '{print $1}')"
+            bytes="$(stat -c%s "$RUNNER_TEMP/stage/$PAYLOAD")"
+            printf -v body 'REV25_FROZEN_HOST_INPUTS_SANDBOX_STAGE_PASS\n\nRun: **%s**\nArtifact id: **%s**\nPayload bytes: **%s**\nPayload SHA256: `%s`\nHost-only transfer; no model execution/APK/device action.' "$GITHUB_RUN_ID" '${{ steps.upload.outputs.artifact-id }}' "$bytes" "$sha"
+          else
+            printf -v body 'REV25_FROZEN_HOST_INPUTS_SANDBOX_STAGE_FAIL\n\nRun: **%s**\nNo payload staged; no APK/device action.' "$GITHUB_RUN_ID"
+          fi
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "$body"
