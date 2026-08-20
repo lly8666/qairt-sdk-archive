@@ -1,6 +1,9 @@
 name: Stage ORT 1.27 oracle for sandbox
 
 on:
+  push:
+    paths:
+      - '.github/workflows/stage-ort127-oracle-to-sandbox.yml'
   issues:
     types: [opened]
 
@@ -10,9 +13,11 @@ permissions:
 
 jobs:
   stage:
-    if: github.event.issue.title == '[stage-ort127-oracle-to-sandbox]'
+    if: github.event_name == 'push' || github.event.issue.title == '[stage-ort127-oracle-to-sandbox]'
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      REPORT_ISSUE: '105'
     steps:
       - uses: actions/setup-python@v5
         with:
@@ -47,10 +52,15 @@ jobs:
           retention-days: 1
 
       - name: Report staging result
+        if: always()
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          printf -v body 'ORT127_SANDBOX_STAGE_PASS\n\nRun: **%s**\nPortable Python 3.11 oracle: numpy 1.26.4 / onnx 1.17.0 / onnxruntime 1.27.0. Host-only; no APK/device action.' "$GITHUB_RUN_ID"
-          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "$body"
+          if [ "${{ job.status }}" = success ]; then
+            printf -v body 'ORT127_SANDBOX_STAGE_PASS\n\nRun: **%s**\nPortable Python 3.11 oracle: numpy 1.26.4 / onnx 1.17.0 / onnxruntime 1.27.0. Host-only; no APK/device action.' "$GITHUB_RUN_ID"
+          else
+            printf -v body 'ORT127_SANDBOX_STAGE_FAIL\n\nRun: **%s**\nOracle package did not stage. No APK/device action.' "$GITHUB_RUN_ID"
+          fi
+          gh issue comment "$REPORT_ISSUE" --repo "$GITHUB_REPOSITORY" --body "$body"
