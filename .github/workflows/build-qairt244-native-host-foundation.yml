@@ -1,0 +1,372 @@
+name: Build QAIRT 2.44 native host foundation
+
+on:
+  issues:
+    types: [opened]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+env:
+  TRIGGER_TITLE: '[build-qairt244-native-host-foundation]'
+  QAIRT_ASSET_NAME: 'QAIRT.v2.44.0.260225.zip'
+  WHEELHOUSE_ASSET_NAME: 'qairt244-py310-wheelhouse.v2.tar'
+  PY310_NAME: 'cpython-3.10.20+20260807-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz'
+  PY310_BYTES: '29446769'
+  PY310_SHA256: '213ad831a580c186804f91c41cd6712f8ac8cd765ad7a517161c09606a48b588'
+  MAKO_ARTIFACT_ID: '9392063283'
+  LXML_ARTIFACT_ID: '9376194313'
+  SAFE_START: 'SIMADMIN_AGENT_SAFE_START_REQUIRED=1'
+
+jobs:
+  foundation:
+    if: github.event_name == 'workflow_dispatch' || github.event.issue.title == '[build-qairt244-native-host-foundation]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Record immutable scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "$SAFE_START"
+          echo 'FOUNDATION_ONLY=1'
+          echo 'QAIRT=2.44.0.260225'
+          echo 'NO_PRODUCTION_INTEGRATION=1'
+          echo 'NO_CPU_FALLBACK_POLICY_CHANGE=1'
+          echo 'NO_THRESHOLD_RELAXATION=1'
+
+      - name: Resolve indexed immutable SDK and wheelhouse assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY' >> "$GITHUB_ENV"
+          import json, os
+          idx=json.load(open('release-manifest/AGENT_RELEASE_INDEX.json'))
+          wanted={
+            os.environ['QAIRT_ASSET_NAME']:'QAIRT',
+            os.environ['WHEELHOUSE_ASSET_NAME']:'WHEELHOUSE',
+          }
+          found={}
+          for rel in idx['releases']:
+            for a in rel['assets']:
+              if a['name'] not in wanted: continue
+              k=wanted[a['name']]
+              digest=a.get('digest') or ''
+              if not digest.startswith('sha256:'):
+                raise SystemExit(f'{a["name"]} missing sha256 digest')
+              if k in found:
+                raise SystemExit(f'duplicate indexed asset {a["name"]}')
+              found[k]=(rel,a)
+          if set(found)!=set(wanted.values()):
+            raise SystemExit(f'missing indexed assets: {set(wanted.values())-set(found)}')
+          for k,(rel,a) in found.items():
+            print(f'{k}_ASSET_ID={a["id"]}')
+            print(f'{k}_ASSET_BYTES={a["size"]}')
+            print(f'{k}_ASSET_SHA256={a["digest"].split(":",1)[1]}')
+            print(f'{k}_RELEASE_TAG={rel["tag_name"]}')
+          PY
+
+      - name: Download and verify QAIRT 2.44 and wheelhouse v2
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          download_asset() {
+            local id="$1" out="$2" bytes="$3" sha="$4"
+            curl -fL --retry 5 --retry-all-errors \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H 'Accept: application/octet-stream' \
+              -H 'X-GitHub-Api-Version: 2022-11-28' \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/assets/${id}" -o "$out"
+            test "$(stat -c %s "$out")" = "$bytes"
+            echo "$sha  $out" | sha256sum -c -
+          }
+          download_asset "$QAIRT_ASSET_ID" qairt244.zip "$QAIRT_ASSET_BYTES" "$QAIRT_ASSET_SHA256"
+          download_asset "$WHEELHOUSE_ASSET_ID" wheelhouse-v2.tar "$WHEELHOUSE_ASSET_BYTES" "$WHEELHOUSE_ASSET_SHA256"
+
+      - name: Extract relocatable QAIRT Linux x64 host closure
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p foundation/qairt
+          python3 - <<'PY'
+          import os, shutil, zipfile
+          src='qairt244.zip'; dst='foundation/qairt'
+          markers=(
+            ('bin','x86_64-linux-clang'),
+            ('bin','lib'),
+            ('lib','x86_64-linux-clang'),
+            ('lib','python'),
+            ('include',),
+            ('share',),
+          )
+          selected=[]
+          with zipfile.ZipFile(src) as z:
+            for info in z.infolist():
+              if info.is_dir(): continue
+              parts=[p for p in info.filename.replace('\\','/').split('/') if p]
+              start=None
+              for marker in markers:
+                n=len(marker)
+                for i in range(len(parts)-n+1):
+                  if tuple(parts[i:i+n])==marker:
+                    start=i; break
+                if start is not None: break
+              if start is None: continue
+              rel='/'.join(parts[start:])
+              target=os.path.join(dst,rel)
+              os.makedirs(os.path.dirname(target),exist_ok=True)
+              with z.open(info) as r, open(target,'wb') as w:
+                shutil.copyfileobj(r,w,1<<20)
+              selected.append((rel,info.file_size,info.filename))
+          required=(
+            'bin/x86_64-linux-clang/qnn-onnx-converter',
+            'bin/x86_64-linux-clang/qnn-model-lib-generator',
+            'bin/x86_64-linux-clang/qnn-net-run',
+            'bin/x86_64-linux-clang/qnn-context-binary-generator',
+            'bin/x86_64-linux-clang/qnn-profile-viewer',
+            'lib/x86_64-linux-clang/libQnnCpu.so',
+            'lib/x86_64-linux-clang/libQnnSystem.so',
+            'lib/x86_64-linux-clang/libQnnSaver.so',
+          )
+          missing=[p for p in required if not os.path.isfile(os.path.join(dst,p))]
+          if missing: raise SystemExit('missing QAIRT foundation files: '+', '.join(missing))
+          import json
+          with open(os.path.join(dst,'SELECTION_MANIFEST.json'),'w') as f:
+            json.dump({'schema':1,'qairt':'2.44.0.260225','files':[{'path':r,'bytes':b,'source':s} for r,b,s in selected]},f,indent=2,sort_keys=True)
+          print('QAIRT_FOUNDATION_FILES',len(selected))
+          print('QAIRT_FOUNDATION_BYTES',sum(x[1] for x in selected))
+          PY
+          chmod +x foundation/qairt/bin/x86_64-linux-clang/* || true
+          cat > foundation/qairt/SOURCE_PROVENANCE.txt <<EOF
+          source_repository=${GITHUB_REPOSITORY}
+          source_release=${QAIRT_RELEASE_TAG}
+          source_asset=${QAIRT_ASSET_NAME}
+          source_asset_id=${QAIRT_ASSET_ID}
+          source_bytes=${QAIRT_ASSET_BYTES}
+          source_sha256=${QAIRT_ASSET_SHA256}
+          EOF
+
+      - name: Install pinned portable CPython 3.10 runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          url='https://github.com/astral-sh/python-build-standalone/releases/download/20260807/cpython-3.10.20%2B20260807-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz'
+          curl -fL --retry 5 --retry-all-errors "$url" -o "$PY310_NAME"
+          test "$(stat -c %s "$PY310_NAME")" = "$PY310_BYTES"
+          echo "$PY310_SHA256  $PY310_NAME" | sha256sum -c -
+          mkdir -p foundation/python
+          tar -xzf "$PY310_NAME" -C foundation/python --strip-components=1
+          foundation/python/bin/python3.10 --version | tee foundation/PYTHON_VERSION.txt
+          test -f foundation/python/lib/libpython3.10.so.1.0
+
+      - name: Materialize deterministic QAIRT Python closure
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p deps/wheelhouse deps/extras foundation/site-packages
+          tar -xf wheelhouse-v2.tar -C deps/wheelhouse
+          download_artifact() {
+            local id="$1" out="$2"
+            curl -fL --retry 5 --retry-all-errors \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H 'Accept: application/vnd.github+json' \
+              -H 'X-GitHub-Api-Version: 2022-11-28' \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${id}/zip" -o "$out"
+          }
+          download_artifact "$MAKO_ARTIFACT_ID" deps/mako.zip
+          download_artifact "$LXML_ARTIFACT_ID" deps/lxml.zip
+          unzip -q deps/mako.zip -d deps/extras/mako
+          unzip -q deps/lxml.zip -d deps/extras/lxml
+          echo 'a359d9a94a541213958742b2698d0a7757bb83551767bc468a74b9905aba9617' "$(find deps/extras/mako -type f -name 'mako-1.4.1-*.whl' -print -quit)" | sha256sum -c -
+          echo 'f42d0984e947b8adf7dd6dde396e720934d12c506ce84eea8476409563607591' "$(find deps/extras/mako -type f -name 'markupsafe-3.0.3-*.whl' -print -quit)" | sha256sum -c -
+          echo '785761d5123f222cd97f2263a510107226fe32ce7aa7824a90616a41c574ace1' "$(find deps/extras/lxml -type f -name 'lxml-6.1.2-*.whl' -print -quit)" | sha256sum -c -
+
+          mapfile -t wheels < <(find deps/wheelhouse -type f -name '*.whl' ! -name 'numpy-2.2.6-*' -print | sort)
+          mapfile -t extras < <(find deps/extras -type f -name '*.whl' -print | sort)
+          test "${#wheels[@]}" -gt 20
+          foundation/python/bin/python3.10 -m pip install --disable-pip-version-check --no-index --no-deps --target foundation/site-packages "${wheels[@]}" "${extras[@]}"
+          PYTHONPATH="$PWD/foundation/site-packages" foundation/python/bin/python3.10 - <<'PY'
+          import numpy, onnx, pandas, lxml, mako
+          assert numpy.__version__=='1.26.4', numpy.__version__
+          print('PY_CLOSURE_PASS', numpy.__version__, onnx.__version__, pandas.__version__, lxml.__version__, mako.__version__)
+          PY
+
+      - name: Smoke all native/runtime layers
+        shell: bash
+        run: |
+          set -euo pipefail
+          export QNN_SDK_ROOT="$PWD/foundation/qairt"
+          export QNN_BIN="$QNN_SDK_ROOT/bin/x86_64-linux-clang"
+          export QNN_LIB="$QNN_SDK_ROOT/lib/x86_64-linux-clang"
+          export PY310="$PWD/foundation/python/bin/python3.10"
+          export PYTHONPATH="$PWD/foundation/site-packages:$QNN_SDK_ROOT/lib/python"
+          export LD_LIBRARY_PATH="$PWD/foundation/python/lib:$QNN_SDK_ROOT/bin/lib:$QNN_LIB${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+          export PATH="$QNN_BIN:$PATH"
+          mkdir -p foundation/smoke
+          {
+            echo "QNN_SDK_ROOT=$QNN_SDK_ROOT"
+            echo "python=$($PY310 --version 2>&1)"
+            echo "clang=$(clang++ --version | head -1)"
+            echo "gcc=$(g++ --version | head -1)"
+            for t in qnn-onnx-converter qnn-model-lib-generator qnn-net-run qnn-context-binary-generator qnn-profile-viewer; do
+              p="$QNN_BIN/$t"; echo "TOOL $t $(sha256sum "$p" | awk '{print $1}') $(file -b "$p")"
+            done
+            for l in libQnnCpu.so libQnnSystem.so libQnnSaver.so; do
+              p="$QNN_LIB/$l"; echo "LIB $l $(sha256sum "$p" | awk '{print $1}')"
+            done
+          } | tee foundation/smoke/IDENTITY.txt
+          ldd "$QNN_BIN/qnn-net-run" | tee foundation/smoke/QNN_NET_RUN_LDD.txt
+          ! grep -q 'not found' foundation/smoke/QNN_NET_RUN_LDD.txt
+          "$QNN_BIN/qnn-net-run" --help > foundation/smoke/QNN_NET_RUN_HELP.txt 2>&1
+          "$PY310" "$QNN_BIN/qnn-onnx-converter" --help > foundation/smoke/QNN_ONNX_CONVERTER_HELP.txt 2>&1
+          "$QNN_BIN/qnn-model-lib-generator" --help > foundation/smoke/QNN_MODEL_LIB_GENERATOR_HELP.txt 2>&1 || "$PY310" "$QNN_BIN/qnn-model-lib-generator" --help > foundation/smoke/QNN_MODEL_LIB_GENERATOR_HELP.txt 2>&1
+          echo 'QAIRT244_NATIVE_LAYER_SMOKE_PASS=1' | tee -a foundation/smoke/IDENTITY.txt
+
+      - name: Compile and execute deterministic tiny QNN CPU model
+        shell: bash
+        run: |
+          set -euo pipefail
+          export QNN_SDK_ROOT="$PWD/foundation/qairt"
+          export QNN_BIN="$QNN_SDK_ROOT/bin/x86_64-linux-clang"
+          export QNN_LIB="$QNN_SDK_ROOT/lib/x86_64-linux-clang"
+          export PY310="$PWD/foundation/python/bin/python3.10"
+          export PYTHONPATH="$PWD/foundation/site-packages:$QNN_SDK_ROOT/lib/python"
+          export LD_LIBRARY_PATH="$PWD/foundation/python/lib:$QNN_SDK_ROOT/bin/lib:$QNN_LIB${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+          export PATH="$QNN_BIN:$PATH"
+          work="$PWD/foundation/smoke/tiny"
+          mkdir -p "$work"; cd "$work"
+          "$PY310" - <<'PY'
+          import numpy as np, onnx
+          from onnx import TensorProto, helper, numpy_helper
+          x=helper.make_tensor_value_info('input',TensorProto.FLOAT,[1,4])
+          y=helper.make_tensor_value_info('output',TensorProto.FLOAT,[1,4])
+          one=numpy_helper.from_array(np.ones((1,4),dtype=np.float32),name='one')
+          node=helper.make_node('Add',['input','one'],['output'])
+          graph=helper.make_graph([node],'qairt244_smoke',[x],[y],[one])
+          model=helper.make_model(graph,opset_imports=[helper.make_opsetid('',17)])
+          onnx.checker.check_model(model); onnx.save(model,'smoke.onnx')
+          np.asarray([[0.,1.,2.,3.]],dtype='<f4').tofile('input.raw')
+          open('input_list.txt','w').write('input:=input.raw\n')
+          PY
+          "$PY310" "$QNN_BIN/qnn-onnx-converter" --input_network smoke.onnx --output_path smoke.cpp 2>&1 | tee ../CONVERTER.log
+          test -s smoke.cpp
+          args=(-c smoke.cpp -o model-lib -t x86_64-linux-clang)
+          if [ -s smoke.bin ]; then args+=(-b smoke.bin); fi
+          "$QNN_BIN/qnn-model-lib-generator" "${args[@]}" 2>&1 | tee ../MODEL_LIB.log || "$PY310" "$QNN_BIN/qnn-model-lib-generator" "${args[@]}" 2>&1 | tee ../MODEL_LIB.log
+          model_so="$(find model-lib -type f -name '*.so' -print -quit)"
+          test -n "$model_so"
+          mkdir -p output
+          "$QNN_BIN/qnn-net-run" \
+            --backend "$QNN_LIB/libQnnCpu.so" \
+            --model "$model_so" \
+            --input_list input_list.txt \
+            --output_dir output 2>&1 | tee ../QNN_CPU_RUN.log
+          "$PY310" - <<'PY'
+          import pathlib, numpy as np
+          hits=[p for p in pathlib.Path('output').rglob('*.raw') if p.stat().st_size==16]
+          if not hits: raise SystemExit('no 4-float QNN output found')
+          expected=np.array([1,2,3,4],dtype=np.float32)
+          vals=[]
+          for p in hits:
+            a=np.fromfile(p,dtype='<f4')
+            vals.append((p,a))
+            if a.shape==expected.shape and np.array_equal(a,expected):
+              print('QNN_CPU_TINY_PASS',p,a.tolist()); break
+          else:
+            raise SystemExit('tiny output mismatch: '+repr([(str(p),a.tolist()) for p,a in vals]))
+          PY
+          echo 'QAIRT244_NATIVE_FOUNDATION_PASS=1' | tee ../FOUNDATION_PASS.txt
+
+      - name: Freeze foundation provenance and checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > foundation/FOUNDATION_PROVENANCE.txt <<EOF
+          schema=1
+          purpose=one-time reusable QAIRT 2.44 native Linux x64 host foundation
+          repository=${GITHUB_REPOSITORY}
+          workflow_run_id=${GITHUB_RUN_ID}
+          workflow_commit=${GITHUB_SHA}
+          qairt_version=2.44.0.260225
+          qairt_release=${QAIRT_RELEASE_TAG}
+          qairt_source_asset=${QAIRT_ASSET_NAME}
+          qairt_source_asset_id=${QAIRT_ASSET_ID}
+          qairt_source_bytes=${QAIRT_ASSET_BYTES}
+          qairt_source_sha256=${QAIRT_ASSET_SHA256}
+          python=3.10.20
+          python_source_sha256=${PY310_SHA256}
+          wheelhouse_asset=${WHEELHOUSE_ASSET_NAME}
+          wheelhouse_asset_id=${WHEELHOUSE_ASSET_ID}
+          wheelhouse_sha256=${WHEELHOUSE_ASSET_SHA256}
+          numpy_selected=1.26.4
+          numpy_2_2_6_selected=false
+          mako=1.4.1
+          markupsafe=3.0.3
+          lxml=6.1.2
+          native_tiny_qnn_cpu_pass=true
+          production_integration=false
+          EOF
+          find foundation -type d -name __pycache__ -prune -exec rm -rf {} +
+          find foundation -type f -name '*.pyc' -delete
+          (cd foundation && find . -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS.txt)
+          tar --sort=name --mtime='UTC 2026-08-20 00:00:00' --owner=0 --group=0 --numeric-owner -cf - foundation | gzip -n -6 > qairt244-native-host-foundation.tar.gz
+          sha256sum qairt244-native-host-foundation.tar.gz > qairt244-native-host-foundation.tar.gz.sha256
+          stat -c '%s' qairt244-native-host-foundation.tar.gz > qairt244-native-host-foundation.tar.gz.bytes
+
+      - name: Upload reusable foundation artifact
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: qairt244-native-host-foundation
+          path: |
+            qairt244-native-host-foundation.tar.gz
+            qairt244-native-host-foundation.tar.gz.sha256
+            qairt244-native-host-foundation.tar.gz.bytes
+            foundation/FOUNDATION_PROVENANCE.txt
+            foundation/smoke/FOUNDATION_PASS.txt
+            foundation/smoke/IDENTITY.txt
+            foundation/smoke/CONVERTER.log
+            foundation/smoke/MODEL_LIB.log
+            foundation/smoke/QNN_CPU_RUN.log
+          compression-level: 0
+          retention-days: 90
+          if-no-files-found: error
+
+      - name: Report success
+        if: success() && github.event_name == 'issues'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          sha="$(awk '{print $1}' qairt244-native-host-foundation.tar.gz.sha256)"
+          bytes="$(cat qairt244-native-host-foundation.tar.gz.bytes)"
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "QAIRT244_NATIVE_HOST_FOUNDATION_PASS\n\nArtifact id: \`${{ steps.upload.outputs.artifact-id }}\`\nArtifact name: \`qairt244-native-host-foundation\`\nRetention: 90 days\nPayload bytes: \`${bytes}\`\nPayload SHA256: \`${sha}\`\n\nValidated: QAIRT 2.44 converter -> model-lib -> qnn-net-run with \`libQnnCpu.so\` on a deterministic tiny ONNX. Foundation-only; no production integration or threshold change."
+
+      - name: Upload failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qairt244-native-host-foundation-failure-${{ github.run_id }}
+          path: |
+            foundation/smoke
+            deps/extras/**/SOURCE_PROVENANCE.txt
+            deps/extras/**/SHA256SUMS.txt
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Report failure
+        if: failure() && github.event_name == 'issues'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "QAIRT244_NATIVE_HOST_FOUNDATION_FAILED in run \`${GITHUB_RUN_ID}\`. Inspect the first failed step/log. Do not substitute QAIRT version, model identity, fallback policy, or thresholds."
