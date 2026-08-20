@@ -16,7 +16,7 @@ jobs:
     steps:
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.11'
 
       - name: Build portable pinned oracle site-packages
         shell: bash
@@ -27,21 +27,21 @@ jobs:
           python -m pip install --disable-pip-version-check --no-cache-dir --target "$root/site-packages" \
             'numpy==1.26.4' 'onnx==1.17.0' 'onnxruntime==1.27.0'
           PYTHONPATH="$root/site-packages" python - <<'PY'
-import json, numpy, onnx, onnxruntime as ort, pathlib, sys
-assert numpy.__version__ == '1.26.4'
-assert onnx.__version__ == '1.17.0'
-assert ort.__version__ == '1.27.0'
-root=pathlib.Path(__import__('os').environ['RUNNER_TEMP'])/'ort127_oracle'
-(root/'VERSIONS.json').write_text(json.dumps({'python':sys.version,'numpy':numpy.__version__,'onnx':onnx.__version__,'onnxruntime':ort.__version__},indent=2)+'\n')
-print('ORT127_PORTABLE_ORACLE_PASS')
-PY
+          import json, numpy, onnx, onnxruntime as ort, pathlib, sys, os
+          assert numpy.__version__ == '1.26.4'
+          assert onnx.__version__ == '1.17.0'
+          assert ort.__version__ == '1.27.0'
+          root=pathlib.Path(os.environ['RUNNER_TEMP'])/'ort127_oracle'
+          (root/'VERSIONS.json').write_text(json.dumps({'python':sys.version,'numpy':numpy.__version__,'onnx':onnx.__version__,'onnxruntime':ort.__version__},indent=2)+'\n')
+          print('ORT127_PORTABLE_ORACLE_PASS')
+          PY
           cd "$root"
           find site-packages -type f -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS.txt
 
       - name: Publish portable oracle package
         uses: actions/upload-artifact@v4
         with:
-          name: ort127-oracle-py310-${{ github.run_id }}
+          name: ort127-oracle-py311-${{ github.run_id }}
           path: ${{ runner.temp }}/ort127_oracle
           compression-level: 0
           retention-days: 1
@@ -52,5 +52,5 @@ PY
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          printf -v body 'ORT127_SANDBOX_STAGE_PASS\n\nRun: **%s**\nPortable Python 3.10 oracle: numpy 1.26.4 / onnx 1.17.0 / onnxruntime 1.27.0. Host-only; no APK/device action.' "$GITHUB_RUN_ID"
+          printf -v body 'ORT127_SANDBOX_STAGE_PASS\n\nRun: **%s**\nPortable Python 3.11 oracle: numpy 1.26.4 / onnx 1.17.0 / onnxruntime 1.27.0. Host-only; no APK/device action.' "$GITHUB_RUN_ID"
           gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "$body"
