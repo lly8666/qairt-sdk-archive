@@ -1,0 +1,252 @@
+name: Run frozen rev25 QNN CPU reference
+
+on:
+  issues:
+    types: [opened]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+env:
+  HOST_RELEASE_TAG: ort-1.27.0-qnn-2.44.0.260225-linux-x64-v1
+  HOST_PAYLOAD: ort-1.27.0-qnn-2.44.0.260225-linux-x64-v1.tar.gz
+  PY310_WHEELHOUSE_ASSET_ID: '521019740'
+  PY310_WHEELHOUSE_BYTES: '103860736'
+  PY310_WHEELHOUSE_SHA256: eb3d0b500d7021a05ec111bf6afc14262d97282a5bb5a4481c88c7865b38d19f
+  APK_SHA256: aa1163e354008d78edde050511a81dce22b61650e8d45e860ce0d163669b4af8
+  APK_BYTES: '147504599'
+  SAFE_START: SIMADMIN_AGENT_SAFE_START_REQUIRED=1
+
+jobs:
+  rev25-qnncpu:
+    if: github.event_name == 'workflow_dispatch' || github.event.issue.title == '[run-rev25-qnncpu-reference]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - name: Record frozen gate contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "$SAFE_START"
+          echo 'BACKEND_TYPE=cpu'
+          echo 'SESSION_DISABLE_CPU_EP_FALLBACK=1'
+          echo 'NO_THRESHOLD_RELAXATION=1'
+          echo 'NO_PRODUCTION_INTEGRATION=1'
+
+      - uses: actions/checkout@v4
+
+      - name: Set up exact Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Download and verify durable host foundation
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p host
+          gh release download "$HOST_RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --pattern "$HOST_PAYLOAD" --pattern "$HOST_PAYLOAD.sha256" --dir .
+          sha256sum -c "$HOST_PAYLOAD.sha256"
+          tar -xzf "$HOST_PAYLOAD" -C host
+          test -f host/meta/PROVIDER_PROBE.txt
+          test -f host/meta/BUILD_PROVENANCE.json
+          grep -q 'QNN_EXECUTION_PROVIDER_PASS=1' host/meta/PROVIDER_PROBE.txt
+          grep -q 'QNNExecutionProvider' host/meta/PROVIDER_PROBE.txt
+          python - <<'PY'
+          import json
+          p=json.load(open('host/meta/BUILD_PROVENANCE.json'))
+          assert p['onnxruntime_version']=='1.27.0'
+          assert p['qairt_version']=='2.44.0.260225'
+          assert p['qnn_ep_linkage']=='shared_lib'
+          assert p['cpu_fallback_authorized'] is False
+          assert p['threshold_relaxation_authorized'] is False
+          assert p['production_integration_authorized'] is False
+          print('HOST_FOUNDATION_IDENTITY_PASS=1')
+          PY
+          find host/qnn/lib -maxdepth 1 -type f -name 'libQnnCpu.so' -print -quit | grep -q .
+
+      - name: Download exact archived Python 3.10 wheelhouse
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 5 --retry-all-errors \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H 'Accept: application/octet-stream' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/assets/${PY310_WHEELHOUSE_ASSET_ID}" \
+            -o py310-wheelhouse.tar
+          echo "$PY310_WHEELHOUSE_SHA256  py310-wheelhouse.tar" | sha256sum -c -
+          test "$(stat -c %s py310-wheelhouse.tar)" = "$PY310_WHEELHOUSE_BYTES"
+          mkdir wheelhouse
+          tar -xf py310-wheelhouse.tar -C wheelhouse
+          find wheelhouse -type f -name 'numpy-1.26.4-*.whl' -print | head
+
+      - name: Create isolated ORT 1.27 QNN environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m venv venv
+          wheel_root="$(dirname "$(find wheelhouse -type f -name 'numpy-1.26.4-*.whl' -print -quit)")"
+          test -n "$wheel_root"
+          venv/bin/pip install --no-index --find-links "$wheel_root" 'numpy==1.26.4'
+          venv/bin/pip install --no-deps host/wheel/*.whl
+          export LD_LIBRARY_PATH="$PWD/host/qnn/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+          venv/bin/python - <<'PY'
+          import json, onnxruntime as ort
+          assert ort.__version__=='1.27.0', ort.__version__
+          p=ort.get_available_providers()
+          assert 'QNNExecutionProvider' in p, p
+          print('RUNTIME_QNN_PROVIDER_PASS', json.dumps(p))
+          PY
+
+      - name: Recover exact frozen authority APK from Drive parts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p apk-parts
+          cat > apk-parts/parts.tsv <<'EOF'
+          1cSkMUgkMM9vdztUGr0DBEM8VCKSGDQ1z	25000000	0080f0eea4510b67c6552b3a2dc9ad6e5b15f02afe36aecf95df939ce4d10d77
+          1Ys0zGBb514zEL1FiMNxezbAtpESiXK-4	25000000	e6478ccce95136775ae97db4ab67c682143b6a5104cfd095ec35a00d66c4deac
+          13eV2shxkMQOtHUHYpvpM4RvVWHdP-QRP	25000000	b8631c59966607ca78fad62dc2b7627a74281c2a16d9eac765ac60f0d203a627
+          1isnSHDaEOYO9rYN9R00c6XJieh4MLMW1	25000000	cec50e5d8aa9eda2f9925b46df86e3eded38ccc440f6ac4a2f80409bf4177c5d
+          1WmpVW_tK8-_JRpUcKY8Qdayk1yx3SECV	25000000	5c7097c223de667ad38b550bcd6c2f7e0c7f44e44ffb7a677ba4558da2bf9b3e
+          1vj62ejLUqpIfJnb3sFIIZ2zoQpGRK5E4	22504599	8bfd5d6b4ea95b1ef888894a5586ba55a9eba56a31e96b0057070ce686b08207
+          EOF
+          n=0
+          while IFS=$'\t' read -r id bytes sha; do
+            n=$((n+1)); out="apk-parts/part-$(printf '%03d' "$n").bin"
+            curl --fail --location --retry 4 --retry-all-errors \
+              "https://drive.usercontent.google.com/download?id=${id}&export=download&confirm=t" -o "$out"
+            test "$(stat -c %s "$out")" = "$bytes"
+            echo "$sha  $out" | sha256sum -c -
+          done < apk-parts/parts.tsv
+          cat apk-parts/part-*.bin > frozen-rev25-authority.apk
+          test "$(stat -c %s frozen-rev25-authority.apk)" = "$APK_BYTES"
+          echo "$APK_SHA256  frozen-rev25-authority.apk" | sha256sum -c -
+          unzip -tq frozen-rev25-authority.apk
+
+      - name: Extract and reconstruct exact rev25 pair
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p frozen
+          unzip -p frozen-rev25-authority.apk assets/models/vocos_gate0c_cold4.onnx > frozen/base_cold4.onnx
+          unzip -p frozen-rev25-authority.apk assets/models/vocos_gate0c_warm6.onnx > frozen/base_warm6.onnx
+          unzip -p frozen-rev25-authority.apk assets/patches/rev25/vocos_gate0c_cold4_rev25_b0123567.patch.json > frozen/cold.patch.json
+          unzip -p frozen-rev25-authority.apk assets/patches/rev25/vocos_gate0c_warm6_rev25_b0123567.patch.json > frozen/warm.patch.json
+          unzip -p frozen-rev25-authority.apk assets/fixtures/file2file_expected_raw_mel_48x1x80x4_f32le.bin > frozen/raw_mel.bin
+          echo 'd32cb4b116bfe6aeee12f2ab726cf617b3aca6e8043bdf4d533c843769e00a7f  frozen/base_cold4.onnx' | sha256sum -c -
+          echo '5981bfc5d6850baaef7f44af2da18ecd149782e0ffcabf731bcf658d953e0909  frozen/base_warm6.onnx' | sha256sum -c -
+          echo '25170399554d351158c9d96753f05feceb429fbf9b4acba12b7214f99b3ba44a  frozen/cold.patch.json' | sha256sum -c -
+          echo 'b7426abd298106cd256e7e6bd4498d032e2fc89b630d67821b827af8d4646988  frozen/warm.patch.json' | sha256sum -c -
+          echo 'dc58af153c7c0dd6ab0a450a5f77648203e7f82a800a17837e09095ce48c9963  frozen/raw_mel.bin' | sha256sum -c -
+          venv/bin/python - <<'PY'
+          import hashlib, json, pathlib
+          def sha(p): return hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest()
+          def splice(base, patch, out):
+              b=pathlib.Path(base).read_bytes(); p=json.loads(pathlib.Path(patch).read_text())
+              assert p['base_bytes']==len(b) and p['base_sha256']==hashlib.sha256(b).hexdigest()
+              pos=0; chunks=[]
+              for s in p['splices']:
+                  off=int(s['offset']); delete=int(s['delete_bytes'])
+                  assert off>=pos
+                  chunks.append(b[pos:off]); chunks.append(bytes.fromhex(s['insert_hex'])); pos=off+delete
+              chunks.append(b[pos:]); raw=b''.join(chunks); pathlib.Path(out).write_bytes(raw)
+              assert len(raw)==p['output_bytes'] and hashlib.sha256(raw).hexdigest()==p['output_sha256']
+          splice('frozen/base_cold4.onnx','frozen/cold.patch.json','frozen/rev25_cold4.onnx')
+          splice('frozen/base_warm6.onnx','frozen/warm.patch.json','frozen/rev25_warm6.onnx')
+          assert pathlib.Path('frozen/rev25_cold4.onnx').stat().st_size==33249679
+          assert sha('frozen/rev25_cold4.onnx')=='323c194e5da29f0be962ea8b72ca2fa2d1a9fc2481d80b95e5590f79e9485f65'
+          assert pathlib.Path('frozen/rev25_warm6.onnx').stat().st_size==33243869
+          assert sha('frozen/rev25_warm6.onnx')=='e2b7ab608a6b37a6dd9896589719cab446edf95287f59dfc7b5693da6ec98f6c'
+          print('REV25_PAIR_IDENTITY_PASS=1')
+          PY
+
+      - name: Build device-equivalent deterministic Vocos host DSP
+        shell: bash
+        run: |
+          set -euo pipefail
+          g++ -std=c++17 -O2 -fPIC -shared \
+            host-tools/rev25_qnn_cpu/meanvc2_vocos_dsp.cpp \
+            -o frozen/libmeanvc2_vocos_dsp_host.so
+          sha256sum frozen/libmeanvc2_vocos_dsp_host.so | tee frozen/dsp.sha256
+          g++ --version | head -n1 | tee frozen/compiler.txt
+
+      - name: Run FP32 CPU versus strict QNN CPU reference
+        shell: bash
+        run: |
+          set -euo pipefail
+          export LD_LIBRARY_PATH="$PWD/host/qnn/lib:$PWD/host/ort-lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+          mkdir -p evidence/rev25-qnncpu
+          venv/bin/python host-tools/rev25_qnn_cpu/run_rev25_qnn_cpu_reference.py \
+            --cold frozen/rev25_cold4.onnx \
+            --warm frozen/rev25_warm6.onnx \
+            --raw-mel frozen/raw_mel.bin \
+            --dsp-lib frozen/libmeanvc2_vocos_dsp_host.so \
+            --out evidence/rev25-qnncpu | tee evidence/rev25-qnncpu/RUN.log
+          test -s evidence/rev25-qnncpu/qnn_cpu_semantic.json
+          grep -q '"session_disable_cpu_ep_fallback": true' evidence/rev25-qnncpu/qnn_cpu_semantic.json
+
+      - name: Freeze source-attributed reference evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp host/meta/PROVIDER_PROBE.txt evidence/rev25-qnncpu/HOST_PROVIDER_PROBE.txt
+          cp host/meta/BUILD_PROVENANCE.json evidence/rev25-qnncpu/HOST_BUILD_PROVENANCE.json
+          cp frozen/compiler.txt frozen/dsp.sha256 evidence/rev25-qnncpu/
+          cat > evidence/rev25-qnncpu/AUTHORITY.txt <<'EOF'
+          Bootstrap: lly8666/SimAdmin-Android/CURRENT_AGENT_BOOTSTRAP.md
+          Plan: docs/MEANVC2_QNN_HTP_NUMERICAL_SURROGATE_TEST_PLAN_V2.md
+          Frozen pair: rev25 b0123567 cold4/warm6
+          Route: cold4 once -> warm6 reuse x47
+          QNN backend_type=cpu
+          session.disable_cpu_ep_fallback=1
+          Frozen direct expected-waveform bytes were not substituted when unavailable; this evidence compares same-input FP32 ORT CPU against QNN CPU and preserves historical source identity separately.
+          No production integration. No threshold relaxation.
+          EOF
+          find evidence/rev25-qnncpu -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > evidence/rev25-qnncpu/SHA256SUMS.txt
+          tar -czf rev25-qnncpu-reference.tar.gz -C evidence/rev25-qnncpu .
+          sha256sum rev25-qnncpu-reference.tar.gz > rev25-qnncpu-reference.tar.gz.sha256
+
+      - name: Upload immutable evidence artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rev25-qnncpu-reference-${{ github.run_id }}
+          path: |
+            rev25-qnncpu-reference.tar.gz
+            rev25-qnncpu-reference.tar.gz.sha256
+            evidence/rev25-qnncpu/qnn_cpu_semantic.json
+            evidence/rev25-qnncpu/RUN.log
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Report numerical result on trigger issue
+        if: success() && github.event_name == 'issues'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          summary="$(venv/bin/python - <<'PY'
+          import json
+          x=json.load(open('evidence/rev25-qnncpu/qnn_cpu_semantic.json'))
+          s=x['qnn_cpu_vs_cpu']['spectrum']; w=x['qnn_cpu_vs_cpu']['waveform']
+          print(f"spectrum max_abs={s['max_abs']:.9g}, mean_abs={s['mean_abs']:.9g}, rmse={s['rmse']:.9g}, cos={s['cosine_similarity']:.12g}; waveform max_abs={w['max_abs']:.9g}, mean_abs={w['mean_abs']:.9g}, rmse={w['rmse']:.9g}, cos={w['cosine_similarity']:.12g}")
+          PY
+          )"
+          sha="$(awk '{print $1}' rev25-qnncpu-reference.tar.gz.sha256)"
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "Frozen rev25 QNN CPU reference PASS (execution/evidence creation).\n\n- ${summary}\n- Evidence archive SHA256: \`${sha}\`\n- backend_type: \`cpu\`\n- CPU EP fallback disabled: \`true\`\n- ORT: \`1.27.0\`\n- QAIRT/QNN: \`2.44.0.260225\`\n- Host release: \`${HOST_RELEASE_TAG}\`\n\nThis is QNN CPU reference evidence only. It does not authorize HTP conclusions or production integration."
+
+      - name: Report gated failure
+        if: failure() && github.event_name == 'issues'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "Frozen rev25 QNN CPU reference did not complete. Downstream Saver/optrace/HTP work remains gated. Inspect this workflow run; do not substitute models/runtime, enable CPU fallback, or relax thresholds."
