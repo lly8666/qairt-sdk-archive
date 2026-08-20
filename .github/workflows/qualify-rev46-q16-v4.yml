@@ -1,0 +1,107 @@
+name: Qualify rev46 Q16 QDQ v4
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: rev46-q16-v4-host-qualification
+  cancel-in-progress: false
+
+jobs:
+  qualify:
+    if: github.event.issue.title == '[qualify-rev46-q16-v4]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      V4: android-labs/rev46-block4-activation-q16-htp-v4
+      V3_COMMIT: daa8b471af9adad0d560374f9f4037724550e918
+      V3_PATH: android-labs/rev46-block4-activation-strict-htp-v3/generated
+      PAYLOAD_NAME: rev46-block4-focused-payload-v2.tar.gz
+      PAYLOAD_SHA256: 42493454ece1060a5100f28e5bf35a15d09bb48f8b46f82c5b69a12fd0f6a1c9
+      PAYLOAD_BYTES: '4176967'
+      RELEASE_TAG: '20260820.1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned host toolchain
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install 'numpy==2.2.6' 'onnx==1.18.0' 'onnxruntime==1.27.0'
+          python - <<'PY'
+          import onnx,onnxruntime,numpy
+          print('onnx',onnx.__version__,'ort',onnxruntime.__version__,'numpy',numpy.__version__)
+          assert onnxruntime.__version__=='1.27.0'
+          PY
+      - name: Fetch exact v3 float activation sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          d="$RUNNER_TEMP/v3"; mkdir -p "$d"
+          base="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${V3_COMMIT}/${V3_PATH}"
+          for f in cold4_baseline_contrib_gelu.onnx cold4_candidate_exact_activation.onnx warm6_baseline_contrib_gelu.onnx warm6_candidate_exact_activation.onnx; do
+            curl --fail --location --retry 3 --silent --show-error "$base/$f" -o "$d/$f"
+          done
+          echo '96e2e309a22e41cc3040c88e339ddef24065e30cbf5ffa08a8be9550c899f40f  '"$d/cold4_baseline_contrib_gelu.onnx" | sha256sum -c -
+          echo '3825f01208c5ba351bc70cbd6c967025a23014ee74c48b88dbf18552e6ecc1cd  '"$d/cold4_candidate_exact_activation.onnx" | sha256sum -c -
+          echo '455516875b73b3ffcf3231260030c934ba752489b9eda8400c77f6179ac4a7e1  '"$d/warm6_baseline_contrib_gelu.onnx" | sha256sum -c -
+          echo '00c10909e547e83ab87a70b7b71b4a6108992e5293198e41bc97ad2d508648e7  '"$d/warm6_candidate_exact_activation.onnx" | sha256sum -c -
+      - name: Fetch frozen payload for validation only
+        shell: bash
+        run: |
+          set -euo pipefail
+          p="$RUNNER_TEMP/$PAYLOAD_NAME"
+          curl --fail --location --retry 3 --silent --show-error "https://github.com/${GITHUB_REPOSITORY}/releases/download/${RELEASE_TAG}/${PAYLOAD_NAME}" -o "$p"
+          test "$(stat -c%s "$p")" = "$PAYLOAD_BYTES"
+          echo "$PAYLOAD_SHA256  $p" | sha256sum -c -
+          out="$RUNNER_TEMP/payload"; mkdir -p "$out"
+          python - "$p" "$out" <<'PY'
+          import pathlib,sys,tarfile
+          src=pathlib.Path(sys.argv[1]); dst=pathlib.Path(sys.argv[2])
+          with tarfile.open(src,'r:gz') as tf:
+              for m in tf.getmembers():
+                  p=pathlib.PurePosixPath(m.name)
+                  if p.is_absolute() or '..' in p.parts or m.issym() or m.islnk(): raise SystemExit('unsafe tar member '+m.name)
+              tf.extractall(dst)
+          PY
+          root=$(dirname "$(find "$out" -type f -name PAYLOAD_MANIFEST.json -print -quit)")
+          test -f "$root/SHA256SUMS.txt"
+          (cd "$root" && sha256sum -c SHA256SUMS.txt >/dev/null)
+          echo "PAYLOAD_ROOT=$root" >> "$GITHUB_ENV"
+      - name: Prepare Q16 QDQ targets and capability ladder
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf "$V4/generated"; mkdir -p "$V4/generated"
+          python "$V4/tools/prepare_q16_v4.py" --v3-dir "$RUNNER_TEMP/v3" --payload-root "$PAYLOAD_ROOT" --out-dir "$V4/generated" | tee "$V4/qualification.log"
+          grep -F 'SYNTHETIC_FIXED_RANGE_ONLY_NO_FROZEN_FIXTURE_CALIBRATION' "$V4/generated/Q16_V4_MANIFEST.json"
+          grep -F '"all_fixed_shape": true' "$V4/generated/Q16_V4_MANIFEST.json"
+          grep -F '"all_qdq_present": true' "$V4/generated/Q16_V4_MANIFEST.json"
+          test "$(find "$V4/generated" -maxdepth 1 -name '*.onnx' | wc -l)" -eq 9
+      - name: Commit deterministic host evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add "$V4/generated" "$V4/qualification.log"
+          git commit -m 'rev46 v4: freeze Q16 QDQ host qualification'
+          git push origin HEAD:main
+          echo "RESULT_COMMIT=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+      - name: Report result
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          status='failure'; detail=''
+          if [ "${{ job.status }}" = success ]; then status='success'; detail="\nCommit: **${RESULT_COMMIT}**\nManifest: **${V4}/generated/Q16_V4_MANIFEST.json**"; fi
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "REV46_Q16_V4_HOST_${status}\n\nRun: **${GITHUB_RUN_ID}**${detail}"
