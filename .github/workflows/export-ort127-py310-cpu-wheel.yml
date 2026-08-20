@@ -57,9 +57,18 @@ jobs:
           if-no-files-found: error
 
       - name: Record artifact identity
+        if: success()
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "Stock ONNX Runtime 1.27.0 CPython 3.10 CPU wheel transport ready. Artifact id: \`${{ steps.upload.outputs.artifact-id }}\`. No ORT build and no QNN EP compilation performed; verify SOURCE_PROVENANCE.txt and SHA256SUMS.txt after download."
+
+      - name: Report failure
+        if: failure()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "Stock ONNX Runtime 1.27.0 CPython 3.10 CPU wheel export failed in run ${GITHUB_RUN_ID}; inspect the failed download/selection step. No wheel is qualified."
