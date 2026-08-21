@@ -6,32 +6,21 @@
       {"id":"B_local_rmse","path":"k8_partial_guided_tree_family/models/B_local_rmse.onnx","sha256":"2a2081ccd408a82c4cb7e596bacd3ec97df90aad85b085429c68ef25c5d75956","source_authority_sha256":"eb6a9f3787216031de9f94165ad6347857e9364ad782060aa7692df5dafcbde5"},
       {"id":"C_p90_blockmax","path":"k8_partial_guided_tree_family/models/C_p90_blockmax.onnx","sha256":"a9580b6ccf6246927cf787046cbba90945d290f250878c9046bd1834a41ce94d","source_authority_sha256":"bbeb2b7a38ed4e30b407268d36fa8b0708dc3899ccfcefb8639bc5187f00306a"}
     ],
-    "id":"k8_partial_guided_tree_family_stage1_final_qnn",
-    "ort_stage1":"COMPLETE_ALL_PASS",
+    "id":"k8_partial_guided_tree_family_stage1_final_qnn","ort_stage1":"COMPLETE_ALL_PASS",
     "prereg":{"path":"k8_partial_guided_tree_family/PREREG.json","sha256":"79cf22eeaeae2abe81a9b348b2b73fdb69a791815aad236581a2f93d539880b2","source_authority_sha256":"b2a98ff77aab19cbb5a474ccd79c70bf200310a0168f238175507ace191395d2"},
     "proxy_rank":{"path":"k8_partial_guided_tree_family/PROXY_RANK.json","sha256":"87b44330f0293db4c3621bad56742d3fcfeaa7059fbee1a4ab825dd538a98f77","source_authority_sha256":"c734fe95e1389f77b7871bcd50ff13054149e26b01a105ffae7d32ff8302dfd7"},
-    "qnn_stage1":"IN_PROGRESS",
-    "stage1_blocks":[1,8,9,10,12,13,19,24,28,32,33,37,38,42,45],
+    "qnn_stage1":"IN_PROGRESS","stage1_blocks":[1,8,9,10,12,13,19,24,28,32,33,37,38,42,45],
     "stage1_ort_semantic":{"path":"k8_partial_guided_tree_family/stage1/ORT_SEMANTIC.json","sha256":"8ae06526f71297bd74416a9d6309af595dd3792ae4fb53c87dcff8b46c785e53","source_authority_sha256":"777ab443eaa11206980e63a19980b2c21ecdb4760907e826e8baae60a589eea2"},
     "stage2":"NOT_AUTHORIZED","stage3_warm18":"PROTECTED_NOT_STARTED"
   },
   "current_host_best": {
-    "construction":"block5 PW2 contiguous K8; same eight 192-wide partial MatMuls; weight-balanced Add leaf order [0,5,1,4,2,7,3,6]",
-    "frozen_max_gate":0.0003,
+    "construction":"block5 PW2 contiguous K8; same eight 192-wide partial MatMuls; weight-balanced Add leaf order [0,5,1,4,2,7,3,6]","frozen_max_gate":0.0003,
     "full47":{"cosine":0.9999999999856087,"max_abs":0.0004115104675292969,"mean_abs":3.777641009158933e-07,"peak":"warm18 spec_imag[0,18,4]","rmse":3.096381567930808e-06},
-    "gate_pass":false,
-    "identity_migration_evidence":"evidence/rev46/live/20260821-cross-sandbox-authority-reconstruction.md",
-    "model_path":"current_host_best/vocos_warm6_rev46_hostbest_weight_balanced.onnx",
-    "remaining_relative_max_reduction_pct":27.0978447276941,
-    "sha256":"d2efac4f266b312024b0e0b59feeeffa04716dbeaf54ad4763c7950ac9c3fb23",
-    "source_authority_sha256":"a584d4c8e7a05bc36fb06b653c398547b525e15d5a996fc4d7f3dd612db5b774"
+    "gate_pass":false,"identity_migration_evidence":"evidence/rev46/live/20260821-cross-sandbox-authority-reconstruction.md","model_path":"current_host_best/vocos_warm6_rev46_hostbest_weight_balanced.onnx","remaining_relative_max_reduction_pct":27.0978447276941,"sha256":"d2efac4f266b312024b0e0b59feeeffa04716dbeaf54ad4763c7950ac9c3fb23","source_authority_sha256":"a584d4c8e7a05bc36fb06b653c398547b525e15d5a996fc4d7f3dd612db5b774"
   },
-  "exact_next":{"action":"Resume/complete QNN2.44 CPU Stage1 for exactly A/B/C on the frozen 15 blocks; do not rerun ORT; score only after all three finish.","action_id":"RUN_QNN_STAGE1_A_B_C_ONLY","execution_authorized_now":false},
-  "operation":{"completed_units":["A_local_max","B_local_rmse"],"expected_units":["A_local_max","B_local_rmse","C_p90_blockmax"],"note":"Cross-sandbox reconstruction numerically qualified; recovery runs have zero statistical weight.","operation_id":"partial-guided-stage1-qnn-20260821","output_root":"k8_partial_guided_tree_family/stage1","resume_rule":"For each candidate, Result_14/spec_real.raw and spec_imag.raw define QNN completion. Skip completed candidates. Preserve completed converter/model-lib stages for incomplete candidates and resume only the missing stage. Do not score candidates until all three units are complete.","scoring_forbidden_until_all_units_complete":true,"status":"IN_PROGRESS"},
+  "exact_next":{"action":"All A/B/C QNN Stage1 units are complete. Score once at the preregistered boundary; do not open Stage2 unless a unique material winner passes.","action_id":"RUN_QNN_STAGE1_A_B_C_ONLY","execution_authorized_now":false},
+  "operation":{"completed_units":["A_local_max","B_local_rmse","C_p90_blockmax"],"expected_units":["A_local_max","B_local_rmse","C_p90_blockmax"],"note":"All three QNN units complete; comparative scoring has not yet been performed.","operation_id":"partial-guided-stage1-qnn-20260821","output_root":"k8_partial_guided_tree_family/stage1","resume_rule":"All expected units are durable complete. Next permitted substep is one preregistered aggregate scoring pass. Do not rerun any candidate.","scoring_forbidden_until_all_units_complete":false,"status":"IN_PROGRESS"},
   "pointers":{"layout":"LAYOUT.md","operating_rules":"OPERATING_RULES.md","project_context":"PROJECT_MAP.md","restore":"RESTORE_BUNDLE_INDEX.json","task_hierarchy":"TASK_STACK.json"},
-  "repositories":{"main_repo":"lly8666/SimAdmin-Android","support_repo":"lly8666/qairt-sdk-archive"},
-  "schema":2,
-  "science_execution":{"external_state_authorizes_execution":false,"local_execution_requires":"HANDOFF_LIVE_SCIENCE_VALID"},
-  "stable_resume_entry":"lly8666/SimAdmin-Android:CURRENT_REV46_HANDOFF.md",
-  "updated_at":"2026-08-21T12:02:00+08:00"
+  "repositories":{"main_repo":"lly8666/SimAdmin-Android","support_repo":"lly8666/qairt-sdk-archive"},"schema":2,
+  "science_execution":{"external_state_authorizes_execution":false,"local_execution_requires":"HANDOFF_LIVE_SCIENCE_VALID"},"stable_resume_entry":"lly8666/SimAdmin-Android:CURRENT_REV46_HANDOFF.md","updated_at":"2026-08-21T12:02:00+08:00"
 }
