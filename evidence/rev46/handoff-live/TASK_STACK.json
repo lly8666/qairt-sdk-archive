@@ -15,21 +15,21 @@
     },
     "L2_MECHANISM": {
       "name": "POST_TREE_FRESH_CAUSAL_RELOCALIZATION",
-      "causal_reason": "Static weight-balanced reduction materially improved the host best, but the protected partial-guided selector family failed Stage1. The reduction-tree mechanism is now closed. The next exact/equivalent mechanism is intentionally unknown until current-best taps re-localize the residual.",
-      "mechanism_budget": "Diagnostic phase only. Do not create candidates while the remaining source/amplifier is unresolved. After localization, at most one causally distinct exact/equivalent family is permitted by default.",
-      "exit_success": "Identify a distinct intrinsic source or downstream amplification mechanism with nonperturbing full-graph evidence and plausible leverage toward the remaining ~27.1% max gap.",
-      "exit_failure": "If no credible distinct exact/equivalent mechanism is supported, activate the learned-residual/wider-student/qualified-surrogate contingency rather than micro-tuning."
+      "causal_reason": "Current-best boundary taps show block5-7/final stages primarily amplify a dangerous residual direction already present at block5 input Add19. The remaining primary source must be localized upstream before any final exact/equivalent family is justified.",
+      "mechanism_budget": "Diagnostic phase only. Do not create candidates while the upstream source is unresolved. After localization, at most one causally distinct exact/equivalent family is permitted by default.",
+      "exit_success": "Identify the earliest upstream residual boundary/block whose intrinsic backend error materially creates the final-sensitive direction, with nonperturbing full-graph evidence and plausible leverage toward the remaining ~27.1% max gap.",
+      "exit_failure": "If no credible distinct exact/equivalent upstream mechanism is supported, activate the learned-residual/wider-student/qualified-surrogate contingency rather than micro-tuning."
     },
     "L3_EXPERIMENT": {
-      "id": "current_best_nonperturbing_boundary_localization",
-      "question": "On the weight-balanced current host best, where does QNN residual first become materially intrinsic and where is it subsequently amplified across block5, block6, block7 and final normalization?",
-      "method": "Add read-only outputs for selected full-graph boundaries, first require final spec_real/spec_imag bit-exact observer-effect PASS, then compare QNN2.44 vs candidate-own ORT1.27 on warm18 as a localization microscope plus a frozen non-warm diagnostic subset. No candidate selection occurs in this experiment.",
-      "closure": "Produce a ranked causal localization with explicit source-vs-amplifier distinction. If taps are not observer-effect neutral, discard them and use a different nonperturbing diagnostic rather than interpreting changed outputs."
+      "id": "current_best_nonperturbing_upstream_residual_localization",
+      "question": "Which of ConvNeXt blocks0-4 first injects the dangerous residual direction that is already present at Add19 and later amplified into the warm18 final max failure?",
+      "method": "Add read-only outputs at residual boundaries Add3/Add7/Add11/Add15/Add19, require final spec_real/spec_imag bit-exact observer-effect PASS, then compare QNN2.44 vs candidate-own ORT1.27 on the same frozen six diagnostic inputs. Use clean ORT suffix propagation and per-block intrinsic closure to separate upstream propagation from new backend injection. No candidate selection occurs in this experiment.",
+      "closure": "Identify the earliest materially final-sensitive intrinsic source among blocks0-4, or prove the dangerous direction is already present before block0 and continue one level earlier. No optimization family is opened by raw tap magnitude alone."
     },
     "L4_ACTION": {
-      "action_id": "RUN_CURRENT_BEST_NONPERTURBING_BOUNDARY_LOCALIZATION",
-      "action": "Materialize a current-best tap graph at block5 input/PW2/residual, block6 PW2/residual, block7 PW2/residual and final LN; run warm18 plus the frozen diagnostic subset; require final outputs bit-exact to untapped current best before using taps.",
-      "parent_alignment": "This is the mandatory fresh causal diagnostic after closing the reduction-tree mechanism; it is not a new optimization family.",
+      "action_id": "RUN_UPSTREAM_RESIDUAL_LOCALIZATION_B0_B4",
+      "action": "Materialize a current-best tap graph exposing Add3/Add7/Add11/Add15/Add19; run the same frozen six diagnostic inputs; require final outputs bit-exact to untapped current best; then perform QNN-vs-ORT boundary scoring, clean suffix propagation and blockwise intrinsic closure.",
+      "parent_alignment": "The downstream localization showed the dominant final-sensitive error is already present before block5. This action moves causally upstream rather than enumerating another optimization family.",
       "execution_authorized_now": false
     }
   },
