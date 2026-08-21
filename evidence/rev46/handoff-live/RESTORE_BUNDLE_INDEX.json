@@ -1,6 +1,6 @@
 {
-  "schema": 1,
-  "purpose": "Map each current execution-critical dependency to an immutable or pinned recovery source and expected identity. External state alone never authorizes science execution.",
+  "schema": 2,
+  "purpose": "Execution-critical recovery map. Normal handoff reading does not require this file. External state never authorizes science execution.",
   "sources": [
     {
       "id": "qairt244_host_foundation",
@@ -12,13 +12,13 @@
     },
     {
       "id": "ort127_portable_runtime",
-      "type": "pinned_workflow_artifact_or_rerun",
+      "type": "pinned_workflow_artifact_or_exact_rerun",
       "repo": "lly8666/qairt-sdk-archive",
       "workflow_commit": "e636bbe153b40d4f58c40cfd66657f11220af316",
       "known_good_run": "32380173792",
       "known_good_artifact": "9410680465",
       "versions": "Python3.11 / numpy1.26.4 / onnx1.17.0 / onnxruntime1.27.0",
-      "expiry_rule": "If artifact expired, rerun the exact pinned workflow/commit; do not change versions."
+      "expiry_rule": "If expired, rerun the exact pinned workflow/commit; do not change versions."
     },
     {
       "id": "authority_vocos_assets",
@@ -29,56 +29,29 @@
       "staging_workflow_commit": "7a091c6a3e546c9e26f42fe0a3e11dc39d7cd37b",
       "known_good_run": "32429883214",
       "required_rev25_warm6_sha256": "e2b7ab608a6b37a6dd9896589719cab446edf95287f59dfc7b5693da6ec98f6c"
-    },
-    {
-      "id": "current_handoff_generation",
-      "type": "git_snapshot",
-      "repo": "lly8666/qairt-sdk-archive",
-      "path": "evidence/rev46/handoff-v3/",
-      "external_snapshot": "evidence/rev46/handoff-v3/EXTERNAL_RESUME_SNAPSHOT.json",
-      "candidate_manifest": "evidence/rev46/handoff-v3/CANDIDATE_MANIFEST.json",
-      "layout_contract": "evidence/rev46/handoff-v3/ENVIRONMENT_AND_LAYOUT.md",
-      "recovery_document": "evidence/rev46/handoff-v3/RESTORE_FROM_EXTERNAL_SNAPSHOT.md"
-    },
-    {
-      "id": "current_host_best",
-      "type": "reconstruct_and_hash_verify",
-      "expected_path": "current_host_best/vocos_warm6_rev46_hostbest_weight_balanced.onnx",
-      "expected_sha256": "a584d4c8e7a05bc36fb06b653c398547b525e15d5a996fc4d7f3dd612db5b774",
-      "construction": "block5 PW2 contiguous K8 with unchanged eight 192-wide partial MatMuls and static weight-balanced Add tree [0,5,1,4,2,7,3,6]",
-      "recovery_authority": "handoff-v3 external snapshot + recovery document",
-      "fingerprint_after_restore": {"full47_max_abs":0.0004115104675292969}
-    },
-    {
-      "id": "A_local_max",
-      "type": "reconstruct_and_hash_verify",
-      "expected_path": "k8_partial_guided_tree_family/models/A_local_max.onnx",
-      "expected_sha256": "550e82dea9548ed7ec9a2580f493ccaf656b52de578351609ec778adb831782d",
-      "recovery_authority": "handoff-v3 candidate manifest / active experiment reconstruction"
-    },
-    {
-      "id": "B_local_rmse",
-      "type": "reconstruct_and_hash_verify",
-      "expected_path": "k8_partial_guided_tree_family/models/B_local_rmse.onnx",
-      "expected_sha256": "eb6a9f3787216031de9f94165ad6347857e9364ad782060aa7692df5dafcbde5",
-      "recovery_authority": "handoff-v3 candidate manifest / active experiment reconstruction"
-    },
-    {
-      "id": "C_p90_blockmax",
-      "type": "reconstruct_and_hash_verify",
-      "expected_path": "k8_partial_guided_tree_family/models/C_p90_blockmax.onnx",
-      "expected_sha256": "bbeb2b7a38ed4e30b407268d36fa8b0708dc3899ccfcefb8639bc5187f00306a",
-      "recovery_authority": "handoff-v3 candidate manifest / active experiment reconstruction"
     }
+  ],
+  "live_authority": {
+    "state": "evidence/rev46/handoff-live/LIVE_STATE.json",
+    "task_stack": "evidence/rev46/handoff-live/TASK_STACK.json",
+    "project_map": "evidence/rev46/handoff-live/PROJECT_MAP.md",
+    "layout": "evidence/rev46/handoff-live/LAYOUT.md",
+    "validator": "evidence/rev46/handoff-live/validate_live_handoff.py"
+  },
+  "current_artifacts": [
+    {"id":"current_host_best","path":"current_host_best/vocos_warm6_rev46_hostbest_weight_balanced.onnx","sha256":"a584d4c8e7a05bc36fb06b653c398547b525e15d5a996fc4d7f3dd612db5b774"},
+    {"id":"A_local_max","path":"k8_partial_guided_tree_family/models/A_local_max.onnx","sha256":"550e82dea9548ed7ec9a2580f493ccaf656b52de578351609ec778adb831782d"},
+    {"id":"B_local_rmse","path":"k8_partial_guided_tree_family/models/B_local_rmse.onnx","sha256":"eb6a9f3787216031de9f94165ad6347857e9364ad782060aa7692df5dafcbde5"},
+    {"id":"C_p90_blockmax","path":"k8_partial_guided_tree_family/models/C_p90_blockmax.onnx","sha256":"bbeb2b7a38ed4e30b407268d36fa8b0708dc3899ccfcefb8639bc5187f00306a"},
+    {"id":"candidate_manifest","path":"k8_partial_guided_tree_family/models/MANIFEST.json","sha256":"ee78b259afbe0f98fae897f90854329787c1094a8f44c9c1e2ce6bdcc1e72846"},
+    {"id":"prereg","path":"k8_partial_guided_tree_family/PREREG.json","sha256":"b2a98ff77aab19cbb5a474ccd79c70bf200310a0168f238175507ace191395d2"},
+    {"id":"proxy_rank","path":"k8_partial_guided_tree_family/PROXY_RANK.json","sha256":"c734fe95e1389f77b7871bcd50ff13054149e26b01a105ffae7d32ff8302dfd7"},
+    {"id":"stage1_ort_semantic","path":"k8_partial_guided_tree_family/stage1/ORT_SEMANTIC.json","sha256":"777ab443eaa11206980e63a19980b2c21ecdb4760907e826e8baae60a589eea2"}
   ],
   "required_fingerprints": {
     "warm18_qnn_physical_input_sha256": "5b425b7e31a80d33dfb135059593549781fdccd56ff1691f1965255d888b5dea",
     "contiguous_k8_warm18_max_abs": 0.0004279613494873047,
-    "current_host_best_full47_max_abs": 0.0004115104675292969,
-    "candidate_manifest_sha256": "ee78b259afbe0f98fae897f90854329787c1094a8f44c9c1e2ce6bdcc1e72846",
-    "prereg_sha256": "b2a98ff77aab19cbb5a474ccd79c70bf200310a0168f238175507ace191395d2",
-    "proxy_rank_sha256": "c734fe95e1389f77b7871bcd50ff13054149e26b01a105ffae7d32ff8302dfd7",
-    "stage1_ort_semantic_sha256": "777ab443eaa11206980e63a19980b2c21ecdb4760907e826e8baae60a589eea2"
+    "current_host_best_full47_max_abs": 0.0004115104675292969
   },
-  "resume_authorization": "Reconstruction is complete only when all applicable identities/fingerprints match and the local validator returns the marker referenced by LIVE_STATE.json."
+  "resume_authorization": "Restore all current artifacts and fingerprints, then run validate_live_handoff.py --local-root <sandbox-root>. Only HANDOFF_LIVE_SCIENCE_VALID authorizes science."
 }
