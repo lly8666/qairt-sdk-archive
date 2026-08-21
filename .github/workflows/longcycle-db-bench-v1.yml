@@ -1,0 +1,290 @@
+name: Longcycle DB portability benchmark v1
+
+on:
+  workflow_dispatch:
+  issues:
+    types: [opened, edited]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  bench:
+    if: github.event_name == 'workflow_dispatch' || github.event.issue.title == '[longcycle-db-bench-v1]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install exact benchmark dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client zstd
+          python -m pip install --disable-pip-version-check 'duckdb==1.4.1' 'psycopg[binary]==3.2.10'
+          python - <<'PY'
+          import duckdb, psycopg, sqlite3
+          print('DUCKDB', duckdb.__version__)
+          print('PSYCOPG', psycopg.__version__)
+          print('SQLITE', sqlite3.sqlite_version)
+          PY
+
+      - name: Generate and run benchmark
+        shell: bash
+        env:
+          PG_ADMIN_DSN: postgresql://postgres:postgres@127.0.0.1:5432/postgres
+          PG_BENCH_DSN: postgresql://postgres:postgres@127.0.0.1:5432/lcbench
+        run: |
+          set -euo pipefail
+          mkdir -p bench-out
+          cat > bench-out/bench.py <<'PY'
+          import csv, hashlib, json, os, pathlib, sqlite3, statistics, subprocess, time
+          from datetime import date, datetime, timedelta, timezone
+          import duckdb
+          import psycopg
+          from psycopg import sql
+
+          ROOT = pathlib.Path('bench-out').resolve()
+          DATA = ROOT / 'data'
+          DATA.mkdir(exist_ok=True)
+          N_DOCS = 50_000
+          N_FRAGS = 200_000
+          N_JUDGMENTS = 100_000
+          N_OBS = 1_000_000
+          INDUSTRIES = 40
+          SERIES_PER_INDUSTRY = 20
+          BASE_DATE = date(2015, 1, 1)
+          ADMIN_DSN = os.environ['PG_ADMIN_DSN']
+          PG_DSN = os.environ['PG_BENCH_DSN']
+          report = {'schema':'longcycle-db-bench/v1','rows':{},'engines':{}}
+
+          def timer(fn):
+              t=time.perf_counter(); out=fn(); return out, time.perf_counter()-t
+
+          def write_csvs():
+              files = {
+                  'documents': DATA/'documents.csv',
+                  'fragments': DATA/'fragments.csv',
+                  'judgments': DATA/'judgments.csv',
+                  'observations': DATA/'observations.csv',
+              }
+              with files['documents'].open('w', newline='', encoding='utf-8') as f:
+                  w=csv.writer(f); w.writerow(['id','industry_id','publisher_id','published_at','first_known_at','content_sha256','title'])
+                  for i in range(1,N_DOCS+1):
+                      industry=i%INDUSTRIES; d=BASE_DATE+timedelta(days=i%4000)
+                      sha=hashlib.sha256(f'doc:{i}'.encode()).hexdigest()
+                      w.writerow([i,industry,i%500,d.isoformat()+'T00:00:00+00:00',(d+timedelta(days=1)).isoformat()+'T00:00:00+00:00',sha,f'Industrial disclosure {i} project capacity guidance revision'])
+              with files['fragments'].open('w', newline='', encoding='utf-8') as f:
+                  w=csv.writer(f); w.writerow(['id','document_id','locator','excerpt','fragment_sha256'])
+                  for i in range(1,N_FRAGS+1):
+                      doc=((i-1)%N_DOCS)+1
+                      excerpt=f'Project {doc} expected capacity and commissioning trajectory evidence fragment {i}; contemporaneous management guidance and realized operating state.'
+                      sha=hashlib.sha256(excerpt.encode()).hexdigest()
+                      w.writerow([i,doc,f'page:{(i%120)+1}',excerpt,sha])
+              with files['judgments'].open('w', newline='', encoding='utf-8') as f:
+                  w=csv.writer(f); w.writerow(['id','industry_id','topic','first_known_at','target_at','value_numeric','summary'])
+                  for i in range(1,N_JUDGMENTS+1):
+                      industry=i%INDUSTRIES; d=BASE_DATE+timedelta(days=i%4000); target=d+timedelta(days=365+(i%730))
+                      w.writerow([i,industry,f'topic-{i%25}',d.isoformat()+'T00:00:00+00:00',target.isoformat()+'T00:00:00+00:00',round((i%10000)/37.0,6),f'Expectation revision {i} for industry {industry} based on project timing, demand and price signals'])
+              with files['observations'].open('w', newline='', encoding='utf-8') as f:
+                  w=csv.writer(f); w.writerow(['id','industry_id','series_id','period_start','vintage_at','value_numeric'])
+                  for i in range(1,N_OBS+1):
+                      industry=i%INDUSTRIES; series=industry*SERIES_PER_INDUSTRY+(i%SERIES_PER_INDUSTRY); d=BASE_DATE+timedelta(days=i%4000)
+                      w.writerow([i,industry,series,d.isoformat(),(d+timedelta(days=(i%30))).isoformat()+'T12:00:00+00:00',round((i%100000)/113.0,6)])
+              return files
+
+          files, gen_s = timer(write_csvs)
+          report['generate_seconds']=gen_s
+          report['rows']={'documents':N_DOCS,'fragments':N_FRAGS,'judgments':N_JUDGMENTS,'observations':N_OBS}
+          report['csv_bytes']={k:v.stat().st_size for k,v in files.items()}
+
+          SQLITE_SCHEMA='''
+          CREATE TABLE documents(id INTEGER PRIMARY KEY, industry_id INTEGER NOT NULL, publisher_id INTEGER NOT NULL, published_at TEXT NOT NULL, first_known_at TEXT NOT NULL, content_sha256 TEXT NOT NULL UNIQUE, title TEXT NOT NULL);
+          CREATE TABLE fragments(id INTEGER PRIMARY KEY, document_id INTEGER NOT NULL, locator TEXT NOT NULL, excerpt TEXT NOT NULL, fragment_sha256 TEXT NOT NULL);
+          CREATE TABLE judgments(id INTEGER PRIMARY KEY, industry_id INTEGER NOT NULL, topic TEXT NOT NULL, first_known_at TEXT NOT NULL, target_at TEXT NOT NULL, value_numeric REAL NOT NULL, summary TEXT NOT NULL);
+          CREATE TABLE observations(id INTEGER PRIMARY KEY, industry_id INTEGER NOT NULL, series_id INTEGER NOT NULL, period_start TEXT NOT NULL, vintage_at TEXT NOT NULL, value_numeric REAL NOT NULL);
+          '''
+          DUCK_SCHEMA='''
+          CREATE TABLE documents(id BIGINT PRIMARY KEY, industry_id INTEGER, publisher_id INTEGER, published_at TIMESTAMPTZ, first_known_at TIMESTAMPTZ, content_sha256 VARCHAR UNIQUE, title VARCHAR);
+          CREATE TABLE fragments(id BIGINT PRIMARY KEY, document_id BIGINT, locator VARCHAR, excerpt VARCHAR, fragment_sha256 VARCHAR);
+          CREATE TABLE judgments(id BIGINT PRIMARY KEY, industry_id INTEGER, topic VARCHAR, first_known_at TIMESTAMPTZ, target_at TIMESTAMPTZ, value_numeric DOUBLE, summary VARCHAR);
+          CREATE TABLE observations(id BIGINT PRIMARY KEY, industry_id INTEGER, series_id INTEGER, period_start DATE, vintage_at TIMESTAMPTZ, value_numeric DOUBLE);
+          '''
+          PG_SCHEMA='''
+          CREATE TABLE documents(id bigint PRIMARY KEY, industry_id integer NOT NULL, publisher_id integer NOT NULL, published_at timestamptz NOT NULL, first_known_at timestamptz NOT NULL, content_sha256 char(64) NOT NULL UNIQUE, title text NOT NULL);
+          CREATE TABLE fragments(id bigint PRIMARY KEY, document_id bigint NOT NULL REFERENCES documents(id), locator text NOT NULL, excerpt text NOT NULL, fragment_sha256 char(64) NOT NULL);
+          CREATE TABLE judgments(id bigint PRIMARY KEY, industry_id integer NOT NULL, topic text NOT NULL, first_known_at timestamptz NOT NULL, target_at timestamptz NOT NULL, value_numeric double precision NOT NULL, summary text NOT NULL);
+          CREATE TABLE observations(id bigint PRIMARY KEY, industry_id integer NOT NULL, series_id integer NOT NULL, period_start date NOT NULL, vintage_at timestamptz NOT NULL, value_numeric double precision NOT NULL);
+          '''
+
+          def load_sqlite():
+              p=ROOT/'lcbench.sqlite'; p.unlink(missing_ok=True)
+              con=sqlite3.connect(p); con.execute('PRAGMA journal_mode=OFF'); con.execute('PRAGMA synchronous=OFF'); con.execute('PRAGMA temp_store=MEMORY'); con.executescript(SQLITE_SCHEMA)
+              specs={
+                'documents':('INSERT INTO documents VALUES (?,?,?,?,?,?,?)',7),
+                'fragments':('INSERT INTO fragments VALUES (?,?,?,?,?)',5),
+                'judgments':('INSERT INTO judgments VALUES (?,?,?,?,?,?,?)',7),
+                'observations':('INSERT INTO observations VALUES (?,?,?,?,?,?)',6),
+              }
+              for name,(stmt,_) in specs.items():
+                  with files[name].open(newline='',encoding='utf-8') as f:
+                      r=csv.reader(f); next(r); batch=[]
+                      for row in r:
+                          batch.append(row)
+                          if len(batch)>=5000: con.executemany(stmt,batch); batch=[]
+                      if batch: con.executemany(stmt,batch)
+                  con.commit()
+              idx_t=time.perf_counter()
+              con.executescript('''CREATE INDEX docs_industry_time ON documents(industry_id,published_at); CREATE INDEX frag_doc ON fragments(document_id); CREATE INDEX judgment_industry_known ON judgments(industry_id,first_known_at); CREATE INDEX obs_industry_period ON observations(industry_id,period_start);'''); con.commit()
+              index_s=time.perf_counter()-idx_t
+              con.execute('VACUUM'); con.close()
+              return p,index_s
+
+          def load_duck():
+              p=ROOT/'lcbench.duckdb'; p.unlink(missing_ok=True)
+              con=duckdb.connect(str(p)); con.execute(DUCK_SCHEMA)
+              for name in ['documents','fragments','judgments','observations']:
+                  con.execute(f"COPY {name} FROM '{files[name]}' (HEADER true, AUTO_DETECT true)")
+              idx_t=time.perf_counter()
+              con.execute('CREATE INDEX frag_doc ON fragments(document_id)'); con.execute('CREATE INDEX docs_industry_time ON documents(industry_id,published_at)'); con.execute('CREATE INDEX judgment_industry_known ON judgments(industry_id,first_known_at)'); con.execute('CREATE INDEX obs_industry_period ON observations(industry_id,period_start)')
+              index_s=time.perf_counter()-idx_t
+              con.execute('CHECKPOINT'); con.close(); return p,index_s
+
+          def copy_pg(cur, table, path):
+              with path.open('rb') as f, cur.copy(sql.SQL('COPY {} FROM STDIN WITH (FORMAT CSV, HEADER TRUE)').format(sql.Identifier(table))) as cp:
+                  while chunk:=f.read(1<<20): cp.write(chunk)
+
+          def load_pg():
+              with psycopg.connect(ADMIN_DSN, autocommit=True) as c:
+                  c.execute('DROP DATABASE IF EXISTS lcbench'); c.execute('CREATE DATABASE lcbench')
+              con=psycopg.connect(PG_DSN); cur=con.cursor(); cur.execute(PG_SCHEMA); con.commit()
+              for name in ['documents','fragments','judgments','observations']:
+                  copy_pg(cur,name,files[name]); con.commit()
+              idx_t=time.perf_counter()
+              cur.execute('CREATE INDEX docs_industry_time ON documents(industry_id,published_at); CREATE INDEX frag_doc ON fragments(document_id); CREATE INDEX judgment_industry_known ON judgments(industry_id,first_known_at); CREATE INDEX obs_industry_period ON observations(industry_id,period_start)'); con.commit()
+              index_s=time.perf_counter()-idx_t
+              cur.execute('ANALYZE'); con.commit(); con.close(); return index_s
+
+          (sqlite_meta, sqlite_load_s)=timer(load_sqlite)
+          sqlite_path, sqlite_index_s = sqlite_meta
+          (duck_meta, duck_load_s)=timer(load_duck)
+          duck_path, duck_index_s = duck_meta
+          pg_index_s, pg_load_s=timer(load_pg)
+
+          queries={
+            'sqlite':{
+              'point_in_time':"WITH r AS (SELECT topic,value_numeric,ROW_NUMBER() OVER (PARTITION BY topic ORDER BY first_known_at DESC) rn FROM judgments WHERE industry_id=7 AND first_known_at<='2023-06-30T00:00:00+00:00') SELECT count(*),avg(value_numeric) FROM r WHERE rn=1",
+              'timeseries':"SELECT substr(period_start,1,7),avg(value_numeric) FROM observations WHERE industry_id=7 AND period_start BETWEEN '2019-01-01' AND '2025-12-31' GROUP BY 1 ORDER BY 1",
+              'evidence_join':"SELECT count(*),sum(length(f.excerpt)) FROM fragments f JOIN documents d ON d.id=f.document_id WHERE d.industry_id=7 AND d.published_at BETWEEN '2019-01-01' AND '2025-12-31'",
+              'cross_industry':"SELECT industry_id,avg(value_numeric),count(*) FROM observations WHERE period_start BETWEEN '2020-01-01' AND '2025-12-31' GROUP BY industry_id ORDER BY industry_id"
+            },
+            'duckdb':{
+              'point_in_time':"WITH r AS (SELECT topic,value_numeric,ROW_NUMBER() OVER (PARTITION BY topic ORDER BY first_known_at DESC) rn FROM judgments WHERE industry_id=7 AND first_known_at<=TIMESTAMPTZ '2023-06-30 00:00:00+00') SELECT count(*),avg(value_numeric) FROM r WHERE rn=1",
+              'timeseries':"SELECT date_trunc('month',period_start),avg(value_numeric) FROM observations WHERE industry_id=7 AND period_start BETWEEN DATE '2019-01-01' AND DATE '2025-12-31' GROUP BY 1 ORDER BY 1",
+              'evidence_join':"SELECT count(*),sum(length(f.excerpt)) FROM fragments f JOIN documents d ON d.id=f.document_id WHERE d.industry_id=7 AND d.published_at BETWEEN TIMESTAMPTZ '2019-01-01 00:00:00+00' AND TIMESTAMPTZ '2025-12-31 23:59:59+00'",
+              'cross_industry':"SELECT industry_id,avg(value_numeric),count(*) FROM observations WHERE period_start BETWEEN DATE '2020-01-01' AND DATE '2025-12-31' GROUP BY industry_id ORDER BY industry_id"
+            },
+            'postgres':{
+              'point_in_time':"WITH r AS (SELECT topic,value_numeric,ROW_NUMBER() OVER (PARTITION BY topic ORDER BY first_known_at DESC) rn FROM judgments WHERE industry_id=7 AND first_known_at<=TIMESTAMPTZ '2023-06-30 00:00:00+00') SELECT count(*),avg(value_numeric) FROM r WHERE rn=1",
+              'timeseries':"SELECT date_trunc('month',period_start),avg(value_numeric) FROM observations WHERE industry_id=7 AND period_start BETWEEN DATE '2019-01-01' AND DATE '2025-12-31' GROUP BY 1 ORDER BY 1",
+              'evidence_join':"SELECT count(*),sum(length(f.excerpt)) FROM fragments f JOIN documents d ON d.id=f.document_id WHERE d.industry_id=7 AND d.published_at BETWEEN TIMESTAMPTZ '2019-01-01 00:00:00+00' AND TIMESTAMPTZ '2025-12-31 23:59:59+00'",
+              'cross_industry':"SELECT industry_id,avg(value_numeric),count(*) FROM observations WHERE period_start BETWEEN DATE '2020-01-01' AND DATE '2025-12-31' GROUP BY industry_id ORDER BY industry_id"
+            }
+          }
+
+          def med(run, q):
+              run(q)
+              vals=[]
+              for _ in range(5):
+                  t=time.perf_counter(); run(q); vals.append(time.perf_counter()-t)
+              return statistics.median(vals)
+
+          sc=sqlite3.connect(sqlite_path); dc=duckdb.connect(str(duck_path)); pc=psycopg.connect(PG_DSN)
+          sqlite_q={k:med(lambda q:sc.execute(q).fetchall(),v) for k,v in queries['sqlite'].items()}
+          duck_q={k:med(lambda q:dc.execute(q).fetchall(),v) for k,v in queries['duckdb'].items()}
+          with pc.cursor() as cur:
+              pg_q={k:med(lambda q:cur.execute(q).fetchall(),v) for k,v in queries['postgres'].items()}
+          sc.close(); dc.close(); pc.close()
+
+          with psycopg.connect(PG_DSN) as c:
+              pg_bytes=c.execute("SELECT pg_database_size(current_database())").fetchone()[0]
+
+          def zstd_file(path):
+              out=path.with_suffix(path.suffix+'.zst'); out.unlink(missing_ok=True)
+              t=time.perf_counter(); subprocess.run(['zstd','-3','-q','-f',str(path),'-o',str(out)],check=True); return out,out.stat().st_size,time.perf_counter()-t
+          sz,szb,szs=zstd_file(sqlite_path); dz,dzb,dzs=zstd_file(duck_path)
+          pgdump=ROOT/'lcbench.pgcustom'
+          t=time.perf_counter(); subprocess.run(['pg_dump','-Fc','-Z','3','-d',PG_DSN,'-f',str(pgdump)],check=True); pgdump_s=time.perf_counter()-t
+
+          def restore_file(zpath, suffix, opener, q):
+              out=ROOT/f'restored{suffix}'; out.unlink(missing_ok=True)
+              t=time.perf_counter(); subprocess.run(['zstd','-d','-q','-f',str(zpath),'-o',str(out)],check=True); c=opener(out); c.execute(q).fetchall(); c.close(); return time.perf_counter()-t
+          sqlite_restore=restore_file(sz,'.sqlite',lambda p:sqlite3.connect(p),queries['sqlite']['point_in_time'])
+          duck_restore=restore_file(dz,'.duckdb',lambda p:duckdb.connect(str(p)),queries['duckdb']['point_in_time'])
+          with psycopg.connect(ADMIN_DSN,autocommit=True) as c:
+              c.execute('DROP DATABASE IF EXISTS lcbench_restore'); c.execute('CREATE DATABASE lcbench_restore')
+          restore_dsn='postgresql://postgres:postgres@127.0.0.1:5432/lcbench_restore'
+          t=time.perf_counter(); subprocess.run(['pg_restore','--no-owner','-d',restore_dsn,str(pgdump)],check=True)
+          with psycopg.connect(restore_dsn) as c: c.execute(queries['postgres']['point_in_time']).fetchall()
+          pg_restore=time.perf_counter()-t
+
+          report['versions']={'sqlite':sqlite3.sqlite_version,'duckdb':duckdb.__version__,'psycopg':psycopg.__version__,'postgres':subprocess.check_output(['psql',PG_DSN,'-Atc','show server_version']).decode().strip()}
+          report['engines']['sqlite']={'load_seconds':sqlite_load_s,'index_seconds':sqlite_index_s,'database_bytes':sqlite_path.stat().st_size,'handoff_bytes':szb,'handoff_seconds':szs,'restore_and_query_seconds':sqlite_restore,'queries_median_seconds':sqlite_q}
+          report['engines']['duckdb']={'load_seconds':duck_load_s,'index_seconds':duck_index_s,'database_bytes':duck_path.stat().st_size,'handoff_bytes':dzb,'handoff_seconds':dzs,'restore_and_query_seconds':duck_restore,'queries_median_seconds':duck_q}
+          report['engines']['postgres']={'load_seconds':pg_load_s,'index_seconds':pg_index_s,'database_bytes':pg_bytes,'handoff_bytes':pgdump.stat().st_size,'handoff_seconds':pgdump_s,'restore_and_query_seconds':pg_restore,'queries_median_seconds':pg_q}
+          (ROOT/'report.json').write_text(json.dumps(report,indent=2,sort_keys=True),encoding='utf-8')
+          lines=['# Longcycle DB benchmark v1','',f"Rows: {report['rows']}",'']
+          lines.append('| engine | DB MiB | handoff MiB | load s | restore+query s | point-in-time ms | timeseries ms | evidence join ms | cross-industry ms |')
+          lines.append('|---|---:|---:|---:|---:|---:|---:|---:|---:|')
+          for e in ['postgres','sqlite','duckdb']:
+              r=report['engines'][e]; q=r['queries_median_seconds']; lines.append(f"| {e} | {r['database_bytes']/1048576:.1f} | {r['handoff_bytes']/1048576:.1f} | {r['load_seconds']:.2f} | {r['restore_and_query_seconds']:.2f} | {q['point_in_time']*1000:.2f} | {q['timeseries']*1000:.2f} | {q['evidence_join']*1000:.2f} | {q['cross_industry']*1000:.2f} |")
+          (ROOT/'report.md').write_text('\n'.join(lines)+'\n',encoding='utf-8')
+          print((ROOT/'report.md').read_text())
+          print(json.dumps(report,indent=2,sort_keys=True))
+          PY
+          python bench-out/bench.py 2>&1 | tee bench-out/run.log
+
+      - name: Upload benchmark report
+        uses: actions/upload-artifact@v4
+        with:
+          name: longcycle-db-bench-v1-${{ github.run_id }}
+          path: |
+            bench-out/report.json
+            bench-out/report.md
+            bench-out/run.log
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Comment result
+        if: github.event_name == 'issues' && success()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body-file bench-out/report.md
+
+      - name: Comment failure
+        if: github.event_name == 'issues' && failure()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "Longcycle DB benchmark failed in run ${GITHUB_RUN_ID}. Inspect the workflow logs before drawing any database conclusion."
