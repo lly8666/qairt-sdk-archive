@@ -1,20 +1,20 @@
 {
   "schema":2,
-  "updated_at":"2026-08-21T12:43:00+08:00",
+  "updated_at":"2026-08-21T12:49:00+08:00",
   "repositories":{"main_repo":"lly8666/SimAdmin-Android","support_repo":"lly8666/qairt-sdk-archive"},
   "science_execution":{"external_state_authorizes_execution":false,"local_execution_requires":"HANDOFF_LIVE_SCIENCE_VALID"},
   "operation":{
-    "status":"IN_PROGRESS",
-    "operation_id":"current-best-upstream-b0-b4-observer-20260821",
+    "status":"IDLE",
+    "operation_id":null,
     "expected_units":["untapped_reference_reused","upstream_tapped_qnn"],
-    "completed_units":["untapped_reference_reused"],
+    "completed_units":["untapped_reference_reused","upstream_tapped_qnn"],
     "output_root":"current_best_upstream_localization",
-    "resume_rule":"The untapped reference is the already completed six-input current-best run at current_best_localization/untapped_qnn/output and must not be rerun. upstream_tapped_qnn is complete only when Result_5 final outputs plus Add3/Add7/Add11/Add15/Add19 taps exist. Preserve converter/model-lib for an incomplete tapped unit. Do not interpret upstream taps until all 12 final spec outputs are bit-exact to the reused untapped reference.",
+    "resume_rule":"The upstream observer pair is complete. Do not rerun QNN. Upstream tap interpretation is authorized because all 12 final outputs were bit-exact to the reused untapped reference.",
     "unit_completion_markers":[
       {"unit":"untapped_reference_reused","path":"current_best_localization/untapped_qnn/output/Result_5/spec_imag.raw"},
       {"unit":"upstream_tapped_qnn","path":"current_best_upstream_localization/tapped_qnn/output/Result_5/spec_imag.raw"}
     ],
-    "tap_interpretation_forbidden_until_observer_pass":true
+    "tap_interpretation_forbidden_until_observer_pass":false
   },
   "current_host_best":{
     "construction":"block5 PW2 contiguous K8; same eight 192-wide partial MatMuls; weight-balanced Add leaf order [0,5,1,4,2,7,3,6]",
@@ -35,15 +35,18 @@
   },
   "active_experiment":{
     "id":"current_best_nonperturbing_upstream_residual_localization",
-    "status":"OBSERVER_EFFECT_IN_PROGRESS",
+    "status":"OBSERVER_EFFECT_PASS_TAP_INTERPRETATION_READY",
     "candidate_search":false,
     "diagnostic_blocks":[18,1,8,19,32,45],
     "tap_model_path":"current_best_upstream_localization/current_best_upstream_residual_taps.onnx",
     "tap_model_sha256":"5d150ffbef8623874629c9fbad7c7168ed06c8f4ef6fab9058dfb96defdd5b0c",
     "tap_manifest_path":"current_best_upstream_localization/UPSTREAM_TAP_MANIFEST.json",
     "tap_manifest_sha256":"2d80a1d4a544c4231c066eba8e43a37ab241ecfaa5c3105c8cd8955a39e4c48b",
+    "observer_report_path":"current_best_upstream_localization/UPSTREAM_OBSERVER_EFFECT_REPORT.json",
+    "observer_report_sha256":"518c906ac5aeeb8bddf1a09f3860913a5a30e2bad7db1441da03e794415eee52",
+    "observer_effect_pass":true,
     "planned_taps":["/Add_3_output_0","/Add_7_output_0","/Add_11_output_0","/Add_15_output_0","/Add_19_output_0"],
-    "observer_effect_gate":"New upstream tapped QNN final spec_real/spec_imag must be bit-exact to the already completed untapped current-best six-input reference before tap values are interpreted."
+    "observer_effect_gate":"PASS: upstream tapped QNN final spec_real/spec_imag are bit-exact to the reused untapped current-best six-input reference."
   },
   "local_artifact_checks":[
     {"path":"current_host_best/vocos_warm6_rev46_hostbest_weight_balanced.onnx","sha256":"d2efac4f266b312024b0e0b59feeeffa04716dbeaf54ad4763c7950ac9c3fb23"},
@@ -51,9 +54,10 @@
     {"path":"current_best_localization/BOUNDARY_QNN_VS_ORT_REPORT.json","sha256":"83300511bc1427097ca10b5d5666c959e7f06d69c32f163ef7409f43058db69c"},
     {"path":"current_best_localization/STAGE_INTRINSIC_CLOSURE_REPORT.json","sha256":"3500e36ea5a2123cfa7b4019988d04c64d22c97157c3ba7a2637727d3e319418"},
     {"path":"current_best_upstream_localization/current_best_upstream_residual_taps.onnx","sha256":"5d150ffbef8623874629c9fbad7c7168ed06c8f4ef6fab9058dfb96defdd5b0c"},
-    {"path":"current_best_upstream_localization/UPSTREAM_TAP_MANIFEST.json","sha256":"2d80a1d4a544c4231c066eba8e43a37ab241ecfaa5c3105c8cd8955a39e4c48b"}
+    {"path":"current_best_upstream_localization/UPSTREAM_TAP_MANIFEST.json","sha256":"2d80a1d4a544c4231c066eba8e43a37ab241ecfaa5c3105c8cd8955a39e4c48b"},
+    {"path":"current_best_upstream_localization/UPSTREAM_OBSERVER_EFFECT_REPORT.json","sha256":"518c906ac5aeeb8bddf1a09f3860913a5a30e2bad7db1441da03e794415eee52"}
   ],
-  "exact_next":{"action_id":"RUN_UPSTREAM_RESIDUAL_LOCALIZATION_B0_B4","action":"Convert/compile and run the upstream tapped current-best graph on the same frozen six inputs; compare all 12 final outputs bit-exact to the reused untapped reference; only then score Add3/Add7/Add11/Add15/Add19 and perform clean suffix plus blockwise intrinsic closure.","execution_authorized_now":false},
+  "exact_next":{"action_id":"RUN_UPSTREAM_RESIDUAL_LOCALIZATION_B0_B4","action":"Use the authorized Add3/Add7/Add11/Add15/Add19 QNN taps and candidate-own ORT1.27 references to score upstream residuals, propagate each residual through a clean ORT suffix, and perform blockwise intrinsic closure. Do not create candidates yet.","execution_authorized_now":false},
   "pointers":{"task_hierarchy":"TASK_STACK.json","project_context":"PROJECT_MAP.md","operating_rules":"OPERATING_RULES.md","layout":"LAYOUT.md","restore":"RESTORE_BUNDLE_INDEX.json"},
   "stable_resume_entry":"lly8666/SimAdmin-Android:CURRENT_REV46_HANDOFF.md"
 }
