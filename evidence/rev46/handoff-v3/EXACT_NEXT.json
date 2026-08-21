@@ -2,10 +2,15 @@
   "action_id": "RUN_QNN_STAGE1_A_B_C_ONLY",
   "scope": "NOW_ONLY",
   "allowed": true,
-  "description": "Run QAIRT/QNN2.44 CPU full-graph Stage1 for exactly A_local_max, B_local_rmse and C_p90_blockmax. Do NOT rerun ORT. Compare final spectrum against the current weight-balanced host best on the same frozen 15-block Stage1 and apply the preregistered Stage1 promotion rule. No Stage2 until a unique winner passes.",
+  "logical_next_is_valid": true,
+  "science_execution_authorized_now": false,
+  "execution_authorized_only_if": "local validator prints HANDOFF_V3_VALID",
+  "before_execution_required": "Publish the handoff-live realtime Transaction A with operation.status=IN_PROGRESS, expected units and idempotent resume rule.",
+  "description": "After exact local reconstruction and HANDOFF_V3_VALID, run QAIRT/QNN2.44 CPU full-graph Stage1 for exactly A_local_max, B_local_rmse and C_p90_blockmax. Do NOT rerun ORT. Compare final spectrum against the current weight-balanced host best on the same frozen 15-block Stage1 and apply the preregistered Stage1 promotion rule. No Stage2 until a unique winner passes.",
   "expected_result_count_per_candidate": 15,
   "input_list": "k8_reduce_tree_family/split/stage1_qnn_input_list.txt",
   "forbidden": [
+    "execute science from the external snapshot without HANDOFF_V3_VALID",
     "rerun A/B/C ORT Stage1",
     "run Stage2 before Stage1 scoring",
     "run Stage3/warm18",
@@ -16,7 +21,8 @@
   "must_read_before_execution": [
     "CURRENT_STATE.json",
     "NEXT_HORIZON.json",
-    "ANTI_RABBIT_HOLE.md"
+    "ANTI_RABBIT_HOLE.md",
+    "../handoff-live/REALTIME_SYNC_PROTOCOL.md"
   ],
-  "successor_policy": "After this action, update CURRENT_STATE/EXACT_NEXT/NEXT_HORIZON before any additional science. Do not infer the next command from this file after new results exist."
+  "successor_policy": "After this action, update LIVE_STATE plus CURRENT_STATE/EXACT_NEXT/NEXT_HORIZON before any additional science. Do not infer the next command from this file after new results exist."
 }
