@@ -1,40 +1,46 @@
 {
-  "schema": 2,
-  "updated_at": "2026-08-21T12:10:00+08:00",
-  "repositories": {"main_repo":"lly8666/SimAdmin-Android","support_repo":"lly8666/qairt-sdk-archive"},
-  "science_execution": {"external_state_authorizes_execution":false,"local_execution_requires":"HANDOFF_LIVE_SCIENCE_VALID"},
-  "operation": {"status":"IDLE","operation_id":null,"note":"Partial-guided tree selector family is closed at Stage1. No Stage2/Stage3 was opened. Next work is fresh causal localization on the unchanged current host best."},
-  "current_host_best": {
+  "schema":2,
+  "updated_at":"2026-08-21T12:13:00+08:00",
+  "repositories":{"main_repo":"lly8666/SimAdmin-Android","support_repo":"lly8666/qairt-sdk-archive"},
+  "science_execution":{"external_state_authorizes_execution":false,"local_execution_requires":"HANDOFF_LIVE_SCIENCE_VALID"},
+  "operation":{
+    "status":"IN_PROGRESS",
+    "operation_id":"current-best-boundary-localization-observer-20260821",
+    "expected_units":["untapped_reference","tapped_qnn"],
+    "completed_units":[],
+    "output_root":"current_best_localization",
+    "resume_rule":"untapped_reference is complete only when Result_5 spec_real/spec_imag exist. tapped_qnn is complete only when Result_5 spec_real/spec_imag and tap outputs exist. Skip a completed unit; preserve converter/model-lib for an incomplete tapped unit. Do not interpret any tap values until both units complete and final outputs pass bit-exact observer-effect comparison.",
+    "unit_completion_markers":[
+      {"unit":"untapped_reference","path":"current_best_localization/untapped_qnn/output/Result_5/spec_imag.raw"},
+      {"unit":"tapped_qnn","path":"current_best_localization/tapped_qnn/output/Result_5/spec_imag.raw"}
+    ],
+    "tap_interpretation_forbidden_until_observer_pass":true
+  },
+  "current_host_best":{
     "construction":"block5 PW2 contiguous K8; same eight 192-wide partial MatMuls; weight-balanced Add leaf order [0,5,1,4,2,7,3,6]",
     "model_path":"current_host_best/vocos_warm6_rev46_hostbest_weight_balanced.onnx",
     "source_authority_sha256":"a584d4c8e7a05bc36fb06b653c398547b525e15d5a996fc4d7f3dd612db5b774",
     "sha256":"d2efac4f266b312024b0e0b59feeeffa04716dbeaf54ad4763c7950ac9c3fb23",
-    "identity_migration_evidence":"evidence/rev46/live/20260821-cross-sandbox-authority-reconstruction.md",
     "full47":{"max_abs":0.0004115104675292969,"mean_abs":3.777641009158933e-7,"rmse":3.096381567930808e-6,"cosine":0.9999999999856087,"peak":"warm18 spec_imag[0,18,4]"},
     "frozen_max_gate":0.0003,"remaining_relative_max_reduction_pct":27.0978447276941,"gate_pass":false
   },
-  "closed_latest": {
-    "id":"k8_partial_guided_tree_family",
-    "decision":"CLOSED_STAGE1_NO_MATERIAL_WINNER",
-    "evidence":"evidence/rev46/live/20260821-partial-guided-tree-stage1-closed.md",
-    "score_report_path":"k8_partial_guided_tree_family/stage1/PARTIAL_GUIDED_STAGE1_QNN_SCORE.json",
-    "score_report_sha256":"1938133a60ffd4d8d62640616f12a46813940c693c8bea17bafb4f33fec72b80",
-    "summary":"A -24.09%, B -25.88%, C -2.98% max improvement vs current-best Stage1; no candidate reached +3%."
-  },
-  "active_experiment": {
+  "closed_latest":{"id":"k8_partial_guided_tree_family","decision":"CLOSED_STAGE1_NO_MATERIAL_WINNER","evidence":"evidence/rev46/live/20260821-partial-guided-tree-stage1-closed.md","score_report_path":"k8_partial_guided_tree_family/stage1/PARTIAL_GUIDED_STAGE1_QNN_SCORE.json","score_report_sha256":"1938133a60ffd4d8d62640616f12a46813940c693c8bea17bafb4f33fec72b80"},
+  "active_experiment":{
     "id":"current_best_nonperturbing_boundary_localization",
-    "status":"READY_TO_MATERIALIZE_TAPS",
+    "status":"OBSERVER_EFFECT_IN_PROGRESS",
     "candidate_search":false,
-    "diagnostic_inputs":{"warm18":"localization microscope only","nonwarm_blocks":[1,8,19,32,45]},
+    "diagnostic_blocks":[18,1,8,19,32,45],
+    "tap_model_path":"current_best_localization/current_best_boundary_taps.onnx",
+    "tap_model_sha256":"916a05ebf61e7a90082ababcabe11d6c65d73003ab9f84c1908173b433e03f95",
     "planned_taps":["/Add_19_output_0","/Add_22_output_0","/Add_23_output_0","/Add_26_output_0","/Add_27_output_0","/Add_30_output_0","/Add_31_output_0","/LayerNormalization_9_output_0"],
-    "observer_effect_gate":"Untapped vs tapped QNN final spec_real/spec_imag must be bit-exact on every diagnostic input before tap values are interpreted.",
-    "protected":"No new candidate fitting; final device A/B/C and seed 20260814 remain excluded."
+    "observer_effect_gate":"Tapped and untapped QNN final spec_real/spec_imag must be bit-exact on all six inputs before tap values are interpreted."
   },
-  "local_artifact_checks": [
+  "local_artifact_checks":[
     {"path":"current_host_best/vocos_warm6_rev46_hostbest_weight_balanced.onnx","sha256":"d2efac4f266b312024b0e0b59feeeffa04716dbeaf54ad4763c7950ac9c3fb23"},
-    {"path":"k8_partial_guided_tree_family/stage1/PARTIAL_GUIDED_STAGE1_QNN_SCORE.json","sha256":"1938133a60ffd4d8d62640616f12a46813940c693c8bea17bafb4f33fec72b80"}
+    {"path":"k8_partial_guided_tree_family/stage1/PARTIAL_GUIDED_STAGE1_QNN_SCORE.json","sha256":"1938133a60ffd4d8d62640616f12a46813940c693c8bea17bafb4f33fec72b80"},
+    {"path":"current_best_localization/current_best_boundary_taps.onnx","sha256":"916a05ebf61e7a90082ababcabe11d6c65d73003ab9f84c1908173b433e03f95"}
   ],
-  "exact_next": {"action_id":"RUN_CURRENT_BEST_NONPERTURBING_BOUNDARY_LOCALIZATION","action":"Materialize the read-only boundary tap graph, publish IN_PROGRESS, then run warm18 plus frozen non-warm diagnostic blocks. Interpret taps only after bit-exact final-output observer-effect PASS.","execution_authorized_now":false},
+  "exact_next":{"action_id":"RUN_CURRENT_BEST_NONPERTURBING_BOUNDARY_LOCALIZATION","action":"Complete untapped/tapped QNN observer-effect pair on the six frozen diagnostic inputs; interpret taps only after bit-exact final-output PASS.","execution_authorized_now":false},
   "pointers":{"task_hierarchy":"TASK_STACK.json","project_context":"PROJECT_MAP.md","operating_rules":"OPERATING_RULES.md","layout":"LAYOUT.md","restore":"RESTORE_BUNDLE_INDEX.json"},
   "stable_resume_entry":"lly8666/SimAdmin-Android:CURRENT_REV46_HANDOFF.md"
 }
