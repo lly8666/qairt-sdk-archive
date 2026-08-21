@@ -1,0 +1,51 @@
+{
+  "schema": 1,
+  "purpose": "Stable hierarchical task stack. Every new science action must justify itself against all parent levels before execution.",
+  "levels": {
+    "L0_NORTH_STAR": {
+      "goal": "Qualify full MeanVC2 Vocos cold4/warm6 under strict QNN ownership/no CPU fallback: frozen host numerical gate first, host structural qualification second, target-phone HTP final truth third, then production integration in lly8666/SimAdmin-Android.",
+      "success": "Host numerical+structural qualification passes, then frozen device qualification passes without threshold relaxation or CPU fallback.",
+      "contingency": "If exact/equivalent numerical-topology recovery becomes causally exhausted, switch to learned residual / wider multi-block or full-Vocos student / qualified-surrogate route."
+    },
+    "L1_PHASE": {
+      "goal": "Host numerical recovery: reduce full47 max_abs from current 0.0004115104675292969 to <=0.0003 while preserving semantic gates and protected-data boundaries.",
+      "remaining_gap_pct": 27.0978447276941,
+      "exit_success": "Numerical gate passes -> stop search and enter host structural qualification.",
+      "exit_stall": "After the current mechanism, allow by default at most one genuinely distinct evidence-backed exact/equivalent family; if it also fails material progress, activate L0 contingency."
+    },
+    "L2_MECHANISM": {
+      "name": "K8 partial-reduction association / residual-direction conditioning",
+      "causal_reason": "K8 reduces block5 Add22 local RMSE on 47/47 warm blocks, while downstream layers amplify residual direction anisotropically; changing only the 7 Add associations already produced a material host-best improvement.",
+      "mechanism_budget": "Current partial-guided selector family is the bounded transfer test for this mechanism. If it closes, do not enumerate more trees/selectors.",
+      "exit_success": "A staged candidate materially improves full47; promote if valid. If gate still fails, perform fresh causal localization before proposing any new family.",
+      "exit_failure": "Close reduction-tree mechanism and return to causal localization; no warm18-aware or result-conditioned tree search."
+    },
+    "L3_EXPERIMENT": {
+      "id": "k8_partial_guided_tree_family_stage1_final_qnn",
+      "question": "Do trees selected only by nonperturbing intermediate Add22 partial-QNN proxy error transfer to full-graph final-spectrum improvement without using warm18?",
+      "candidates": ["A_local_max", "B_local_rmse", "C_p90_blockmax"],
+      "stage_boundary": "ORT Stage1 complete/all-pass; QNN Stage1 not started; Stage2/Stage3 protected.",
+      "closure": "No unique preregistered material Stage1 winner => close this selector family immediately."
+    },
+    "L4_ACTION": {
+      "action_id": "RUN_QNN_STAGE1_A_B_C_ONLY",
+      "action": "After exact local reconstruction/validation and live IN_PROGRESS publication, run QNN2.44 CPU Stage1 for exactly A/B/C on the frozen 15 blocks; do not rerun ORT and do not score until all three complete.",
+      "parent_alignment": "This is the transfer test required to decide whether L2 reduction-tree conditioning remains worth pursuing. It is not permission for further tree enumeration.",
+      "execution_authorized_now": false
+    }
+  },
+  "mandatory_zoom_out_triggers": {
+    "after_every_scored_experiment": "Re-evaluate L3 against L2 before choosing another action.",
+    "after_family_closure": "Return to L2; do not create a sibling family automatically.",
+    "after_two_consecutive_nonmaterial_experiments_within_one_mechanism": "Stop mechanism-level tuning and perform causal re-localization.",
+    "when_expected_leverage_is_small_relative_to_remaining_gap": "Do not spend a family on micro-tuning; justify a mechanism with plausible leverage or change route.",
+    "after_one_additional_distinct_exact_family_post_tree_without_material_progress": "Return to L1/L0 and activate learned/student/surrogate contingency unless new causal evidence materially changes the model."
+  },
+  "preflight_questions": [
+    "What parent task does this action advance?",
+    "What causal mechanism makes it capable of material progress toward the remaining gate gap?",
+    "What result closes this experiment or mechanism?",
+    "What protected data must remain unseen?",
+    "If it fails, which parent level do we return to instead of adding variants?"
+  ]
+}
