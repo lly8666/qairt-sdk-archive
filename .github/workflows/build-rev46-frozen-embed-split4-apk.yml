@@ -1,0 +1,199 @@
+name: Build REV46 Frozen Embed Split4 Focused APK
+
+on:
+  workflow_dispatch:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  build:
+    if: github.event_name == 'workflow_dispatch' || github.event.issue.title == '[build-rev46-frozen-embed-split4-apk]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      APK_ASSET_ID: '522156340'
+      APK_BYTES: '147639670'
+      APK_SHA256: 'f0041f9994413b3fac496612bd15e3da922c4b6ff371d3237a3b36f2b30ff56ca'
+      REV25_WARM_SHA256: 'e2b7ab608a6b37a6dd9896589719cab446edf95287f59dfc7b5693da6ec98f6c'
+    steps:
+      - name: Start timing
+        shell: bash
+        run: date +%s > /tmp/action_start
+
+      - uses: actions/checkout@v4
+
+      - name: Restore exact REV25 warm6 authority and generate focused models
+        id: models
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 -m pip install --disable-pip-version-check 'numpy==1.26.4' 'onnx==1.17.0' 'onnxruntime==1.27.0'
+          mkdir -p /tmp/rev46/base /tmp/rev46/rev25
+          curl -fL --retry 5 --retry-all-errors \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H 'Accept: application/octet-stream' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/assets/${APK_ASSET_ID}" -o /tmp/rev46/authority.apk
+          test "$(stat -c %s /tmp/rev46/authority.apk)" = "$APK_BYTES"
+          echo "$APK_SHA256  /tmp/rev46/authority.apk" | sha256sum -c -
+          unzip -p /tmp/rev46/authority.apk assets/models/vocos_gate0c_warm6.onnx > /tmp/rev46/base/vocos_gate0c_warm6.onnx
+          unzip -p /tmp/rev46/authority.apk assets/patches/rev25/vocos_gate0c_warm6_rev25_b0123567.patch.json > /tmp/rev46/rev25/warm.patch.json
+          echo '5981bfc5d6850baaef7f44af2da18ecd149782e0ffcabf731bcf658d953e0909  /tmp/rev46/base/vocos_gate0c_warm6.onnx' | sha256sum -c -
+          echo 'b7426abd298106cd256e7e6bd4498d032e2fc89b630d67821b827af8d4646988  /tmp/rev46/rev25/warm.patch.json' | sha256sum -c -
+          python3 host-tools/rev25_qnn_cpu/apply_binary_splice_manifest.py \
+            --base /tmp/rev46/base/vocos_gate0c_warm6.onnx \
+            --manifest /tmp/rev46/rev25/warm.patch.json \
+            --out /tmp/rev46/rev25/vocos_rev25_warm6.onnx
+          echo "$REV25_WARM_SHA256  /tmp/rev46/rev25/vocos_rev25_warm6.onnx" | sha256sum -c -
+          out='android-labs/MeanVc2Rev46EmbedSplit4Lab/app/src/main/assets/models'
+          mkdir -p "$out"
+          python3 host-tools/rev46_embed_split4_device/generate_embed_split4_models.py \
+            --rev25-warm /tmp/rev46/rev25/vocos_rev25_warm6.onnx --out "$out" | tee /tmp/model-generation.log
+          sha256sum "$out"/*.onnx | tee /tmp/MODEL_SHA256SUMS.txt
+
+          MODEL_DIR="$out" python3 - <<'PY' | tee /tmp/CPU_SEMANTIC.txt
+          import os, numpy as np, onnxruntime as ort
+          root=os.environ['MODEL_DIR']
+          a=ort.InferenceSession(root+'/canonical_embed_conv.onnx',providers=['CPUExecutionProvider'])
+          b=ort.InferenceSession(root+'/split4_embed_conv.onnx',providers=['CPUExecutionProvider'])
+          pats=[]
+          pats.append(('zero',np.zeros((1,80,6),np.float32)))
+          pats.append(('half',np.full((1,80,6),.5,np.float32)))
+          pats.append(('sweep',np.linspace(-3,3,480,dtype=np.float32).reshape(1,80,6)))
+          i=np.arange(480,dtype=np.float64);pats.append(('sine',(1.5*np.sin(i*.173)+.35*np.cos(i*.071)).astype(np.float32).reshape(1,80,6)))
+          rng=np.random.default_rng(20260821);pats.append(('seed20260821',rng.uniform(-2.5,2.5,480).astype(np.float32).reshape(1,80,6)))
+          x=(.1*np.sin(i)).astype(np.float32);x[::97]=3.25;x[::89]=-2.75;pats.append(('spike_mix',x.reshape(1,80,6)))
+          agg=0.0
+          for name,x in pats:
+              ya=a.run(['y'],{'x':x})[0].astype(np.float64);yb=b.run(['y'],{'x':x})[0].astype(np.float64);d=yb-ya
+              mx=float(np.max(np.abs(d)));mean=float(np.mean(np.abs(d)));rmse=float(np.sqrt(np.mean(d*d)));agg=max(agg,mx)
+              print(f'cpu_semantic/{name}/max_abs={mx:.17g}')
+              print(f'cpu_semantic/{name}/mean_abs={mean:.17g}')
+              print(f'cpu_semantic/{name}/rmse={rmse:.17g}')
+          print(f'cpu_semantic/aggregate_max_abs={agg:.17g}')
+          if not np.isfinite(agg) or agg>1e-3: raise SystemExit('focused semantic sanity failure')
+          PY
+          sem="$(awk -F= '$1=="cpu_semantic/aggregate_max_abs"{print $2}' /tmp/CPU_SEMANTIC.txt)"
+          echo "semantic_max=$sem" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Set up Gradle 8.7
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Ensure Android 35 build platform
+        shell: bash
+        run: |
+          set -euo pipefail
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager 'platforms;android-35' 'build-tools;35.0.0' >/dev/null
+
+      - name: Restore stable public lab signer
+        shell: bash
+        run: |
+          set -euo pipefail
+          root='android-labs/MeanVc2Rev46EmbedSplit4Lab'
+          mkdir -p "$root/ci"
+          base64 -d android-labs/MeanVc2Rev46HtpLab/ci/rev46-public-lab.p12.b64 > "$root/ci/rev46-public-lab.p12"
+          keytool -list -keystore "$root/ci/rev46-public-lab.p12" -storetype PKCS12 -storepass meanvc2lab -alias meanvc2lab >/dev/null
+
+      - name: Assemble debug APK
+        id: gradle_build
+        shell: bash
+        run: |
+          set -euo pipefail
+          start="$(date +%s)"
+          cd android-labs/MeanVc2Rev46EmbedSplit4Lab
+          gradle --no-daemon --max-workers=2 :app:assembleDebug
+          echo "seconds=$(( $(date +%s)-start ))" >> "$GITHUB_OUTPUT"
+
+      - name: Verify APK and freeze build provenance
+        id: verify
+        shell: bash
+        run: |
+          set -euo pipefail
+          root='android-labs/MeanVc2Rev46EmbedSplit4Lab'
+          apk="$root/app/build/outputs/apk/debug/app-debug.apk"
+          test -f "$apk"
+          unzip -l "$apk" > /tmp/apk-files.txt
+          grep -q 'assets/models/canonical_embed_conv.onnx' /tmp/apk-files.txt
+          grep -q 'assets/models/split4_embed_conv.onnx' /tmp/apk-files.txt
+          grep -q 'assets/models/MODEL_PROVENANCE.json' /tmp/apk-files.txt
+          grep -q 'lib/arm64-v8a/libonnxruntime.so' /tmp/apk-files.txt
+          grep -q 'QnnHtp' /tmp/apk-files.txt
+          sha="$(sha256sum "$apk"|awk '{print $1}')"; bytes="$(stat -c %s "$apk")"; total="$(( $(date +%s)-$(cat /tmp/action_start) ))"
+          cp /tmp/MODEL_SHA256SUMS.txt "$root/MODEL_SHA256SUMS.txt"
+          cp /tmp/CPU_SEMANTIC.txt "$root/CPU_SEMANTIC.txt"
+          cat > "$root/BUILD_PROVENANCE.txt" <<EOF
+          schema=1
+          scope=FOCUSED_FROZEN_SPLIT4_MECHANISM_DIAGNOSTIC_NOT_FULL_MODEL_GATE
+          workflow=Build REV46 Frozen Embed Split4 Focused APK
+          workflow_run_id=${GITHUB_RUN_ID}
+          workflow_commit=${GITHUB_SHA}
+          source_release=20260820.2
+          source_release_apk_sha256=${APK_SHA256}
+          source_rev25_warm_sha256=${REV25_WARM_SHA256}
+          frozen_full_model_source_authority_sha256=5d933a1a13f9147287f05958577b298b367a7b6b288570f94dd09939fd535c6c
+          frozen_parent_execution_sha256=d2efac4f266b312024b0e0b59feeeffa04716dbeaf54ad4763c7950ac9c3fb23
+          ort_android_qnn=1.27.0
+          qnn_runtime=2.44.0
+          qnn_cpu_fallback_disabled_by_app=true
+          protected_inputs_used=false
+          warm18_used=false
+          final_abc_used=false
+          seed_20260814_used=false
+          cpu_semantic_aggregate_max_abs=${{ steps.models.outputs.semantic_max }}
+          apk_bytes=${bytes}
+          apk_sha256=${sha}
+          gradle_seconds=${{ steps.gradle_build.outputs.seconds }}
+          measured_action_seconds=${total}
+          production_integration=false
+          EOF
+          echo "apk=$apk" >> "$GITHUB_OUTPUT";echo "sha=$sha" >> "$GITHUB_OUTPUT";echo "bytes=$bytes" >> "$GITHUB_OUTPUT";echo "total=$total" >> "$GITHUB_OUTPUT"
+
+      - name: Upload APK artifact
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: MeanVc2Rev46-Frozen-EmbedSplit4-Focused-debug
+          path: |
+            android-labs/MeanVc2Rev46EmbedSplit4Lab/app/build/outputs/apk/debug/app-debug.apk
+            android-labs/MeanVc2Rev46EmbedSplit4Lab/BUILD_PROVENANCE.txt
+            android-labs/MeanVc2Rev46EmbedSplit4Lab/MODEL_SHA256SUMS.txt
+            android-labs/MeanVc2Rev46EmbedSplit4Lab/CPU_SEMANTIC.txt
+            android-labs/MeanVc2Rev46EmbedSplit4Lab/app/src/main/assets/models/MODEL_PROVENANCE.json
+          compression-level: 0
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Report build result
+        if: success() && github.event_name == 'issues'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "REV46_FROZEN_EMBED_SPLIT4_APK_PASS\n\nRun: **${GITHUB_RUN_ID}**\nArtifact id: **${{ steps.upload.outputs.artifact-id }}**\nAPK bytes: \`${{ steps.verify.outputs.bytes }}\`\nAPK SHA256: \`${{ steps.verify.outputs.sha }}\`\nRunner CPU focused semantic aggregate max_abs: \`${{ steps.models.outputs.semantic_max }}\`\nScope: focused frozen embed-Conv split4 mechanism A/B only; no warm18/final A/B/C; strict HTP app disables CPU EP fallback."
+
+      - name: Report build failure
+        if: failure() && github.event_name == 'issues'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "REV46_FROZEN_EMBED_SPLIT4_APK_FAIL\n\nRun: **${GITHUB_RUN_ID}**. No APK from this run should be treated as valid."
