@@ -11,26 +11,25 @@
       "goal": "Host numerical recovery: reduce full47 max_abs from current 0.0004115104675292969 to <=0.0003 while preserving semantic gates and protected-data boundaries.",
       "remaining_gap_pct": 27.0978447276941,
       "exit_success": "Numerical gate passes -> stop search and enter host structural qualification.",
-      "exit_stall": "After the current mechanism, allow by default at most one genuinely distinct evidence-backed exact/equivalent family; if it also fails material progress, activate L0 contingency."
+      "exit_stall": "After the closed tree mechanism, allow by default at most one genuinely distinct evidence-backed exact/equivalent family; if it also fails material progress, activate L0 contingency."
     },
     "L2_MECHANISM": {
-      "name": "K8 partial-reduction association / residual-direction conditioning",
-      "causal_reason": "K8 reduces block5 Add22 local RMSE on 47/47 warm blocks, while downstream layers amplify residual direction anisotropically; changing only the 7 Add associations already produced a material host-best improvement.",
-      "mechanism_budget": "Current partial-guided selector family is the bounded transfer test for this mechanism. If it closes, do not enumerate more trees/selectors.",
-      "exit_success": "A staged candidate materially improves full47; promote if valid. If gate still fails, perform fresh causal localization before proposing any new family.",
-      "exit_failure": "Close reduction-tree mechanism and return to causal localization; no warm18-aware or result-conditioned tree search."
+      "name": "POST_TREE_FRESH_CAUSAL_RELOCALIZATION",
+      "causal_reason": "Static weight-balanced reduction materially improved the host best, but the protected partial-guided selector family failed Stage1. The reduction-tree mechanism is now closed. The next exact/equivalent mechanism is intentionally unknown until current-best taps re-localize the residual.",
+      "mechanism_budget": "Diagnostic phase only. Do not create candidates while the remaining source/amplifier is unresolved. After localization, at most one causally distinct exact/equivalent family is permitted by default.",
+      "exit_success": "Identify a distinct intrinsic source or downstream amplification mechanism with nonperturbing full-graph evidence and plausible leverage toward the remaining ~27.1% max gap.",
+      "exit_failure": "If no credible distinct exact/equivalent mechanism is supported, activate the learned-residual/wider-student/qualified-surrogate contingency rather than micro-tuning."
     },
     "L3_EXPERIMENT": {
-      "id": "k8_partial_guided_tree_family_stage1_final_qnn",
-      "question": "Do trees selected only by nonperturbing intermediate Add22 partial-QNN proxy error transfer to full-graph final-spectrum improvement without using warm18?",
-      "candidates": ["A_local_max", "B_local_rmse", "C_p90_blockmax"],
-      "stage_boundary": "ORT Stage1 complete/all-pass; QNN Stage1 not started; Stage2/Stage3 protected.",
-      "closure": "No unique preregistered material Stage1 winner => close this selector family immediately."
+      "id": "current_best_nonperturbing_boundary_localization",
+      "question": "On the weight-balanced current host best, where does QNN residual first become materially intrinsic and where is it subsequently amplified across block5, block6, block7 and final normalization?",
+      "method": "Add read-only outputs for selected full-graph boundaries, first require final spec_real/spec_imag bit-exact observer-effect PASS, then compare QNN2.44 vs candidate-own ORT1.27 on warm18 as a localization microscope plus a frozen non-warm diagnostic subset. No candidate selection occurs in this experiment.",
+      "closure": "Produce a ranked causal localization with explicit source-vs-amplifier distinction. If taps are not observer-effect neutral, discard them and use a different nonperturbing diagnostic rather than interpreting changed outputs."
     },
     "L4_ACTION": {
-      "action_id": "RUN_QNN_STAGE1_A_B_C_ONLY",
-      "action": "After exact local reconstruction/validation and live IN_PROGRESS publication, run QNN2.44 CPU Stage1 for exactly A/B/C on the frozen 15 blocks; do not rerun ORT and do not score until all three complete.",
-      "parent_alignment": "This is the transfer test required to decide whether L2 reduction-tree conditioning remains worth pursuing. It is not permission for further tree enumeration.",
+      "action_id": "RUN_CURRENT_BEST_NONPERTURBING_BOUNDARY_LOCALIZATION",
+      "action": "Materialize a current-best tap graph at block5 input/PW2/residual, block6 PW2/residual, block7 PW2/residual and final LN; run warm18 plus the frozen diagnostic subset; require final outputs bit-exact to untapped current best before using taps.",
+      "parent_alignment": "This is the mandatory fresh causal diagnostic after closing the reduction-tree mechanism; it is not a new optimization family.",
       "execution_authorized_now": false
     }
   },
