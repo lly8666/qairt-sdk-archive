@@ -35,7 +35,10 @@ print('operation_status='+st)
 print('main_repo='+live['repositories']['main_repo'])
 print('active='+live['active_experiment']['id'])
 print('exact_next='+live['exact_next']['action_id'])
-print('remaining_max_gap_pct=%.6f'%live['current_host_best']['remaining_relative_max_reduction_pct'])
+best=float(live['current_host_best']['full47']['max_abs'])
+gate=float(live['current_host_best']['frozen_max_gate'])
+remaining=(best-gate)/best*100.0 if best>0 else 0.0
+print('remaining_max_gap_pct=%.6f'%remaining)
 if len(sys.argv)==3 and sys.argv[1]=='--local-root':
  root=Path(sys.argv[2])
  if not root.is_dir(): fail('missing_local_root')
