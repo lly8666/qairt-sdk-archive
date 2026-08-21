@@ -1,6 +1,6 @@
 {
   "schema": 2,
-  "updated_at": "2026-08-21T11:36:00+09:00",
+  "updated_at": "2026-08-21T12:02:00+08:00",
   "repositories": {
     "main_repo": "lly8666/SimAdmin-Android",
     "support_repo": "lly8666/qairt-sdk-archive"
@@ -10,14 +10,21 @@
     "local_execution_requires": "HANDOFF_LIVE_SCIENCE_VALID"
   },
   "operation": {
-    "status": "IDLE",
-    "operation_id": null,
-    "note": "No A/B/C QNN Stage1 execution has started. Before starting, publish IN_PROGRESS with expected units and idempotent resume rule."
+    "status": "IN_PROGRESS",
+    "operation_id": "partial-guided-stage1-qnn-20260821",
+    "expected_units": ["A_local_max", "B_local_rmse", "C_p90_blockmax"],
+    "completed_units": [],
+    "output_root": "k8_partial_guided_tree_family/stage1",
+    "resume_rule": "For each candidate, Result_14/spec_real.raw and spec_imag.raw define QNN completion. Skip completed candidates. Preserve completed converter/model-lib stages for incomplete candidates and resume only the missing stage. Do not score candidates until all three units are complete.",
+    "scoring_forbidden_until_all_units_complete": true,
+    "note": "Cross-sandbox reconstruction was numerically qualified before this transaction; recovery runs have zero statistical weight."
   },
   "current_host_best": {
     "construction": "block5 PW2 contiguous K8; same eight 192-wide partial MatMuls; weight-balanced Add leaf order [0,5,1,4,2,7,3,6]",
     "model_path": "current_host_best/vocos_warm6_rev46_hostbest_weight_balanced.onnx",
-    "sha256": "a584d4c8e7a05bc36fb06b653c398547b525e15d5a996fc4d7f3dd612db5b774",
+    "source_authority_sha256": "a584d4c8e7a05bc36fb06b653c398547b525e15d5a996fc4d7f3dd612db5b774",
+    "sha256": "d2efac4f266b312024b0e0b59feeeffa04716dbeaf54ad4763c7950ac9c3fb23",
+    "identity_migration_evidence": "evidence/rev46/live/20260821-cross-sandbox-authority-reconstruction.md",
     "full47": {
       "max_abs": 0.0004115104675292969,
       "mean_abs": 3.777641009158933e-7,
@@ -33,34 +40,38 @@
     "id": "k8_partial_guided_tree_family_stage1_final_qnn",
     "stage1_blocks": [1,8,9,10,12,13,19,24,28,32,33,37,38,42,45],
     "ort_stage1": "COMPLETE_ALL_PASS",
-    "qnn_stage1": "NOT_STARTED",
+    "qnn_stage1": "IN_PROGRESS",
     "stage2": "NOT_AUTHORIZED",
     "stage3_warm18": "PROTECTED_NOT_STARTED",
     "candidate_manifest": {
       "path": "k8_partial_guided_tree_family/models/MANIFEST.json",
-      "sha256": "ee78b259afbe0f98fae897f90854329787c1094a8f44c9c1e2ce6bdcc1e72846"
+      "source_authority_sha256": "ee78b259afbe0f98fae897f90854329787c1094a8f44c9c1e2ce6bdcc1e72846",
+      "sha256": "80ff29e6010db7da0ce686f42bcfe240106ee8a656dc2d6cda554067d59e5a4f"
     },
     "prereg": {
       "path": "k8_partial_guided_tree_family/PREREG.json",
-      "sha256": "b2a98ff77aab19cbb5a474ccd79c70bf200310a0168f238175507ace191395d2"
+      "source_authority_sha256": "b2a98ff77aab19cbb5a474ccd79c70bf200310a0168f238175507ace191395d2",
+      "sha256": "79cf22eeaeae2abe81a9b348b2b73fdb69a791815aad236581a2f93d539880b2"
     },
     "proxy_rank": {
       "path": "k8_partial_guided_tree_family/PROXY_RANK.json",
-      "sha256": "c734fe95e1389f77b7871bcd50ff13054149e26b01a105ffae7d32ff8302dfd7"
+      "source_authority_sha256": "c734fe95e1389f77b7871bcd50ff13054149e26b01a105ffae7d32ff8302dfd7",
+      "sha256": "87b44330f0293db4c3621bad56742d3fcfeaa7059fbee1a4ab825dd538a98f77"
     },
     "stage1_ort_semantic": {
       "path": "k8_partial_guided_tree_family/stage1/ORT_SEMANTIC.json",
-      "sha256": "777ab443eaa11206980e63a19980b2c21ecdb4760907e826e8baae60a589eea2"
+      "source_authority_sha256": "777ab443eaa11206980e63a19980b2c21ecdb4760907e826e8baae60a589eea2",
+      "sha256": "8ae06526f71297bd74416a9d6309af595dd3792ae4fb53c87dcff8b46c785e53"
     },
     "candidates": [
-      {"id":"A_local_max","path":"k8_partial_guided_tree_family/models/A_local_max.onnx","sha256":"550e82dea9548ed7ec9a2580f493ccaf656b52de578351609ec778adb831782d"},
-      {"id":"B_local_rmse","path":"k8_partial_guided_tree_family/models/B_local_rmse.onnx","sha256":"eb6a9f3787216031de9f94165ad6347857e9364ad782060aa7692df5dafcbde5"},
-      {"id":"C_p90_blockmax","path":"k8_partial_guided_tree_family/models/C_p90_blockmax.onnx","sha256":"bbeb2b7a38ed4e30b407268d36fa8b0708dc3899ccfcefb8639bc5187f00306a"}
+      {"id":"A_local_max","path":"k8_partial_guided_tree_family/models/A_local_max.onnx","source_authority_sha256":"550e82dea9548ed7ec9a2580f493ccaf656b52de578351609ec778adb831782d","sha256":"d714c8e990ef0919e1324c83c09ad807e9be9719e2f68eac57f98c8c12d90cfb"},
+      {"id":"B_local_rmse","path":"k8_partial_guided_tree_family/models/B_local_rmse.onnx","source_authority_sha256":"eb6a9f3787216031de9f94165ad6347857e9364ad782060aa7692df5dafcbde5","sha256":"2a2081ccd408a82c4cb7e596bacd3ec97df90aad85b085429c68ef25c5d75956"},
+      {"id":"C_p90_blockmax","path":"k8_partial_guided_tree_family/models/C_p90_blockmax.onnx","source_authority_sha256":"bbeb2b7a38ed4e30b407268d36fa8b0708dc3899ccfcefb8639bc5187f00306a","sha256":"a9580b6ccf6246927cf787046cbba90945d290f250878c9046bd1834a41ce94d"}
     ]
   },
   "exact_next": {
     "action_id": "RUN_QNN_STAGE1_A_B_C_ONLY",
-    "action": "After local validation and IN_PROGRESS publication, run QNN2.44 CPU Stage1 for exactly A/B/C on the frozen 15 blocks; do not rerun ORT; score only after all three finish.",
+    "action": "Resume/complete QNN2.44 CPU Stage1 for exactly A/B/C on the frozen 15 blocks; do not rerun ORT; score only after all three finish.",
     "execution_authorized_now": false
   },
   "pointers": {
