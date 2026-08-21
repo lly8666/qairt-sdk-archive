@@ -1,0 +1,78 @@
+{
+  "schema": 3,
+  "handoff_id": "rev46-handoff-v3-0001-cross-sandbox-horizon",
+  "updated_at_local": "2026-08-21T10:24:00+08:00",
+  "repositories": {
+    "primary_main_repo": "lly8666/SimAdmin-Android",
+    "primary_role": "production Android app, runtime/device integration, APK and product authority",
+    "support_repo": "lly8666/qairt-sdk-archive",
+    "support_role": "QAIRT/ORT host foundation, evidence, recovery checkpoints and handoff QA"
+  },
+  "gates": {
+    "max_abs": 0.0003,
+    "mean_abs": 0.00001,
+    "rmse": 0.00002,
+    "cosine_min": 0.99999,
+    "material_improvement_pct": 3.0,
+    "qnn_cpu_is_diagnostic_not_htp_truth": true,
+    "host_only": true,
+    "apk_device": "BLOCKED",
+    "forbidden_fit_inputs": ["final device A/B/C", "seed 20260814"]
+  },
+  "current_host_best": {
+    "model_path": "current_host_best/vocos_warm6_rev46_hostbest_weight_balanced.onnx",
+    "model_sha256": "a584d4c8e7a05bc36fb06b653c398547b525e15d5a996fc4d7f3dd612db5b774",
+    "construction": "contiguous block5 PW2 K8 with unchanged eight partial MatMuls and static weight-balanced Add tree leaf order [0,5,1,4,2,7,3,6]",
+    "full47_qnn_vs_ort": {
+      "max_abs": 0.0004115104675292969,
+      "mean_abs": 3.777641009158933e-7,
+      "rmse": 3.096381567930808e-6,
+      "cosine": 0.9999999999856087,
+      "peak": "warm18 spec_imag[0,18,4]"
+    },
+    "semantic": {
+      "max_abs": 0.00010180473327636719,
+      "mean_abs": 1.8335789275319064e-7,
+      "rmse": 1.450704754473784e-6,
+      "cosine": 0.9999999999969523,
+      "pass": true
+    },
+    "gate_pass": false,
+    "failed_metric": "max_abs"
+  },
+  "active_experiment": {
+    "id": "k8_partial_guided_tree_family_stage1_final_qnn",
+    "family_root": "k8_partial_guided_tree_family",
+    "candidate_manifest_path": "k8_partial_guided_tree_family/models/MANIFEST.json",
+    "candidate_manifest_sha256": "ee78b259afbe0f98fae897f90854329787c1094a8f44c9c1e2ce6bdcc1e72846",
+    "prereg_path": "k8_partial_guided_tree_family/PREREG.json",
+    "prereg_sha256": "b2a98ff77aab19cbb5a474ccd79c70bf200310a0168f238175507ace191395d2",
+    "proxy_rank_path": "k8_partial_guided_tree_family/PROXY_RANK.json",
+    "proxy_rank_sha256": "c734fe95e1389f77b7871bcd50ff13054149e26b01a105ffae7d32ff8302dfd7",
+    "stage1_blocks": [1,8,9,10,12,13,19,24,28,32,33,37,38,42,45],
+    "stage1_ort_semantic_path": "k8_partial_guided_tree_family/stage1/ORT_SEMANTIC.json",
+    "stage1_ort_semantic_sha256": "777ab443eaa11206980e63a19980b2c21ecdb4760907e826e8baae60a589eea2",
+    "stage1_ort_all_pass": true,
+    "qnn_stage1_started": false,
+    "warm18_seen_by_candidates": false,
+    "status": "ORT_STAGE1_COMPLETE_QNN_STAGE1_NOT_STARTED",
+    "candidates": [
+      {"id":"A_local_max","model_path":"k8_partial_guided_tree_family/models/A_local_max.onnx","sha256":"550e82dea9548ed7ec9a2580f493ccaf656b52de578351609ec778adb831782d"},
+      {"id":"B_local_rmse","model_path":"k8_partial_guided_tree_family/models/B_local_rmse.onnx","sha256":"eb6a9f3787216031de9f94165ad6347857e9364ad782060aa7692df5dafcbde5"},
+      {"id":"C_p90_blockmax","model_path":"k8_partial_guided_tree_family/models/C_p90_blockmax.onnx","sha256":"bbeb2b7a38ed4e30b407268d36fa8b0708dc3899ccfcefb8639bc5187f00306a"}
+    ]
+  },
+  "strategy": {
+    "remaining_max_reduction_pct": 27.0978447276941,
+    "current_mechanism": "K8 partial reduction association / intermediate-partial-guided balanced tree selection",
+    "current_mechanism_is_bounded": true,
+    "after_current_mechanism": "fresh causal diagnostic; at most one additional causally distinct exact/equivalent family by default; then contingency if no material progress",
+    "contingency": "learned residual / wider multi-block or full-Vocos student / qualified surrogate route"
+  },
+  "resume_authority": {
+    "main_repo_entry": "lly8666/SimAdmin-Android:CURRENT_REV46_HANDOFF.md",
+    "support_external_package": "lly8666/qairt-sdk-archive:evidence/rev46/handoff-v3/",
+    "local_when_present": "/mnt/data/rev46_sandbox/handoff_v3/CURRENT_STATE.json + validate_handoff.py",
+    "sandbox_absent_policy": "External snapshot restores exact state only. Do not resume science until local artifacts/environment are reconstructed and validator prints HANDOFF_V3_VALID."
+  }
+}
