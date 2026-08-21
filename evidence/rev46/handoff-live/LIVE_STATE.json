@@ -1,13 +1,13 @@
 {
   "schema":2,
-  "updated_at":"2026-08-21T12:13:00+08:00",
+  "updated_at":"2026-08-21T12:29:00+08:00",
   "repositories":{"main_repo":"lly8666/SimAdmin-Android","support_repo":"lly8666/qairt-sdk-archive"},
   "science_execution":{"external_state_authorizes_execution":false,"local_execution_requires":"HANDOFF_LIVE_SCIENCE_VALID"},
   "operation":{
     "status":"IN_PROGRESS",
     "operation_id":"current-best-boundary-localization-observer-20260821",
     "expected_units":["untapped_reference","tapped_qnn"],
-    "completed_units":[],
+    "completed_units":["untapped_reference"],
     "output_root":"current_best_localization",
     "resume_rule":"untapped_reference is complete only when Result_5 spec_real/spec_imag exist. tapped_qnn is complete only when Result_5 spec_real/spec_imag and tap outputs exist. Skip a completed unit; preserve converter/model-lib for an incomplete tapped unit. Do not interpret any tap values until both units complete and final outputs pass bit-exact observer-effect comparison.",
     "unit_completion_markers":[
