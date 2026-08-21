@@ -3,21 +3,9 @@
     "candidate_manifest_path": "k8_partial_guided_tree_family/models/MANIFEST.json",
     "candidate_manifest_sha256": "ee78b259afbe0f98fae897f90854329787c1094a8f44c9c1e2ce6bdcc1e72846",
     "candidates": [
-      {
-        "id": "A_local_max",
-        "model_path": "k8_partial_guided_tree_family/models/A_local_max.onnx",
-        "sha256": "550e82dea9548ed7ec9a2580f493ccaf656b52de578351609ec778adb831782d"
-      },
-      {
-        "id": "B_local_rmse",
-        "model_path": "k8_partial_guided_tree_family/models/B_local_rmse.onnx",
-        "sha256": "eb6a9f3787216031de9f94165ad6347857e9364ad782060aa7692df5dafcbde5"
-      },
-      {
-        "id": "C_p90_blockmax",
-        "model_path": "k8_partial_guided_tree_family/models/C_p90_blockmax.onnx",
-        "sha256": "bbeb2b7a38ed4e30b407268d36fa8b0708dc3899ccfcefb8639bc5187f00306a"
-      }
+      {"id":"A_local_max","model_path":"k8_partial_guided_tree_family/models/A_local_max.onnx","sha256":"550e82dea9548ed7ec9a2580f493ccaf656b52de578351609ec778adb831782d"},
+      {"id":"B_local_rmse","model_path":"k8_partial_guided_tree_family/models/B_local_rmse.onnx","sha256":"eb6a9f3787216031de9f94165ad6347857e9364ad782060aa7692df5dafcbde5"},
+      {"id":"C_p90_blockmax","model_path":"k8_partial_guided_tree_family/models/C_p90_blockmax.onnx","sha256":"bbeb2b7a38ed4e30b407268d36fa8b0708dc3899ccfcefb8639bc5187f00306a"}
     ],
     "family_root": "k8_partial_guided_tree_family",
     "id": "k8_partial_guided_tree_family_stage1_final_qnn",
@@ -45,60 +33,27 @@
   "current_host_best": {
     "construction": "contiguous block5 PW2 K8, unchanged eight partial MatMuls; balanced Add tree leaf order [0,5,1,4,2,7,3,6] chosen from static chunk-weight L2 norms",
     "failed_metric": "max_abs",
-    "full47_qnn_vs_ort": {
-      "cosine": 0.9999999999856087,
-      "max_abs": 0.0004115104675292969,
-      "mean_abs": 3.777641009158933e-7,
-      "peak": "warm18 spec_imag[0,18,4]",
-      "rmse": 3.096381567930808e-6
-    },
+    "full47_qnn_vs_ort": {"cosine":0.9999999999856087,"max_abs":0.0004115104675292969,"mean_abs":3.777641009158933e-7,"peak":"warm18 spec_imag[0,18,4]","rmse":3.096381567930808e-6},
     "gate_pass": false,
     "metadata_path": "current_host_best/CURRENT_HOST_BEST.json",
     "metadata_sha256": "cab2028beba157cc2b4f0fff7da9da2bbc1d46fae8798ddaccfea126a7800285",
     "model_path": "current_host_best/vocos_warm6_rev46_hostbest_weight_balanced.onnx",
     "model_sha256": "a584d4c8e7a05bc36fb06b653c398547b525e15d5a996fc4d7f3dd612db5b774",
-    "semantic": {
-      "cosine": 0.9999999999969523,
-      "max_abs": 0.00010180473327636719,
-      "mean_abs": 1.8335789275319064e-7,
-      "pass": true,
-      "rmse": 1.450704754473784e-6
-    }
+    "semantic": {"cosine":0.9999999999969523,"max_abs":0.00010180473327636719,"mean_abs":1.8335789275319064e-7,"pass":true,"rmse":1.450704754473784e-6}
   },
   "exact_next": {
     "action_id": "RUN_QNN_STAGE1_A_B_C_ONLY",
     "allowed": true,
     "description": "Run QAIRT/QNN2.44 CPU full-graph Stage1 for exactly A_local_max, B_local_rmse, C_p90_blockmax. Do NOT rerun ORT. Compare final spectrum against current host-best weight_balanced on the same salted 15-block Stage1. Apply prereg Stage1 promotion rule. No Stage2 until a unique winner passes.",
     "expected_result_count_per_candidate": 15,
-    "forbidden": [
-      "rerun A/B/C ORT Stage1",
-      "run Stage2 before Stage1 scoring",
-      "run Stage3/warm18",
-      "build APK",
-      "run device",
-      "reopen closed families"
-    ],
+    "forbidden": ["rerun A/B/C ORT Stage1","run Stage2 before Stage1 scoring","run Stage3/warm18","build APK","run device","reopen closed families"],
     "input_list": "k8_reduce_tree_family/split/stage1_qnn_input_list.txt",
     "script": "handoff_v3/resume_A_B_C_qnn_stage1.sh",
     "scope": "NOW_ONLY",
-    "must_read_before_execution": [
-      "CURRENT_STATE.json",
-      "NEXT_HORIZON.json",
-      "ANTI_RABBIT_HOLE.md"
-    ],
+    "must_read_before_execution": ["CURRENT_STATE.json","NEXT_HORIZON.json","ANTI_RABBIT_HOLE.md"],
     "successor_policy": "After this action, update CURRENT_STATE/EXACT_NEXT/NEXT_HORIZON before any additional science. Do not infer the next command from this file after results exist."
   },
-  "gates": {
-    "apk_device": "BLOCKED",
-    "cosine_min": 0.99999,
-    "forbidden_fit_inputs": ["final device A/B/C", "seed 20260814"],
-    "host_only": true,
-    "material_improvement_pct": 3.0,
-    "max_abs": 0.0003,
-    "mean_abs": 1e-5,
-    "qnn_cpu_is_diagnostic_not_htp_truth": true,
-    "rmse": 2e-5
-  },
+  "gates": {"apk_device":"BLOCKED","cosine_min":0.99999,"forbidden_fit_inputs":["final device A/B/C","seed 20260814"],"host_only":true,"material_improvement_pct":3.0,"max_abs":0.0003,"mean_abs":1e-5,"qnn_cpu_is_diagnostic_not_htp_truth":true,"rmse":2e-5},
   "global_context": {
     "policy": "MUST_READ_GLOBAL_AND_NEXT_HORIZON_BEFORE_EXACT_NEXT",
     "project_context_path": "handoff_v3/PROJECT_GLOBAL_CONTEXT.md",
@@ -113,67 +68,26 @@
     "anti_rabbit_hole_sha256": "91e7a97d8c2755df68867a0229d4ea07363c6d9b8cfe19ef66eb461fc0ba0efe"
   },
   "handoff_id": "rev46-handoff-v3-0001-cross-sandbox-horizon",
-  "known_invalid_or_non_authoritative": [
-    "recovery-only missing-c15 Horner run: max 0.0007061958312988281 INVALID",
-    "old full47 semantic value ~24.879 from mismatched provenance INVALID",
-    "extracted suffix propagation metrics NON-AUTHORITATIVE due ORT cut-graph drift ~6.58e-5",
-    "synthetic Holdout A is off-manifold stress only; Holdout B remains sealed/unexecuted"
-  ],
-  "legacy_handoff": {
-    "path": "handoff/LIVE_HANDOFF.md",
-    "policy": "HISTORY_ONLY_DO_NOT_USE_FOR_EXACT_NEXT",
-    "sha256": "19067bd97202287607f657cf03fd60521611b97a2d883ee8292a89af2163c80d"
-  },
+  "known_invalid_or_non_authoritative": ["recovery-only missing-c15 Horner run: max 0.0007061958312988281 INVALID","old full47 semantic value ~24.879 from mismatched provenance INVALID","extracted suffix propagation metrics NON-AUTHORITATIVE due ORT cut-graph drift ~6.58e-5","synthetic Holdout A is off-manifold stress only; Holdout B remains sealed/unexecuted"],
+  "legacy_handoff": {"path":"handoff/LIVE_HANDOFF.md","policy":"HISTORY_ONLY_DO_NOT_USE_FOR_EXACT_NEXT","sha256":"19067bd97202287607f657cf03fd60521611b97a2d883ee8292a89af2163c80d"},
   "recovery": {
     "anchors_path": "handoff_v3/RECOVERY_ANCHORS.md",
     "anchors_sha256": "6c3f59f047b57a9c416c51bbec79a3579f0f8b6b89e2e3fc51a1596ccec7bb59",
     "reconstruction_scripts": [
-      {"path": "tools/rebuild_rev46_best.py", "sha256": "ceacb7d018c3d636975b673b41030f9d7ef6de0d71c142ca4275432ddc1e215e"},
-      {"path": "tools/make_k8_reduce_tree_family.py", "sha256": "9c2e1c66d1f29e38d9a5c6cc56ea706924a5af2f27d87e26a89262be100d5c0d"},
-      {"path": "tools/rank_partial_guided_trees.py", "sha256": "182c8cd2b44b8edd030ce02f3ca6b6c582c2f2cfe81b4e58041cee8db5b9b1bb"},
-      {"path": "tools/materialize_partial_guided_tree_candidates.py", "sha256": "18d6ccd3d07cf61cd0a2eb940566954df16ee281901603c90f2bb347fb0c7c8e"}
+      {"path":"tools/rebuild_rev46_best.py","sha256":"ceacb7d018c3d636975b673b41030f9d7ef6de0d71c142ca4275432ddc1e215e"},
+      {"path":"tools/make_k8_reduce_tree_family.py","sha256":"9c2e1c66d1f29e38d9a5c6cc56ea706924a5af2f27d87e26a89262be100d5c0d"},
+      {"path":"tools/rank_partial_guided_trees.py","sha256":"182c8cd2b44b8edd030ce02f3ca6b6c582c2f2cfe81b4e58041cee8db5b9b1bb"},
+      {"path":"tools/materialize_partial_guided_tree_candidates.py","sha256":"18d6ccd3d07cf61cd0a2eb940566954df16ee281901603c90f2bb347fb0c7c8e"}
     ],
-    "recovery_fingerprints": {
-      "current_host_best_full47_max_abs": 0.0004115104675292969,
-      "k8_warm18_max_abs": 0.0004279613494873047,
-      "warm18_qnn_input_sha256": "5b425b7e31a80d33dfb135059593549781fdccd56ff1691f1965255d888b5dea"
-    }
+    "recovery_fingerprints": {"current_host_best_full47_max_abs":0.0004115104675292969,"k8_warm18_max_abs":0.0004279613494873047,"warm18_qnn_input_sha256":"5b425b7e31a80d33dfb135059593549781fdccd56ff1691f1965255d888b5dea"}
   },
-  "repositories": {
-    "primary_main_repo": "lly8666/SimAdmin-Android",
-    "primary_role": "production Android app, runtime/device integration, APK and product authority",
-    "support_repo": "lly8666/qairt-sdk-archive",
-    "support_role": "QAIRT/ORT host foundation, public evidence, recovery checkpoints and handoff QA"
-  },
+  "repositories": {"primary_main_repo":"lly8666/SimAdmin-Android","primary_role":"production Android app, runtime/device integration, APK and product authority","support_repo":"lly8666/qairt-sdk-archive","support_role":"QAIRT/ORT host foundation, public evidence, recovery checkpoints and handoff QA"},
   "root": "/mnt/data/rev46_sandbox",
   "schema": 3,
   "updated_at_local": "2026-08-21T10:24:00+08:00",
-  "strategy": {
-    "remaining_max_reduction_pct": 27.0978447276941,
-    "current_mechanism": "K8 partial reduction association / intermediate-partial-guided balanced tree selection",
-    "current_mechanism_is_bounded": true,
-    "after_current_mechanism": "fresh causal diagnostic; at most one additional causally distinct exact/equivalent family by default; then contingency if no material progress",
-    "contingency": "learned residual / wider multi-block or full-Vocos student / qualified surrogate route preserved from SimAdmin-Android historical planning"
-  },
-  "resume_authority": {
-    "main_repo_entry": "lly8666/SimAdmin-Android:CURRENT_REV46_HANDOFF.md",
-    "support_external_package": "lly8666/qairt-sdk-archive:evidence/rev46/handoff-v3/",
-    "local_when_present": "/mnt/data/rev46_sandbox/handoff_v3/CURRENT_STATE.json + validate_handoff.py",
-    "sandbox_absent_policy": "Use the external immutable fallback snapshot to reconstruct state read-only. Do not resume science until local handoff/artifacts are restored and the local validator prints HANDOFF_V3_VALID."
-  },
-  "candidate_public_manifest": {
-    "path": "handoff_v3/CANDIDATE_MANIFEST.json",
-    "sha256": "ae73bac7417236c2cb34474668512d7a145c41660fcbb4438945a0689377ddbc"
-  },
-  "invalid_closed_summary": {
-    "path": "handoff_v3/INVALID_AND_CLOSED_SUMMARY.md",
-    "sha256": "fc7e32d9587593bef7646f12d471ad9c706aa489a0f29c65e637e88414fc51e3"
-  },
-  "integrity": {
-    "validator_path": "handoff_v3/validate_handoff.py",
-    "validator_sha256": "50e5a0b99e79a62fd33a75f998e94b59a26e71d3a9a7f553e42d3639f688f1ee",
-    "manifest_path": "handoff_v3/HANDOFF_INTEGRITY_MANIFEST.json",
-    "restore_instructions_path": "handoff_v3/RESTORE_FROM_EXTERNAL_SNAPSHOT.md",
-    "restore_instructions_sha256": "f345eb58c9ae1a80de18b5315ac69730c4515b536ca0001e030c2e14d7450d16"
-  }
+  "strategy": {"remaining_max_reduction_pct":27.0978447276941,"current_mechanism":"K8 partial reduction association / intermediate-partial-guided balanced tree selection","current_mechanism_is_bounded":true,"after_current_mechanism":"fresh causal diagnostic; at most one additional causally distinct exact/equivalent family by default; then contingency if no material progress","contingency":"learned residual / wider multi-block or full-Vocos student / qualified surrogate route preserved from SimAdmin-Android historical planning"},
+  "resume_authority": {"main_repo_entry":"lly8666/SimAdmin-Android:CURRENT_REV46_HANDOFF.md","support_external_package":"lly8666/qairt-sdk-archive:evidence/rev46/handoff-v3/","local_when_present":"/mnt/data/rev46_sandbox/handoff_v3/CURRENT_STATE.json + validate_handoff.py","sandbox_absent_policy":"Use the external immutable fallback snapshot to reconstruct state read-only. Do not resume science until local handoff/artifacts are restored and the local validator prints HANDOFF_V3_VALID."},
+  "candidate_public_manifest": {"path":"handoff_v3/CANDIDATE_MANIFEST.json","sha256":"ae73bac7417236c2cb34474668512d7a145c41660fcbb4438945a0689377ddbc"},
+  "invalid_closed_summary": {"path":"handoff_v3/INVALID_AND_CLOSED_SUMMARY.md","sha256":"fc7e32d9587593bef7646f12d471ad9c706aa489a0f29c65e637e88414fc51e3"},
+  "integrity": {"validator_path":"handoff_v3/validate_handoff.py","validator_sha256":"4d7981c2bfff43807d537ae7fe6f354f0e4bc7f715cc47b9f37637b278cf7c42","manifest_path":"handoff_v3/HANDOFF_INTEGRITY_MANIFEST.json","restore_instructions_path":"handoff_v3/RESTORE_FROM_EXTERNAL_SNAPSHOT.md","restore_instructions_sha256":"f345eb58c9ae1a80de18b5315ac69730c4515b536ca0001e030c2e14d7450d16"}
 }
