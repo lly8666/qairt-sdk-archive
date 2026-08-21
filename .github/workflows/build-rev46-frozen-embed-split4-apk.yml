@@ -17,7 +17,7 @@ jobs:
     env:
       APK_ASSET_ID: '522156340'
       APK_BYTES: '147639670'
-      APK_SHA256: 'f0041f9994413b3fac496612bd15e3da922c4b6ff371d3237a3b36f2b30ff56ca'
+      APK_SHA256: 'f0041f9994413b3fac496612bd15e3da922c4b6ff3712da51d81326b717dc86c'
       REV25_WARM_SHA256: 'e2b7ab608a6b37a6dd9896589719cab446edf95287f59dfc7b5693da6ec98f6c'
     steps:
       - name: Start timing
@@ -33,6 +33,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          check_sha(){ local f="$1" want="$2" got; got="$(sha256sum "$f" | awk '{print $1}')"; echo "SHA256 file=$f got=$got expected=$want"; test "$got" = "$want"; }
           python3 -m pip install --disable-pip-version-check 'numpy==1.26.4' 'onnx==1.17.0' 'onnxruntime==1.27.0'
           mkdir -p /tmp/rev46/base /tmp/rev46/rev25
           curl -fL --retry 5 --retry-all-errors \
@@ -40,17 +41,17 @@ jobs:
             -H 'Accept: application/octet-stream' \
             -H 'X-GitHub-Api-Version: 2022-11-28' \
             "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/assets/${APK_ASSET_ID}" -o /tmp/rev46/authority.apk
-          test "$(stat -c %s /tmp/rev46/authority.apk)" = "$APK_BYTES"
-          echo "$APK_SHA256  /tmp/rev46/authority.apk" | sha256sum -c -
+          got_bytes="$(stat -c %s /tmp/rev46/authority.apk)"; echo "APK_BYTES got=$got_bytes expected=$APK_BYTES"; test "$got_bytes" = "$APK_BYTES"
+          check_sha /tmp/rev46/authority.apk "$APK_SHA256"
           unzip -p /tmp/rev46/authority.apk assets/models/vocos_gate0c_warm6.onnx > /tmp/rev46/base/vocos_gate0c_warm6.onnx
           unzip -p /tmp/rev46/authority.apk assets/patches/rev25/vocos_gate0c_warm6_rev25_b0123567.patch.json > /tmp/rev46/rev25/warm.patch.json
-          echo '5981bfc5d6850baaef7f44af2da18ecd149782e0ffcabf731bcf658d953e0909  /tmp/rev46/base/vocos_gate0c_warm6.onnx' | sha256sum -c -
-          echo 'b7426abd298106cd256e7e6bd4498d032e2fc89b630d67821b827af8d4646988  /tmp/rev46/rev25/warm.patch.json' | sha256sum -c -
+          check_sha /tmp/rev46/base/vocos_gate0c_warm6.onnx 5981bfc5d6850baaef7f44af2da18ecd149782e0ffcabf731bcf658d953e0909
+          check_sha /tmp/rev46/rev25/warm.patch.json b7426abd298106cd256e7e6bd4498d032e2fc89b630d67821b827af8d4646988
           python3 host-tools/rev25_qnn_cpu/apply_binary_splice_manifest.py \
             --base /tmp/rev46/base/vocos_gate0c_warm6.onnx \
             --manifest /tmp/rev46/rev25/warm.patch.json \
             --out /tmp/rev46/rev25/vocos_rev25_warm6.onnx
-          echo "$REV25_WARM_SHA256  /tmp/rev46/rev25/vocos_rev25_warm6.onnx" | sha256sum -c -
+          check_sha /tmp/rev46/rev25/vocos_rev25_warm6.onnx "$REV25_WARM_SHA256"
           out='android-labs/MeanVc2Rev46EmbedSplit4Lab/app/src/main/assets/models'
           mkdir -p "$out"
           python3 host-tools/rev46_embed_split4_device/generate_embed_split4_models.py \
@@ -62,10 +63,7 @@ jobs:
           root=os.environ['MODEL_DIR']
           a=ort.InferenceSession(root+'/canonical_embed_conv.onnx',providers=['CPUExecutionProvider'])
           b=ort.InferenceSession(root+'/split4_embed_conv.onnx',providers=['CPUExecutionProvider'])
-          pats=[]
-          pats.append(('zero',np.zeros((1,80,6),np.float32)))
-          pats.append(('half',np.full((1,80,6),.5,np.float32)))
-          pats.append(('sweep',np.linspace(-3,3,480,dtype=np.float32).reshape(1,80,6)))
+          pats=[('zero',np.zeros((1,80,6),np.float32)),('half',np.full((1,80,6),.5,np.float32)),('sweep',np.linspace(-3,3,480,dtype=np.float32).reshape(1,80,6))]
           i=np.arange(480,dtype=np.float64);pats.append(('sine',(1.5*np.sin(i*.173)+.35*np.cos(i*.071)).astype(np.float32).reshape(1,80,6)))
           rng=np.random.default_rng(20260821);pats.append(('seed20260821',rng.uniform(-2.5,2.5,480).astype(np.float32).reshape(1,80,6)))
           x=(.1*np.sin(i)).astype(np.float32);x[::97]=3.25;x[::89]=-2.75;pats.append(('spike_mix',x.reshape(1,80,6)))
@@ -73,9 +71,7 @@ jobs:
           for name,x in pats:
               ya=a.run(['y'],{'x':x})[0].astype(np.float64);yb=b.run(['y'],{'x':x})[0].astype(np.float64);d=yb-ya
               mx=float(np.max(np.abs(d)));mean=float(np.mean(np.abs(d)));rmse=float(np.sqrt(np.mean(d*d)));agg=max(agg,mx)
-              print(f'cpu_semantic/{name}/max_abs={mx:.17g}')
-              print(f'cpu_semantic/{name}/mean_abs={mean:.17g}')
-              print(f'cpu_semantic/{name}/rmse={rmse:.17g}')
+              print(f'cpu_semantic/{name}/max_abs={mx:.17g}');print(f'cpu_semantic/{name}/mean_abs={mean:.17g}');print(f'cpu_semantic/{name}/rmse={rmse:.17g}')
           print(f'cpu_semantic/aggregate_max_abs={agg:.17g}')
           if not np.isfinite(agg) or agg>1e-3: raise SystemExit('focused semantic sanity failure')
           PY
@@ -108,8 +104,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          root='android-labs/MeanVc2Rev46EmbedSplit4Lab'
-          mkdir -p "$root/ci"
+          root='android-labs/MeanVc2Rev46EmbedSplit4Lab'; mkdir -p "$root/ci"
           base64 -d android-labs/MeanVc2Rev46HtpLab/ci/rev46-public-lab.p12.b64 > "$root/ci/rev46-public-lab.p12"
           keytool -list -keystore "$root/ci/rev46-public-lab.p12" -storetype PKCS12 -storepass meanvc2lab -alias meanvc2lab >/dev/null
 
@@ -118,8 +113,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          start="$(date +%s)"
-          cd android-labs/MeanVc2Rev46EmbedSplit4Lab
+          start="$(date +%s)"; cd android-labs/MeanVc2Rev46EmbedSplit4Lab
           gradle --no-daemon --max-workers=2 :app:assembleDebug
           echo "seconds=$(( $(date +%s)-start ))" >> "$GITHUB_OUTPUT"
 
@@ -128,9 +122,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          root='android-labs/MeanVc2Rev46EmbedSplit4Lab'
-          apk="$root/app/build/outputs/apk/debug/app-debug.apk"
-          test -f "$apk"
+          root='android-labs/MeanVc2Rev46EmbedSplit4Lab'; apk="$root/app/build/outputs/apk/debug/app-debug.apk"; test -f "$apk"
           unzip -l "$apk" > /tmp/apk-files.txt
           grep -q 'assets/models/canonical_embed_conv.onnx' /tmp/apk-files.txt
           grep -q 'assets/models/split4_embed_conv.onnx' /tmp/apk-files.txt
@@ -138,8 +130,7 @@ jobs:
           grep -q 'lib/arm64-v8a/libonnxruntime.so' /tmp/apk-files.txt
           grep -q 'QnnHtp' /tmp/apk-files.txt
           sha="$(sha256sum "$apk"|awk '{print $1}')"; bytes="$(stat -c %s "$apk")"; total="$(( $(date +%s)-$(cat /tmp/action_start) ))"
-          cp /tmp/MODEL_SHA256SUMS.txt "$root/MODEL_SHA256SUMS.txt"
-          cp /tmp/CPU_SEMANTIC.txt "$root/CPU_SEMANTIC.txt"
+          cp /tmp/MODEL_SHA256SUMS.txt "$root/MODEL_SHA256SUMS.txt"; cp /tmp/CPU_SEMANTIC.txt "$root/CPU_SEMANTIC.txt"
           cat > "$root/BUILD_PROVENANCE.txt" <<EOF
           schema=1
           scope=FOCUSED_FROZEN_SPLIT4_MECHANISM_DIAGNOSTIC_NOT_FULL_MODEL_GATE
@@ -165,7 +156,7 @@ jobs:
           measured_action_seconds=${total}
           production_integration=false
           EOF
-          echo "apk=$apk" >> "$GITHUB_OUTPUT";echo "sha=$sha" >> "$GITHUB_OUTPUT";echo "bytes=$bytes" >> "$GITHUB_OUTPUT";echo "total=$total" >> "$GITHUB_OUTPUT"
+          echo "apk=$apk" >> "$GITHUB_OUTPUT"; echo "sha=$sha" >> "$GITHUB_OUTPUT"; echo "bytes=$bytes" >> "$GITHUB_OUTPUT"; echo "total=$total" >> "$GITHUB_OUTPUT"
 
       - name: Upload APK artifact
         id: upload
@@ -185,15 +176,11 @@ jobs:
       - name: Report build result
         if: success() && github.event_name == 'issues'
         shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "REV46_FROZEN_EMBED_SPLIT4_APK_PASS\n\nRun: **${GITHUB_RUN_ID}**\nArtifact id: **${{ steps.upload.outputs.artifact-id }}**\nAPK bytes: \`${{ steps.verify.outputs.bytes }}\`\nAPK SHA256: \`${{ steps.verify.outputs.sha }}\`\nRunner CPU focused semantic aggregate max_abs: \`${{ steps.models.outputs.semantic_max }}\`\nScope: focused frozen embed-Conv split4 mechanism A/B only; no warm18/final A/B/C; strict HTP app disables CPU EP fallback."
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "REV46_FROZEN_EMBED_SPLIT4_APK_PASS\n\nRun: **${GITHUB_RUN_ID}**\nArtifact id: **${{ steps.upload.outputs.artifact-id }}**\nAPK bytes: \`${{ steps.verify.outputs.bytes }}\`\nAPK SHA256: \`${{ steps.verify.outputs.sha }}\`\nRunner CPU focused semantic aggregate max_abs: \`${{ steps.models.outputs.semantic_max }}\`\nScope: focused frozen embed-Conv split4 mechanism A/B only; no warm18/final A/B/C; strict HTP app disables CPU EP fallback."
 
       - name: Report build failure
         if: failure() && github.event_name == 'issues'
         shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "REV46_FROZEN_EMBED_SPLIT4_APK_FAIL\n\nRun: **${GITHUB_RUN_ID}**. No APK from this run should be treated as valid."
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "REV46_FROZEN_EMBED_SPLIT4_APK_FAIL\n\nRun: **${GITHUB_RUN_ID}**. No APK from this run should be treated as valid."
