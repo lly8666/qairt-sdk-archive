@@ -1,26 +1,40 @@
 {
-  "active_experiment": {
-    "candidate_manifest": {"path":"k8_partial_guided_tree_family/models/MANIFEST.json","sha256":"80ff29e6010db7da0ce686f42bcfe240106ee8a656dc2d6cda554067d59e5a4f","source_authority_sha256":"ee78b259afbe0f98fae897f90854329787c1094a8f44c9c1e2ce6bdcc1e72846"},
-    "candidates": [
-      {"id":"A_local_max","path":"k8_partial_guided_tree_family/models/A_local_max.onnx","sha256":"d714c8e990ef0919e1324c83c09ad807e9be9719e2f68eac57f98c8c12d90cfb","source_authority_sha256":"550e82dea9548ed7ec9a2580f493ccaf656b52de578351609ec778adb831782d"},
-      {"id":"B_local_rmse","path":"k8_partial_guided_tree_family/models/B_local_rmse.onnx","sha256":"2a2081ccd408a82c4cb7e596bacd3ec97df90aad85b085429c68ef25c5d75956","source_authority_sha256":"eb6a9f3787216031de9f94165ad6347857e9364ad782060aa7692df5dafcbde5"},
-      {"id":"C_p90_blockmax","path":"k8_partial_guided_tree_family/models/C_p90_blockmax.onnx","sha256":"a9580b6ccf6246927cf787046cbba90945d290f250878c9046bd1834a41ce94d","source_authority_sha256":"bbeb2b7a38ed4e30b407268d36fa8b0708dc3899ccfcefb8639bc5187f00306a"}
-    ],
-    "id":"k8_partial_guided_tree_family_stage1_final_qnn","ort_stage1":"COMPLETE_ALL_PASS",
-    "prereg":{"path":"k8_partial_guided_tree_family/PREREG.json","sha256":"79cf22eeaeae2abe81a9b348b2b73fdb69a791815aad236581a2f93d539880b2","source_authority_sha256":"b2a98ff77aab19cbb5a474ccd79c70bf200310a0168f238175507ace191395d2"},
-    "proxy_rank":{"path":"k8_partial_guided_tree_family/PROXY_RANK.json","sha256":"87b44330f0293db4c3621bad56742d3fcfeaa7059fbee1a4ab825dd538a98f77","source_authority_sha256":"c734fe95e1389f77b7871bcd50ff13054149e26b01a105ffae7d32ff8302dfd7"},
-    "qnn_stage1":"IN_PROGRESS","stage1_blocks":[1,8,9,10,12,13,19,24,28,32,33,37,38,42,45],
-    "stage1_ort_semantic":{"path":"k8_partial_guided_tree_family/stage1/ORT_SEMANTIC.json","sha256":"8ae06526f71297bd74416a9d6309af595dd3792ae4fb53c87dcff8b46c785e53","source_authority_sha256":"777ab443eaa11206980e63a19980b2c21ecdb4760907e826e8baae60a589eea2"},
-    "stage2":"NOT_AUTHORIZED","stage3_warm18":"PROTECTED_NOT_STARTED"
-  },
+  "schema": 2,
+  "updated_at": "2026-08-21T12:10:00+08:00",
+  "repositories": {"main_repo":"lly8666/SimAdmin-Android","support_repo":"lly8666/qairt-sdk-archive"},
+  "science_execution": {"external_state_authorizes_execution":false,"local_execution_requires":"HANDOFF_LIVE_SCIENCE_VALID"},
+  "operation": {"status":"IDLE","operation_id":null,"note":"Partial-guided tree selector family is closed at Stage1. No Stage2/Stage3 was opened. Next work is fresh causal localization on the unchanged current host best."},
   "current_host_best": {
-    "construction":"block5 PW2 contiguous K8; same eight 192-wide partial MatMuls; weight-balanced Add leaf order [0,5,1,4,2,7,3,6]","frozen_max_gate":0.0003,
-    "full47":{"cosine":0.9999999999856087,"max_abs":0.0004115104675292969,"mean_abs":3.777641009158933e-07,"peak":"warm18 spec_imag[0,18,4]","rmse":3.096381567930808e-06},
-    "gate_pass":false,"identity_migration_evidence":"evidence/rev46/live/20260821-cross-sandbox-authority-reconstruction.md","model_path":"current_host_best/vocos_warm6_rev46_hostbest_weight_balanced.onnx","remaining_relative_max_reduction_pct":27.0978447276941,"sha256":"d2efac4f266b312024b0e0b59feeeffa04716dbeaf54ad4763c7950ac9c3fb23","source_authority_sha256":"a584d4c8e7a05bc36fb06b653c398547b525e15d5a996fc4d7f3dd612db5b774"
+    "construction":"block5 PW2 contiguous K8; same eight 192-wide partial MatMuls; weight-balanced Add leaf order [0,5,1,4,2,7,3,6]",
+    "model_path":"current_host_best/vocos_warm6_rev46_hostbest_weight_balanced.onnx",
+    "source_authority_sha256":"a584d4c8e7a05bc36fb06b653c398547b525e15d5a996fc4d7f3dd612db5b774",
+    "sha256":"d2efac4f266b312024b0e0b59feeeffa04716dbeaf54ad4763c7950ac9c3fb23",
+    "identity_migration_evidence":"evidence/rev46/live/20260821-cross-sandbox-authority-reconstruction.md",
+    "full47":{"max_abs":0.0004115104675292969,"mean_abs":3.777641009158933e-7,"rmse":3.096381567930808e-6,"cosine":0.9999999999856087,"peak":"warm18 spec_imag[0,18,4]"},
+    "frozen_max_gate":0.0003,"remaining_relative_max_reduction_pct":27.0978447276941,"gate_pass":false
   },
-  "exact_next":{"action":"All A/B/C QNN Stage1 units are complete. Score once at the preregistered boundary; do not open Stage2 unless a unique material winner passes.","action_id":"RUN_QNN_STAGE1_A_B_C_ONLY","execution_authorized_now":false},
-  "operation":{"completed_units":["A_local_max","B_local_rmse","C_p90_blockmax"],"expected_units":["A_local_max","B_local_rmse","C_p90_blockmax"],"note":"All three QNN units complete; comparative scoring has not yet been performed.","operation_id":"partial-guided-stage1-qnn-20260821","output_root":"k8_partial_guided_tree_family/stage1","resume_rule":"All expected units are durable complete. Next permitted substep is one preregistered aggregate scoring pass. Do not rerun any candidate.","scoring_forbidden_until_all_units_complete":false,"status":"IN_PROGRESS"},
-  "pointers":{"layout":"LAYOUT.md","operating_rules":"OPERATING_RULES.md","project_context":"PROJECT_MAP.md","restore":"RESTORE_BUNDLE_INDEX.json","task_hierarchy":"TASK_STACK.json"},
-  "repositories":{"main_repo":"lly8666/SimAdmin-Android","support_repo":"lly8666/qairt-sdk-archive"},"schema":2,
-  "science_execution":{"external_state_authorizes_execution":false,"local_execution_requires":"HANDOFF_LIVE_SCIENCE_VALID"},"stable_resume_entry":"lly8666/SimAdmin-Android:CURRENT_REV46_HANDOFF.md","updated_at":"2026-08-21T12:02:00+08:00"
+  "closed_latest": {
+    "id":"k8_partial_guided_tree_family",
+    "decision":"CLOSED_STAGE1_NO_MATERIAL_WINNER",
+    "evidence":"evidence/rev46/live/20260821-partial-guided-tree-stage1-closed.md",
+    "score_report_path":"k8_partial_guided_tree_family/stage1/PARTIAL_GUIDED_STAGE1_QNN_SCORE.json",
+    "score_report_sha256":"1938133a60ffd4d8d62640616f12a46813940c693c8bea17bafb4f33fec72b80",
+    "summary":"A -24.09%, B -25.88%, C -2.98% max improvement vs current-best Stage1; no candidate reached +3%."
+  },
+  "active_experiment": {
+    "id":"current_best_nonperturbing_boundary_localization",
+    "status":"READY_TO_MATERIALIZE_TAPS",
+    "candidate_search":false,
+    "diagnostic_inputs":{"warm18":"localization microscope only","nonwarm_blocks":[1,8,19,32,45]},
+    "planned_taps":["/Add_19_output_0","/Add_22_output_0","/Add_23_output_0","/Add_26_output_0","/Add_27_output_0","/Add_30_output_0","/Add_31_output_0","/LayerNormalization_9_output_0"],
+    "observer_effect_gate":"Untapped vs tapped QNN final spec_real/spec_imag must be bit-exact on every diagnostic input before tap values are interpreted.",
+    "protected":"No new candidate fitting; final device A/B/C and seed 20260814 remain excluded."
+  },
+  "local_artifact_checks": [
+    {"path":"current_host_best/vocos_warm6_rev46_hostbest_weight_balanced.onnx","sha256":"d2efac4f266b312024b0e0b59feeeffa04716dbeaf54ad4763c7950ac9c3fb23"},
+    {"path":"k8_partial_guided_tree_family/stage1/PARTIAL_GUIDED_STAGE1_QNN_SCORE.json","sha256":"1938133a60ffd4d8d62640616f12a46813940c693c8bea17bafb4f33fec72b80"}
+  ],
+  "exact_next": {"action_id":"RUN_CURRENT_BEST_NONPERTURBING_BOUNDARY_LOCALIZATION","action":"Materialize the read-only boundary tap graph, publish IN_PROGRESS, then run warm18 plus frozen non-warm diagnostic blocks. Interpret taps only after bit-exact final-output observer-effect PASS.","execution_authorized_now":false},
+  "pointers":{"task_hierarchy":"TASK_STACK.json","project_context":"PROJECT_MAP.md","operating_rules":"OPERATING_RULES.md","layout":"LAYOUT.md","restore":"RESTORE_BUNDLE_INDEX.json"},
+  "stable_resume_entry":"lly8666/SimAdmin-Android:CURRENT_REV46_HANDOFF.md"
 }
