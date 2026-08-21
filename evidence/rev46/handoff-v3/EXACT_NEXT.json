@@ -1,0 +1,22 @@
+{
+  "action_id": "RUN_QNN_STAGE1_A_B_C_ONLY",
+  "scope": "NOW_ONLY",
+  "allowed": true,
+  "description": "Run QAIRT/QNN2.44 CPU full-graph Stage1 for exactly A_local_max, B_local_rmse and C_p90_blockmax. Do NOT rerun ORT. Compare final spectrum against the current weight-balanced host best on the same frozen 15-block Stage1 and apply the preregistered Stage1 promotion rule. No Stage2 until a unique winner passes.",
+  "expected_result_count_per_candidate": 15,
+  "input_list": "k8_reduce_tree_family/split/stage1_qnn_input_list.txt",
+  "forbidden": [
+    "rerun A/B/C ORT Stage1",
+    "run Stage2 before Stage1 scoring",
+    "run Stage3/warm18",
+    "build APK",
+    "run device",
+    "reopen closed families"
+  ],
+  "must_read_before_execution": [
+    "CURRENT_STATE.json",
+    "NEXT_HORIZON.json",
+    "ANTI_RABBIT_HOLE.md"
+  ],
+  "successor_policy": "After this action, update CURRENT_STATE/EXACT_NEXT/NEXT_HORIZON before any additional science. Do not infer the next command from this file after new results exist."
+}
