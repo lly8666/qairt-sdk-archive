@@ -1,29 +1,32 @@
 {
-  "schema": 1,
-  "live_handoff_id": "rev46-live-20260821-1124-jst",
+  "schema": 2,
   "main_repo": "lly8666/SimAdmin-Android",
   "main_repo_pointer_path": "CURRENT_REV46_HANDOFF.md",
-  "main_repo_pointer_commit": "0ba7df975fac72999070791956d39fe0d08d6789",
+  "main_repo_pointer_commit": "2a6191761ebc4e4e48587aecebd9ffa0caa7c831",
   "canonical_one_line": "接管 MeanVC2 REV46：从主仓库 lly8666/SimAdmin-Android 的 CURRENT_REV46_HANDOFF.md 开始，严格按其中的实时 handoff 完整恢复并继续当前唯一合法任务。",
   "support_repo": "lly8666/qairt-sdk-archive",
   "live_path": "evidence/rev46/handoff-live/",
-  "current_generation": "handoff-v3",
-  "generation_integrity_manifest": "evidence/rev46/handoff-v3/EXTERNAL_INTEGRITY_MANIFEST.json",
-  "generation_integrity_latest_commit": "89cc0f2992ee2621e815adae733cb42968042076",
-  "live_file_latest_commits": {
-    "READ_FIRST.md": "35433cf801c0b2cf572626f200afe2b8a40d5328",
-    "REALTIME_SYNC_PROTOCOL.md": "4891485b203f83f5378905f224b9e07275a4adaa",
-    "LIVE_STATE.json": "cc4508fa5ffdb6d537a26b8fe5cfe94a705966c4",
-    "RESUME_RULES.md": "ee1225e31573a89fa965de46ed7ff682d78dc98d",
-    "LATEST_GENERATION.json": "ccce5bf3cfb759602718d167a4ef1cdd3a5b94e8",
-    "RESTORE_BUNDLE_INDEX.json": "ae472dfbee964c3d29ecec4cc18291b73e146dff",
-    "validate_live_handoff.py": "d5e2111171cc54700f8e19d81236adfdf9318189"
+  "hot_files": {
+    "READ_FIRST.md": "8494b64712b8706f22bdcc15a99f35311346cb08",
+    "LIVE_STATE.json": "1c7c2eefb00b8e6fa3cfb82127ee8e5e4dc433c8",
+    "TASK_STACK.json": "cb71408346e36892b7c39b453c8b75704d6f6a20",
+    "PROJECT_MAP.md": "a3cf8305876b1f6eccb4dbd983cac80b6e4428b5",
+    "OPERATING_RULES.md": "f9a13b46688db64db2ff6b9394001cd814b3c172"
+  },
+  "warm_files": {
+    "LAYOUT.md": "12a3a5f41d47e282c11bd5cb2948051d49ef07ff",
+    "RESTORE_BUNDLE_INDEX.json": "f97d536270e53ddb65465a6e51319264ca3c58e7",
+    "validate_live_handoff.py": "589cbfae518f8830e0736418bf213cb05b304b49"
   },
   "authorization_model": {
-    "external_live_state_restoration_authorized": true,
+    "external_state_restoration_authorized": true,
     "external_science_execution_authorized": false,
-    "local_science_execution_requires": "HANDOFF_V3_VALID",
-    "realtime_preflight_requires": "Before a long science operation, publish LIVE_STATE.operation.status=IN_PROGRESS with expected units and idempotent resume rule."
+    "local_science_execution_requires": "HANDOFF_LIVE_SCIENCE_VALID"
   },
-  "realtime_invariant": "A scientific state transition is not complete until the live handoff is synchronized externally. If results are newer than LIVE_STATE, science must stop and handoff reconciliation takes priority."
+  "invariants": [
+    "No scientific state transition is complete until LIVE_STATE and TASK_STACK are synchronized externally.",
+    "If results are newer than LIVE_STATE, science stops until handoff reconciliation.",
+    "Live files are overwrite-current and size-bounded; Git history/evidence stores history.",
+    "No handoff version number is part of normal navigation."
+  ]
 }
