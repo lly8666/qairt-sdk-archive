@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "scope": "NEXT_HORIZON_2_TO_4_DECISIONS",
+  "north_star": "Pass the frozen full-Vocos host numerical gate under strict exact/equivalent semantics where possible, then complete host structural qualification, then only final target-device qualification and production integration in lly8666/SimAdmin-Android.",
+  "current_gap": {
+    "current_host_best_max_abs": 0.0004115104675292969,
+    "target_max_abs": 0.0003,
+    "relative_reduction_still_needed_pct": 27.0978447276941,
+    "interpretation": "The remaining max gap is large (~27.1%). Tiny sub-material tweaks are not an adequate strategic plan."
+  },
+  "decision_nodes": [
+    {
+      "id": "H1_CURRENT_FAMILY_STAGE1",
+      "now_action": "Run QNN2.44 CPU Stage1 for exactly A_local_max, B_local_rmse, C_p90_blockmax.",
+      "why": "Test whether intermediate partial-guided tree selection transfers to full-graph final-spectrum improvement without using warm18.",
+      "if_pass": "If exactly one preregistered material winner exists, only that winner may open Stage2.",
+      "if_fail": "Close the partial-guided balanced-tree selector family. Do not add more selectors/trees merely because the search space is easy to enumerate."
+    },
+    {
+      "id": "H2_WINNER_ONLY_STAGE2",
+      "condition": "Only if H1 yields a unique material winner.",
+      "action": "Run winner-only Stage2 on the frozen validation blocks and apply the preregistered non-regression/material rule.",
+      "if_pass": "Winner may open Stage3 challenge.",
+      "if_fail": "Close this reduction-tree candidate/family; do not rescue it by tuning against Stage2."
+    },
+    {
+      "id": "H3_STAGE3_CHALLENGE_AND_FULL47",
+      "condition": "Only if H2 passes.",
+      "action": "Run the unique winner on Stage3 including warm18, then assemble full47 from the three preregistered stages without rerunning already-scored blocks.",
+      "if_material_improvement_and_gate_pass": "Promote and immediately leave search mode for Phase B host qualification.",
+      "if_material_improvement_but_gate_still_fails": "Promote the new best, then perform a fresh nonperturbing localization/conditioning diagnostic BEFORE proposing another family. Do not simply keep enumerating reduction trees.",
+      "if_no_material_improvement": "Close the current tree mechanism."
+    },
+    {
+      "id": "H4_AFTER_TREE_MECHANISM",
+      "condition": "Reached if current partial-guided tree mechanism closes or a promoted tree still leaves max_abs > 3e-4.",
+      "action": "Run one fresh causal diagnostic phase on the then-current host best to identify a genuinely distinct remaining intrinsic source or downstream amplification mechanism. Any new exact/equivalent family must be justified by that evidence and must state plausible leverage toward the remaining max gap.",
+      "do_not_reopen": [
+        "block5 K2/K4/K16 width search",
+        "block5 channel permutation family",
+        "orig+K8/redundant multipath averaging",
+        "K8-conditioned block6 activation topology family",
+        "block6×block7 activation interaction",
+        "final-head rewrites",
+        "block7 PW2 as primary-source rewrite"
+      ],
+      "route_switch": "After the current tree mechanism, allow at most ONE further causally distinct exact/equivalent family unless new evidence materially changes the causal model. If no such mechanism is supported, or that distinct family fails the material-improvement gate, declare the exact/equivalent route causally exhausted and activate the preserved learned-residual / wider-student / surrogate contingency instead of continuing micro-tuning."
+    }
+  ],
+  "after_host_numerical_gate": [
+    "cold4 semantic/numerical qualification",
+    "full warm47 aggregate confirmation",
+    "graph-contract audit",
+    "QAIRT converter + model-lib",
+    "QNN CPU + Saver/compiled structural evidence",
+    "ownership/fusion/no-fallback invariants",
+    "nonfinal heldout/stress",
+    "only then minimal strict APK/device A/B/C final truth in lly8666/SimAdmin-Android"
+  ],
+  "strategic_rule": "EXACT_NEXT controls the next command; NEXT_HORIZON controls why that command exists and where to go after each possible result; ROADMAP controls the project north star. None may silently override the others."
+}
