@@ -5,27 +5,31 @@
   "main_repo_pointer_commit": "80b7816ebe58f579725fe002c252b3e2dea7d5d3",
   "support_repo": "lly8666/qairt-sdk-archive",
   "support_path": "evidence/rev46/handoff-v3/",
-  "file_creation_commits": {
+  "file_creation_or_latest_commits": {
     "READ_FIRST.md": "baec70b9f3c095a31026f997a079973dd1866cfd",
     "REPOSITORY_MAP.md": "935ad8ab24dc841537fe51bce3e624dc1545aadf",
     "PROJECT_GLOBAL_CONTEXT.md": "8ed41cf2dee764cd35f286a19dc96dbf9521bd40",
     "ROADMAP_AND_DECISION_TREE.md": "ab27f19d9ef9ddc9aca062ef718cda9de72c57dd",
     "NEXT_HORIZON.json": "c026be6be76b56627c39d29ec1cf33df33b7646e",
     "ANTI_RABBIT_HOLE.md": "a1620206bf3a884dd89f9a002c23b4a599d5694b",
-    "EXTERNAL_RESUME_SNAPSHOT.json": "b702548d70163cb8fe530ada3c4e9e696443136a",
-    "CURRENT_STATE.json": "99cc29c38a101dea16a9c1fc8d29cbb1d55acba0",
+    "EXTERNAL_RESUME_SNAPSHOT.json": "22d153b387c0559a69a9da015d0b2342109668e9",
+    "CURRENT_STATE.json": "d6e0bda76979b954b0402f1f100a653e59c4283e",
     "EXACT_NEXT.json": "8f961c47c42bbb11a915c0319e87e7f533287af0",
     "CANDIDATE_MANIFEST.json": "301e06426b5da6d5cf679abba4c105696ff9f1a7",
     "ENVIRONMENT_AND_LAYOUT.md": "ee86e869ef8daa1161815a7c1e8cd60d3bcd7327",
     "RECOVERY_ANCHORS.md": "a222b87f3b56dc1613cd4b572d2b79176aac90f9",
     "INVALID_AND_CLOSED_SUMMARY.md": "e43cc1ac138d391305b7346502258a67bf22ec47",
     "EXPERIMENT_LEDGER.jsonl": "e5cf108d127e75bcbd93cf44357cb2677c33551f",
-    "validate_handoff.py": "c0e644baa5f6c58e293d7eac66646e8e2f7839f5",
+    "validate_handoff.py": "d45f263fd92c59cf5170caafa69e385a83782082",
     "RESTORE_FROM_EXTERNAL_SNAPSHOT.md": "cb6a7d440c31763d62d068de04df776b60275b49",
     "TEST_AGENT_PROTOCOL.md": "d827707f52376361d1a7622b906fdbc91647330e",
     "TEST_AGENT_PROMPT.md": "25e7494bb7b116dc837aea864bea5c007a58f5c6"
   },
-  "known_local_validator_sha256": "50e5a0b99e79a62fd33a75f998e94b59a26e71d3a9a7f553e42d3639f688f1ee",
+  "known_local_validator_sha256": "4d7981c2bfff43807d537ae7fe6f354f0e4bc7f715cc47b9f37637b278cf7c42",
   "expected_local_validator_marker": "HANDOFF_V3_VALID",
+  "integrity_model": {
+    "science_state": "Local validator locks model/candidate/current-best SHA, prereg/proxy/ORT evidence identities, stage boundary, repo authority and exact-next.",
+    "published_documents": "This external integrity manifest locks the GitHub publication lineage for human-readable handoff documents."
+  },
   "science_resume_rule": "External package is sufficient for exact restoration/audit. Science execution is not authorized until local artifacts/environment are reconstructed and the local v3 validator passes."
 }
