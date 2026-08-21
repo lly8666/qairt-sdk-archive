@@ -1,0 +1,7 @@
+{"id": "k8_contiguous", "notes": "robust Add22 local improvement; downstream orientation issue", "result": "full47 max 0.0004279613494873047", "status": "SUPERSEDED"}
+{"id": "ensemble_orig_k8", "notes": "do not reopen", "result": "validation max ~0.000500202", "status": "CLOSED_VALIDATION_FAIL"}
+{"id": "k8_permutation_v1", "notes": "do not reopen", "result": "stride16pair Stage2 +20.94% max regression", "status": "CLOSED_STAGE2_FAIL"}
+{"id": "k8_downstream_b6_main_effect", "notes": "not promoted", "result": "b6 reassoc warm18 0.000442505", "status": "CLOSED_STAGE3_FAIL"}
+{"id": "k8_b6_b7_interaction", "notes": "do not reopen", "result": "no >=3% main effect", "status": "CLOSED_STAGE1_FAIL"}
+{"id": "k8_reduction_tree_weight_balanced", "notes": "current host best", "result": "full47 max 0.0004115104675292969", "status": "PROMOTED_HOST_BEST"}
+{"id": "k8_partial_guided_tree_family", "notes": "exact next is QNN Stage1 A/B/C only", "result": "A/B/C ORT Stage1 PASS; QNN Stage1 not started", "status": "ACTIVE"}
