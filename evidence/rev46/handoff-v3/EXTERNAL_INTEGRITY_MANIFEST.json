@@ -2,7 +2,7 @@
   "schema": 1,
   "handoff_id": "rev46-handoff-v3-0001-cross-sandbox-horizon",
   "main_repo": "lly8666/SimAdmin-Android",
-  "main_repo_pointer_commit": "31c9cc9e1ea667278ea8d93349a13d7bcbc5c10d",
+  "main_repo_pointer_commit": "0ba7df975fac72999070791956d39fe0d08d6789",
   "stable_live_entry": "lly8666/qairt-sdk-archive:evidence/rev46/handoff-live/READ_FIRST.md",
   "support_repo": "lly8666/qairt-sdk-archive",
   "support_path": "evidence/rev46/handoff-v3/",
