@@ -46,7 +46,7 @@
     "restore_document_commit": "cb6a7d440c31763d62d068de04df776b60275b49"
   },
   "current_artifacts": [
-    {"id":"current_host_best","path":"current_host_best/vocos_warm6_rev46_hostbest_weight_balanced.onnx","sha256":"a584d4c8e7a05bc36fb06b653c398547b525e15d5a996fc4d7f3dd612db5b774"},
+    {"id":"current_host_best","path":"current_host_best/vocos_warm6_rev46_hostbest_weight_balanced.onnx","sha256":"d2efac4f266b312024b0e0b59feeeffa04716dbeaf54ad4763c7950ac9c3fb23"},
     {"id":"A_local_max","path":"k8_partial_guided_tree_family/models/A_local_max.onnx","sha256":"550e82dea9548ed7ec9a2580f493ccaf656b52de578351609ec778adb831782d"},
     {"id":"B_local_rmse","path":"k8_partial_guided_tree_family/models/B_local_rmse.onnx","sha256":"eb6a9f3787216031de9f94165ad6347857e9364ad782060aa7692df5dafcbde5"},
     {"id":"C_p90_blockmax","path":"k8_partial_guided_tree_family/models/C_p90_blockmax.onnx","sha256":"bbeb2b7a38ed4e30b407268d36fa8b0708dc3899ccfcefb8639bc5187f00306a"},
