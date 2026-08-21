@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "experiment_id": "k8_partial_guided_tree_family_stage1_final_qnn",
+  "family_root": "k8_partial_guided_tree_family",
+  "candidate_manifest_path": "k8_partial_guided_tree_family/models/MANIFEST.json",
+  "candidate_manifest_sha256": "ee78b259afbe0f98fae897f90854329787c1094a8f44c9c1e2ce6bdcc1e72846",
+  "prereg_path": "k8_partial_guided_tree_family/PREREG.json",
+  "prereg_sha256": "b2a98ff77aab19cbb5a474ccd79c70bf200310a0168f238175507ace191395d2",
+  "proxy_rank_path": "k8_partial_guided_tree_family/PROXY_RANK.json",
+  "proxy_rank_sha256": "c734fe95e1389f77b7871bcd50ff13054149e26b01a105ffae7d32ff8302dfd7",
+  "stage1_blocks": [1,8,9,10,12,13,19,24,28,32,33,37,38,42,45],
+  "stage1_ort_semantic_path": "k8_partial_guided_tree_family/stage1/ORT_SEMANTIC.json",
+  "stage1_ort_semantic_sha256": "777ab443eaa11206980e63a19980b2c21ecdb4760907e826e8baae60a589eea2",
+  "stage1_ort_all_pass": true,
+  "qnn_stage1_started": false,
+  "warm18_seen_by_candidates": false,
+  "candidates": [
+    {"id":"A_local_max","model_path":"k8_partial_guided_tree_family/models/A_local_max.onnx","sha256":"550e82dea9548ed7ec9a2580f493ccaf656b52de578351609ec778adb831782d"},
+    {"id":"B_local_rmse","model_path":"k8_partial_guided_tree_family/models/B_local_rmse.onnx","sha256":"eb6a9f3787216031de9f94165ad6347857e9364ad782060aa7692df5dafcbde5"},
+    {"id":"C_p90_blockmax","model_path":"k8_partial_guided_tree_family/models/C_p90_blockmax.onnx","sha256":"bbeb2b7a38ed4e30b407268d36fa8b0708dc3899ccfcefb8639bc5187f00306a"}
+  ],
+  "scientific_boundary": "A/B/C were selected using intermediate Add22 proxy only. Final spectrum and warm18 were not used for candidate selection."
+}
