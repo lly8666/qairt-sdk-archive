@@ -38,6 +38,13 @@
     "layout": "evidence/rev46/handoff-live/LAYOUT.md",
     "validator": "evidence/rev46/handoff-live/validate_live_handoff.py"
   },
+  "cold_validated_recovery_reference": {
+    "purpose": "Immutable reconstruction detail only; never use as current NOW/strategy authority.",
+    "snapshot_path": "evidence/rev46/handoff-v3/EXTERNAL_RESUME_SNAPSHOT.json",
+    "snapshot_latest_commit": "22d153b387c0559a69a9da015d0b2342109668e9",
+    "restore_document_path": "evidence/rev46/handoff-v3/RESTORE_FROM_EXTERNAL_SNAPSHOT.md",
+    "restore_document_commit": "cb6a7d440c31763d62d068de04df776b60275b49"
+  },
   "current_artifacts": [
     {"id":"current_host_best","path":"current_host_best/vocos_warm6_rev46_hostbest_weight_balanced.onnx","sha256":"a584d4c8e7a05bc36fb06b653c398547b525e15d5a996fc4d7f3dd612db5b774"},
     {"id":"A_local_max","path":"k8_partial_guided_tree_family/models/A_local_max.onnx","sha256":"550e82dea9548ed7ec9a2580f493ccaf656b52de578351609ec778adb831782d"},
