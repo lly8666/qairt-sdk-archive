@@ -1,0 +1,143 @@
+{
+  "schema": 3,
+  "handoff_id": "rev46-handoff-v3-0001-cross-sandbox-horizon",
+  "purpose": "Cross-sandbox immutable fallback snapshot. Sufficient for exact restoration/audit; NOT sufficient by itself to authorize science execution.",
+  "authority": {
+    "main_repo": "lly8666/SimAdmin-Android",
+    "main_repo_role": "MeanVC2 Android production/runtime/APK/device/release authority",
+    "support_repo": "lly8666/qairt-sdk-archive",
+    "support_repo_role": "QAIRT/ORT host science, evidence, recovery and handoff QA",
+    "sandbox_absent_policy": "Use this external snapshot to reconstruct exact state. Science remains BLOCKED until the local environment/artifacts are restored and local validate_handoff.py prints HANDOFF_V3_VALID."
+  },
+  "toolchain": {
+    "qairt_qnn": "2.44.0 / 2.44.0.260225",
+    "ort": "1.27.0",
+    "numpy": "1.26.4",
+    "onnx": "1.17.0",
+    "foundation_sha256": "44753f03f7b2c0a21ff751258137a3673321bbd10aaa8817ebf1f00badb17b22",
+    "rev25_warm6_sha256": "e2b7ab608a6b37a6dd9896589719cab446edf95287f59dfc7b5693da6ec98f6c",
+    "warm18_qnn_input_sha256": "5b425b7e31a80d33dfb135059593549781fdccd56ff1691f1965255d888b5dea"
+  },
+  "frozen_gates": {
+    "max_abs": 0.0003,
+    "mean_abs": 0.00001,
+    "rmse": 0.00002,
+    "cosine_min": 0.99999,
+    "material_improvement_pct": 3.0,
+    "qnn_cpu_is_diagnostic_not_htp_truth": true,
+    "apk_device": "BLOCKED",
+    "forbidden_fit_inputs": ["final device A/B/C", "seed 20260814"]
+  },
+  "current_host_best": {
+    "construction": "block5 PW2 contiguous K8 with the same eight 192-wide partial MatMuls and static weight-balanced reduction leaf order [0,5,1,4,2,7,3,6]",
+    "model_path": "current_host_best/vocos_warm6_rev46_hostbest_weight_balanced.onnx",
+    "model_sha256": "a584d4c8e7a05bc36fb06b653c398547b525e15d5a996fc4d7f3dd612db5b774",
+    "full47_qnn_vs_ort": {
+      "max_abs": 0.0004115104675292969,
+      "mean_abs": 3.777641009158933e-7,
+      "rmse": 3.096381567930808e-6,
+      "cosine": 0.9999999999856087,
+      "peak": "warm18 spec_imag[0,18,4]"
+    },
+    "semantic_vs_decanonicalized": {
+      "max_abs": 0.00010180473327636719,
+      "mean_abs": 1.8335789275319064e-7,
+      "rmse": 1.450704754473784e-6,
+      "cosine": 0.9999999999969523,
+      "pass": true
+    },
+    "gate_pass": false,
+    "failed_metric": "max_abs",
+    "remaining_relative_max_reduction_pct": 27.0978447276941
+  },
+  "active_experiment": {
+    "id": "k8_partial_guided_tree_family_stage1_final_qnn",
+    "hypothesis": "With the same eight contiguous-K8 partial MatMuls fixed, reduction association conditions the QNN residual direction; balanced trees selected only from nonperturbing intermediate Add22 partial-QNN proxy error may improve full-graph final-spectrum error without fitting warm18.",
+    "candidate_manifest_path": "k8_partial_guided_tree_family/models/MANIFEST.json",
+    "candidate_manifest_sha256": "ee78b259afbe0f98fae897f90854329787c1094a8f44c9c1e2ce6bdcc1e72846",
+    "prereg_path": "k8_partial_guided_tree_family/PREREG.json",
+    "prereg_sha256": "b2a98ff77aab19cbb5a474ccd79c70bf200310a0168f238175507ace191395d2",
+    "proxy_rank_path": "k8_partial_guided_tree_family/PROXY_RANK.json",
+    "proxy_rank_sha256": "c734fe95e1389f77b7871bcd50ff13054149e26b01a105ffae7d32ff8302dfd7",
+    "stage1_blocks": [1,8,9,10,12,13,19,24,28,32,33,37,38,42,45],
+    "stage1_ort_semantic_sha256": "777ab443eaa11206980e63a19980b2c21ecdb4760907e826e8baae60a589eea2",
+    "stage1_ort_all_pass": true,
+    "qnn_stage1_started": false,
+    "warm18_seen_by_candidates": false,
+    "status": "ORT_STAGE1_COMPLETE_QNN_STAGE1_NOT_STARTED",
+    "candidates": [
+      {
+        "id": "A_local_max",
+        "model_path": "k8_partial_guided_tree_family/models/A_local_max.onnx",
+        "sha256": "550e82dea9548ed7ec9a2580f493ccaf656b52de578351609ec778adb831782d",
+        "ort_stage1": {"max_abs": 0.0001010894775390625, "rmse": 1.5290603252481909e-6, "cosine": 0.9999999999968134, "pass": true}
+      },
+      {
+        "id": "B_local_rmse",
+        "model_path": "k8_partial_guided_tree_family/models/B_local_rmse.onnx",
+        "sha256": "eb6a9f3787216031de9f94165ad6347857e9364ad782060aa7692df5dafcbde5",
+        "ort_stage1": {"max_abs": 0.00007534027099609375, "rmse": 1.5120973844454054e-6, "cosine": 0.9999999999969127, "pass": true}
+      },
+      {
+        "id": "C_p90_blockmax",
+        "model_path": "k8_partial_guided_tree_family/models/C_p90_blockmax.onnx",
+        "sha256": "bbeb2b7a38ed4e30b407268d36fa8b0708dc3899ccfcefb8639bc5187f00306a",
+        "ort_stage1": {"max_abs": 0.00009250640869140625, "rmse": 1.4896075592707978e-6, "cosine": 0.9999999999969632, "pass": true}
+      }
+    ]
+  },
+  "exact_next": {
+    "action_id": "RUN_QNN_STAGE1_A_B_C_ONLY",
+    "allowed": true,
+    "description": "Run QAIRT/QNN2.44 CPU full-graph Stage1 for exactly A_local_max, B_local_rmse and C_p90_blockmax on the frozen 15-block Stage1. Do not rerun ORT. Compare final spectrum against the current weight-balanced host best and apply the preregistered Stage1 promotion rule. No Stage2 until a unique winner passes.",
+    "expected_result_count_per_candidate": 15,
+    "input_list": "k8_reduce_tree_family/split/stage1_qnn_input_list.txt",
+    "forbidden": ["rerun A/B/C ORT Stage1", "run Stage2 before Stage1 scoring", "run Stage3/warm18", "build APK", "run device", "reopen closed families"]
+  },
+  "next_horizon_summary": {
+    "H1": "A/B/C QNN Stage1; if no unique material winner, close the partial-guided tree selector mechanism instead of adding variants.",
+    "H2": "Unique winner only may run Stage2 validation; failure closes the candidate/family, no tuning against Stage2.",
+    "H3": "Stage2 winner only may run Stage3 including warm18, then assemble full47 from staged outputs. If gate passes, leave search mode for host qualification. If materially better but still above 3e-4, promote then do fresh causal localization before any new family.",
+    "H4": "After current tree mechanism, perform one fresh causal diagnostic. By default allow at most one further causally distinct exact/equivalent family; if no credible mechanism or no material progress, switch to preserved learned-residual / wider-student / surrogate contingency rather than continuing micro-tuning."
+  },
+  "layout_contract": {
+    "ort_warm_input_logical": "[1,80,6]",
+    "qnn_warm_input": "use the prepared physical raw buffers referenced by the frozen QNN input list; do not reinterpret as ORT raw tensors",
+    "qnn_full_vocos_output_physical": "[1,6,321]",
+    "ort_output_logical": "[1,321,6]",
+    "qnn_score_transform": "reshape QNN output to [1,6,321], then transpose (0,2,1) before scoring",
+    "current_stage1_input_list": "k8_reduce_tree_family/split/stage1_qnn_input_list.txt",
+    "rule": "do not regenerate current Stage1 inputs"
+  },
+  "invalid_non_authoritative": [
+    "recovery-only missing-c15 Horner run with max ~0.0007061958 is INVALID",
+    "old full47 semantic value ~24.879 from mismatched provenance is INVALID",
+    "extracted-suffix propagation metrics are NON-AUTHORITATIVE because cut-graph ORT reference drifted ~6.58e-5",
+    "synthetic Holdout A is off-manifold stress only, not a promotion judge; Holdout B remains sealed/unexecuted",
+    "QNN CPU is diagnostic/ranking evidence, not HTP numerical truth",
+    "focused block4 QAIRT MATMUL_TO_FC KeyError is a host converter limitation, not proof of device HTP capability"
+  ],
+  "closed_without_new_causal_evidence": [
+    "bootstrap-contaminated activation/Q16 negatives",
+    "final-head rewrites",
+    "block7 PW2 as primary intrinsic source",
+    "block5 K2/K4/K16 width variants relative to K8",
+    "block5 channel permutation family",
+    "orig+K8/redundant multipath averaging",
+    "K8-conditioned block6 activation topology after Stage3 failure",
+    "block6×block7 activation interaction"
+  ],
+  "recovery_anchors": {
+    "qairt_foundation": {"release": "20260820.1", "asset": "qairt244-native-host-foundation-v4.tar.gz", "sha256": "44753f03f7b2c0a21ff751258137a3673321bbd10aaa8817ebf1f00badb17b22"},
+    "focused_payload": {"release": "20260820.1", "asset": "rev46-block4-focused-payload-v2.tar.gz", "sha256": "42493454ece1060a5100f28e5bf35a15d09bb48f8b46f82c5b69a12fd0f6a1c9"},
+    "ort127_runtime": {"workflow_commit": "e636bbe153b40d4f58c40cfd66657f11220af316", "run": "32380173792", "artifact": "9410680465", "note": "artifact may expire; rerun exact pinned workflow rather than changing versions"},
+    "authority_assets": {"source_release": "20260820.2", "source_apk_sha256": "f0041f9994413b3fac496612bd15e3da922c4b6ff3712da51d81326b717dc86c", "staging_workflow_commit": "7a091c6a3e546c9e26f42fe0a3e11dc39d7cd37b", "run": "32429883214", "required_rev25_warm6_sha256": "e2b7ab608a6b37a6dd9896589719cab446edf95287f59dfc7b5693da6ec98f6c"},
+    "recovery_fingerprints": {"warm18_qnn_input_sha256": "5b425b7e31a80d33dfb135059593549781fdccd56ff1691f1965255d888b5dea", "contiguous_k8_warm18_max_abs": 0.0004279613494873047, "current_host_best_full47_max_abs": 0.0004115104675292969}
+  },
+  "validator": {
+    "local_expected_marker": "HANDOFF_V3_VALID",
+    "validator_sha256": "50e5a0b99e79a62fd33a75f998e94b59a26e71d3a9a7f553e42d3639f688f1ee",
+    "expected_state": ["main_repo=lly8666/SimAdmin-Android", "active=k8_partial_guided_tree_family_stage1_final_qnn", "exact_next=RUN_QNN_STAGE1_A_B_C_ONLY", "remaining_max_gap_pct=27.097845"],
+    "execution_rule": "External snapshot can be audited without the local validator. Actual science execution remains blocked until a reconstructed local handoff returns HANDOFF_V3_VALID."
+  }
+}
