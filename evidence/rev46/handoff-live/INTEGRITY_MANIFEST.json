@@ -9,7 +9,7 @@
   "live_path": "evidence/rev46/handoff-live/",
   "current_generation": "handoff-v3",
   "generation_integrity_manifest": "evidence/rev46/handoff-v3/EXTERNAL_INTEGRITY_MANIFEST.json",
-  "generation_integrity_latest_commit": "ac65ea17993216e2cedcf9159336b89c16cf197f",
+  "generation_integrity_latest_commit": "89cc0f2992ee2621e815adae733cb42968042076",
   "live_file_latest_commits": {
     "READ_FIRST.md": "35433cf801c0b2cf572626f200afe2b8a40d5328",
     "REALTIME_SYNC_PROTOCOL.md": "4891485b203f83f5378905f224b9e07275a4adaa",
