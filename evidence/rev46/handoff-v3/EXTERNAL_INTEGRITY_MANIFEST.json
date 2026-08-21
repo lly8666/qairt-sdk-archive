@@ -2,7 +2,8 @@
   "schema": 1,
   "handoff_id": "rev46-handoff-v3-0001-cross-sandbox-horizon",
   "main_repo": "lly8666/SimAdmin-Android",
-  "main_repo_pointer_commit": "80b7816ebe58f579725fe002c252b3e2dea7d5d3",
+  "main_repo_pointer_commit": "31c9cc9e1ea667278ea8d93349a13d7bcbc5c10d",
+  "stable_live_entry": "lly8666/qairt-sdk-archive:evidence/rev46/handoff-live/READ_FIRST.md",
   "support_repo": "lly8666/qairt-sdk-archive",
   "support_path": "evidence/rev46/handoff-v3/",
   "file_creation_or_latest_commits": {
@@ -14,7 +15,7 @@
     "ANTI_RABBIT_HOLE.md": "a1620206bf3a884dd89f9a002c23b4a599d5694b",
     "EXTERNAL_RESUME_SNAPSHOT.json": "22d153b387c0559a69a9da015d0b2342109668e9",
     "CURRENT_STATE.json": "d6e0bda76979b954b0402f1f100a653e59c4283e",
-    "EXACT_NEXT.json": "8f961c47c42bbb11a915c0319e87e7f533287af0",
+    "EXACT_NEXT.json": "0c32de28d8c4cd9a8ab3b8c2b1aec223b685aca9",
     "CANDIDATE_MANIFEST.json": "301e06426b5da6d5cf679abba4c105696ff9f1a7",
     "ENVIRONMENT_AND_LAYOUT.md": "ee86e869ef8daa1161815a7c1e8cd60d3bcd7327",
     "RECOVERY_ANCHORS.md": "a222b87f3b56dc1613cd4b572d2b79176aac90f9",
@@ -29,7 +30,7 @@
   "expected_local_validator_marker": "HANDOFF_V3_VALID",
   "integrity_model": {
     "science_state": "Local validator locks model/candidate/current-best SHA, prereg/proxy/ORT evidence identities, stage boundary, repo authority and exact-next.",
-    "published_documents": "This external integrity manifest locks the GitHub publication lineage for human-readable handoff documents."
+    "published_documents": "This external integrity manifest locks the GitHub publication lineage for the coherent v3 generation. The stable live handoff has its own integrity manifest."
   },
   "science_resume_rule": "External package is sufficient for exact restoration/audit. Science execution is not authorized until local artifacts/environment are reconstructed and the local v3 validator passes."
 }
