@@ -1,0 +1,76 @@
+{
+  "schema": 1,
+  "live_handoff_id": "rev46-live-20260821-1124-jst",
+  "updated_at": "2026-08-21T11:24:00+09:00",
+  "repositories": {
+    "main_repo": "lly8666/SimAdmin-Android",
+    "main_repo_role": "MeanVC2 Android production/runtime/APK/device/release authority",
+    "support_repo": "lly8666/qairt-sdk-archive",
+    "support_repo_role": "QAIRT/ORT host science, evidence, recovery and handoff QA"
+  },
+  "handoff_generation": {
+    "name": "handoff-v3",
+    "path": "evidence/rev46/handoff-v3/",
+    "external_snapshot": "evidence/rev46/handoff-v3/EXTERNAL_RESUME_SNAPSHOT.json",
+    "test_report": "evidence/rev46/handoff-tests/20260821-fresh-agent-handoff-v3-report.md",
+    "fresh_agent_score": 98
+  },
+  "science_execution": {
+    "external_snapshot_science_execution_authorized": false,
+    "local_execution_authorized_only_if": "HANDOFF_V3_VALID",
+    "reason": "External state is sufficient for exact restoration/audit but not execution. Restore exact local artifacts/environment and pass the local validator first."
+  },
+  "operation": {
+    "status": "IDLE",
+    "operation_id": null,
+    "note": "No QNN Stage1 candidate execution has started. Before starting it, Transaction A in REALTIME_SYNC_PROTOCOL.md must change this to IN_PROGRESS and publish the expected units/resume rule."
+  },
+  "current_host_best": {
+    "construction": "block5 PW2 contiguous K8, same eight 192-wide partial MatMuls, static weight-balanced Add reduction leaf order [0,5,1,4,2,7,3,6]",
+    "model_path": "current_host_best/vocos_warm6_rev46_hostbest_weight_balanced.onnx",
+    "sha256": "a584d4c8e7a05bc36fb06b653c398547b525e15d5a996fc4d7f3dd612db5b774",
+    "full47": {
+      "max_abs": 0.0004115104675292969,
+      "mean_abs": 3.777641009158933e-7,
+      "rmse": 3.096381567930808e-6,
+      "cosine": 0.9999999999856087,
+      "peak": "warm18 spec_imag[0,18,4]"
+    },
+    "frozen_max_gate": 0.0003,
+    "remaining_relative_max_reduction_pct": 27.0978447276941,
+    "gate_pass": false
+  },
+  "active_experiment": {
+    "id": "k8_partial_guided_tree_family_stage1_final_qnn",
+    "hypothesis": "With the same eight contiguous-K8 partial MatMuls fixed, reduction association changes QNN residual direction; intermediate nonperturbing Add22 proxy-selected balanced trees may transfer to final-spectrum improvement without fitting warm18.",
+    "stage1_blocks": [1,8,9,10,12,13,19,24,28,32,33,37,38,42,45],
+    "ort_stage1": "COMPLETE_ALL_PASS",
+    "qnn_stage1": "NOT_STARTED",
+    "stage2": "NOT_AUTHORIZED",
+    "stage3_warm18": "PROTECTED_NOT_STARTED",
+    "candidates": [
+      {"id":"A_local_max","sha256":"550e82dea9548ed7ec9a2580f493ccaf656b52de578351609ec778adb831782d"},
+      {"id":"B_local_rmse","sha256":"eb6a9f3787216031de9f94165ad6347857e9364ad782060aa7692df5dafcbde5"},
+      {"id":"C_p90_blockmax","sha256":"bbeb2b7a38ed4e30b407268d36fa8b0708dc3899ccfcefb8639bc5187f00306a"}
+    ]
+  },
+  "exact_next": {
+    "action_id": "RUN_QNN_STAGE1_A_B_C_ONLY",
+    "logical_next_action": "After local reconstruction and HANDOFF_V3_VALID, run QNN2.44 CPU full-graph Stage1 for exactly A_local_max, B_local_rmse and C_p90_blockmax on the frozen 15-block Stage1. Do not rerun ORT. Score only after all three complete and apply the preregistered promotion rule.",
+    "execution_authorized_now": false,
+    "execution_precondition": "local validator must print HANDOFF_V3_VALID",
+    "before_execution_required": "Publish an IN_PROGRESS live operation transaction with expected units and idempotent resume rule."
+  },
+  "next_horizon": {
+    "H1": "Run A/B/C QNN Stage1 after validation. No unique material winner => close current partial-guided tree mechanism; do not add trees/selectors.",
+    "H2": "Exactly one H1 material winner => winner-only Stage2. Failure closes family; no rescue tuning.",
+    "H3": "Stage2 winner-only Stage3 including warm18, then assemble full47 without reruns. Gate pass => host qualification; material-but-still-fail => promote then fresh causal localization; no material => close mechanism.",
+    "H4": "After tree mechanism, fresh causal diagnostic. By default at most one further causally distinct exact/equivalent family; if no material progress, switch to learned-residual / wider-student / qualified-surrogate contingency."
+  },
+  "anti_rabbit_hole": {
+    "current_mechanism_bounded": true,
+    "remaining_gap_is_large": true,
+    "rule": "Do not continue reduction-tree enumeration after closure. Sub-material micro-tuning is not an adequate plan for the remaining ~27.1% max gap."
+  },
+  "stable_resume_entry": "lly8666/SimAdmin-Android:CURRENT_REV46_HANDOFF.md"
+}
