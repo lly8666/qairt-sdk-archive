@@ -1,20 +1,20 @@
 {
   "schema":2,
-  "updated_at":"2026-08-21T12:29:00+08:00",
+  "updated_at":"2026-08-21T12:34:00+08:00",
   "repositories":{"main_repo":"lly8666/SimAdmin-Android","support_repo":"lly8666/qairt-sdk-archive"},
   "science_execution":{"external_state_authorizes_execution":false,"local_execution_requires":"HANDOFF_LIVE_SCIENCE_VALID"},
   "operation":{
-    "status":"IN_PROGRESS",
-    "operation_id":"current-best-boundary-localization-observer-20260821",
+    "status":"IDLE",
+    "operation_id":null,
     "expected_units":["untapped_reference","tapped_qnn"],
-    "completed_units":["untapped_reference"],
+    "completed_units":["untapped_reference","tapped_qnn"],
     "output_root":"current_best_localization",
-    "resume_rule":"untapped_reference is complete only when Result_5 spec_real/spec_imag exist. tapped_qnn is complete only when Result_5 spec_real/spec_imag and tap outputs exist. Skip a completed unit; preserve converter/model-lib for an incomplete tapped unit. Do not interpret any tap values until both units complete and final outputs pass bit-exact observer-effect comparison.",
+    "resume_rule":"Observer pair is complete. Do not rerun untapped/tapped QNN unless artifacts are lost or integrity fails. Tap interpretation is authorized only because all 12 final outputs were bit-exact.",
     "unit_completion_markers":[
       {"unit":"untapped_reference","path":"current_best_localization/untapped_qnn/output/Result_5/spec_imag.raw"},
       {"unit":"tapped_qnn","path":"current_best_localization/tapped_qnn/output/Result_5/spec_imag.raw"}
     ],
-    "tap_interpretation_forbidden_until_observer_pass":true
+    "tap_interpretation_forbidden_until_observer_pass":false
   },
   "current_host_best":{
     "construction":"block5 PW2 contiguous K8; same eight 192-wide partial MatMuls; weight-balanced Add leaf order [0,5,1,4,2,7,3,6]",
@@ -27,20 +27,24 @@
   "closed_latest":{"id":"k8_partial_guided_tree_family","decision":"CLOSED_STAGE1_NO_MATERIAL_WINNER","evidence":"evidence/rev46/live/20260821-partial-guided-tree-stage1-closed.md","score_report_path":"k8_partial_guided_tree_family/stage1/PARTIAL_GUIDED_STAGE1_QNN_SCORE.json","score_report_sha256":"1938133a60ffd4d8d62640616f12a46813940c693c8bea17bafb4f33fec72b80"},
   "active_experiment":{
     "id":"current_best_nonperturbing_boundary_localization",
-    "status":"OBSERVER_EFFECT_IN_PROGRESS",
+    "status":"OBSERVER_EFFECT_PASS_TAP_INTERPRETATION_READY",
     "candidate_search":false,
     "diagnostic_blocks":[18,1,8,19,32,45],
     "tap_model_path":"current_best_localization/current_best_boundary_taps.onnx",
     "tap_model_sha256":"916a05ebf61e7a90082ababcabe11d6c65d73003ab9f84c1908173b433e03f95",
+    "observer_report_path":"current_best_localization/OBSERVER_EFFECT_REPORT.json",
+    "observer_report_sha256":"a0343850520f5b6757ec3ec9228efacf5207f1e782ff989cce8b0da41b29cddc",
+    "observer_effect_pass":true,
     "planned_taps":["/Add_19_output_0","/Add_22_output_0","/Add_23_output_0","/Add_26_output_0","/Add_27_output_0","/Add_30_output_0","/Add_31_output_0","/LayerNormalization_9_output_0"],
-    "observer_effect_gate":"Tapped and untapped QNN final spec_real/spec_imag must be bit-exact on all six inputs before tap values are interpreted."
+    "observer_effect_gate":"PASS: tapped and untapped QNN final spec_real/spec_imag are bit-exact on all six inputs."
   },
   "local_artifact_checks":[
     {"path":"current_host_best/vocos_warm6_rev46_hostbest_weight_balanced.onnx","sha256":"d2efac4f266b312024b0e0b59feeeffa04716dbeaf54ad4763c7950ac9c3fb23"},
     {"path":"k8_partial_guided_tree_family/stage1/PARTIAL_GUIDED_STAGE1_QNN_SCORE.json","sha256":"1938133a60ffd4d8d62640616f12a46813940c693c8bea17bafb4f33fec72b80"},
-    {"path":"current_best_localization/current_best_boundary_taps.onnx","sha256":"916a05ebf61e7a90082ababcabe11d6c65d73003ab9f84c1908173b433e03f95"}
+    {"path":"current_best_localization/current_best_boundary_taps.onnx","sha256":"916a05ebf61e7a90082ababcabe11d6c65d73003ab9f84c1908173b433e03f95"},
+    {"path":"current_best_localization/OBSERVER_EFFECT_REPORT.json","sha256":"a0343850520f5b6757ec3ec9228efacf5207f1e782ff989cce8b0da41b29cddc"}
   ],
-  "exact_next":{"action_id":"RUN_CURRENT_BEST_NONPERTURBING_BOUNDARY_LOCALIZATION","action":"Complete untapped/tapped QNN observer-effect pair on the six frozen diagnostic inputs; interpret taps only after bit-exact final-output PASS.","execution_authorized_now":false},
+  "exact_next":{"action_id":"RUN_CURRENT_BEST_NONPERTURBING_BOUNDARY_LOCALIZATION","action":"Interpret the eight authorized QNN taps against candidate-own ORT1.27 on the same six frozen inputs, explicitly validate layout, and produce source-vs-amplifier causal ranking. Do not create candidates yet.","execution_authorized_now":false},
   "pointers":{"task_hierarchy":"TASK_STACK.json","project_context":"PROJECT_MAP.md","operating_rules":"OPERATING_RULES.md","layout":"LAYOUT.md","restore":"RESTORE_BUNDLE_INDEX.json"},
   "stable_resume_entry":"lly8666/SimAdmin-Android:CURRENT_REV46_HANDOFF.md"
 }
