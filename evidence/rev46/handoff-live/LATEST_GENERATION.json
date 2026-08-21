@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "live_alias": "evidence/rev46/handoff-live/",
+  "current_generation": "handoff-v3",
+  "generation_path": "evidence/rev46/handoff-v3/",
+  "generation_entry": "evidence/rev46/handoff-v3/READ_FIRST.md",
+  "external_snapshot": "evidence/rev46/handoff-v3/EXTERNAL_RESUME_SNAPSHOT.json",
+  "external_integrity_manifest": "evidence/rev46/handoff-v3/EXTERNAL_INTEGRITY_MANIFEST.json",
+  "local_expected_root": "/mnt/data/rev46_sandbox/handoff_v3",
+  "local_expected_validator_marker": "HANDOFF_V3_VALID",
+  "local_integrity_manifest_path": "/mnt/data/rev46_sandbox/handoff_v3/HANDOFF_INTEGRITY_MANIFEST.json",
+  "external_integrity_manifest_path": "evidence/rev46/handoff-v3/EXTERNAL_INTEGRITY_MANIFEST.json",
+  "external_science_execution_authorized": false,
+  "rule": "Versioned generations preserve a coherent snapshot. The stable live alias is updated transactionally as science progresses and is the preferred fresh-agent route."
+}
