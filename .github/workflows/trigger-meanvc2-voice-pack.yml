@@ -41,3 +41,5 @@ jobs:
           artifacts="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/artifacts" --jq '[.artifacts[] | {id,name,size_in_bytes,expired}]')"
           gh issue comment 118 --repo "$GITHUB_REPOSITORY" --body "Voice pack workflow **$result**; run: \`$run_id\`; artifacts: \`$artifacts\`."
           [[ "$result" == 'PASS' ]]
+
+# dispatch revision: verified-HF-speaker-checkpoint
