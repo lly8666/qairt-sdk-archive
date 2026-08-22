@@ -15,31 +15,31 @@ jobs:
   dispatch:
     runs-on: ubuntu-latest
     steps:
-      - name: One-shot dispatch and track Hailuo demo
+      - name: Dispatch and track voice pack builder
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -uo pipefail
-          gh workflow run build-hailuo-crisp-podcaster-demo.yml --repo "$GITHUB_REPOSITORY"
+          gh workflow run build-meanvc2-voice-pack.yml --repo "$GITHUB_REPOSITORY"
           run_id=''
-          for i in $(seq 1 30); do
+          for i in $(seq 1 20); do
             sleep 3
-            run_id="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow build-hailuo-crisp-podcaster-demo.yml --event workflow_dispatch --limit 1 --json databaseId -q '.[0].databaseId // empty')"
+            run_id="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow build-meanvc2-voice-pack.yml --event workflow_dispatch --limit 1 --json databaseId -q '.[0].databaseId // empty')"
             [[ -n "$run_id" ]] && break
           done
           if [[ -z "$run_id" ]]; then
-            gh issue comment 119 --repo "$GITHUB_REPOSITORY" --body 'Hailuo demo dispatch was sent, but no workflow run id could be resolved.'
+            gh issue comment 118 --repo "$GITHUB_REPOSITORY" --body 'Voice pack dispatch was sent, but no workflow run id could be resolved.'
             exit 1
           fi
-          gh issue comment 119 --repo "$GITHUB_REPOSITORY" --body "Hailuo demo workflow started; run: \`$run_id\`."
+          gh issue comment 118 --repo "$GITHUB_REPOSITORY" --body "Voice pack workflow started; run: \`$run_id\`."
           if gh run watch "$run_id" --repo "$GITHUB_REPOSITORY" --exit-status; then
             result='PASS'
           else
             result='FAILED'
           fi
           artifacts="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/artifacts" --jq '[.artifacts[] | {id,name,size_in_bytes,expired}]')"
-          gh issue comment 119 --repo "$GITHUB_REPOSITORY" --body "Hailuo demo workflow **$result**; run: \`$run_id\`; artifacts: \`$artifacts\`."
+          gh issue comment 118 --repo "$GITHUB_REPOSITORY" --body "Voice pack workflow **$result**; run: \`$run_id\`; artifacts: \`$artifacts\`."
           [[ "$result" == 'PASS' ]]
 
-# one-shot dispatch: hailuo-crisp-podcaster
+# dispatch revision: verified-HF-speaker-checkpoint
