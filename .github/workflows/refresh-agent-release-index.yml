@@ -11,6 +11,8 @@ on:
 
 permissions:
   contents: write
+  actions: read
+  issues: write
 
 jobs:
   refresh:
@@ -109,3 +111,186 @@ jobs:
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git commit -m 'manifest: refresh agent-visible Release index'
           git push origin HEAD:main
+
+  hailuo_demo:
+    if: github.event_name == 'push' && contains(github.event.head_commit.message, '[run-hailuo-demo]')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    env:
+      TARGET_URL: https://cdn.hailuoai.com/hailuo-video-web/public_assets/Chinese_crisp_podcaster.mp3
+      TARGET_SHA256: 6bd6f2cdb3782e14e19723cb5356f8eb606e05a92297d426a034242d4cb12b9e
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Report start
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh issue comment 123 --repo "$GITHUB_REPOSITORY" --body "MeanVC2 long demo started; run: \`${GITHUB_RUN_ID}\`."
+
+      - name: Fetch exact target and verify uploaded SHA256
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p work/final
+          curl -fL --retry 5 --retry-all-errors --connect-timeout 20 \
+            -A 'Mozilla/5.0' -H 'Referer: https://hailuoai.com/' \
+            "$TARGET_URL" -o work/target.mp3
+          echo "$TARGET_SHA256  work/target.mp3" | sha256sum -c -
+          ffprobe -v error -show_entries format=duration,size:stream=sample_rate,channels -of default=nw=1 work/target.mp3 | tee work/target_info.txt
+          ffmpeg -hide_banner -loglevel error -y -i work/target.mp3 -ac 1 -ar 16000 work/target.wav
+
+      - name: Reuse open-license source references and build 45 second source
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p work/openpack
+          gh run download 32562278188 --repo "$GITHUB_REPOSITORY" \
+            --name MeanVC2-open-voice-pack-25-with-xvectors --dir work/openpack
+          python -m pip install --disable-pip-version-check -q 'numpy<2.1' soundfile
+          python - <<'PY'
+          import glob, os
+          import numpy as np, soundfile as sf
+          files=sorted(glob.glob('work/openpack/references/*.wav'))
+          if not files: raise RuntimeError('open-license reference WAVs missing')
+          pieces=[]; used=[]; total=0
+          silence=np.zeros(int(.12*16000),np.float32)
+          for p in files:
+              y,sr=sf.read(p,always_2d=False,dtype='float32')
+              if sr!=16000: raise RuntimeError((p,sr))
+              if getattr(y,'ndim',1)>1: y=np.mean(y,axis=1)
+              if pieces: pieces.append(silence)
+              pieces.append(y); used.append(os.path.basename(p)); total+=len(y)+len(silence)
+              if total>=45*16000: break
+          y=np.concatenate(pieces)[:45*16000]
+          sf.write('work/source.wav',y,16000,subtype='PCM_16')
+          open('work/source_info.txt','w').write('source=AISHELL-3 voice-pack references\nlicense=Apache-2.0\nduration_s='+str(len(y)/16000)+'\n'+'\n'.join(used))
+          print('source',len(y)/16000,'sec from',len(used),'reference clips')
+          PY
+
+      - name: Install MeanVC2 CPU runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check -q 'torch==2.5.1' 'torchaudio==2.5.1' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install --disable-pip-version-check -q \
+            'numpy<2.1' soundfile 'librosa>=0.10' soxr matplotlib \
+            einops ema-pytorch x-transformers torchdiffeq prefigure safetensors \
+            's3prl==0.4.18' 'huggingface_hub>=0.25'
+          git clone --depth 1 https://github.com/ASLP-lab/MeanVC2.git /tmp/MeanVC2
+
+      - name: Download verified MeanVC2 checkpoints
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/MeanVC2/preprocess/ckpts /tmp/MeanVC2/ckpts/pretrained_models /tmp/MeanVC2/ckpts/vocos
+          python - <<'PY'
+          from huggingface_hub import hf_hub_download
+          import shutil
+          pairs=[
+            ('ASLP-lab/MeanVC2','fastu2pp_160ms.pt','/tmp/MeanVC2/preprocess/ckpts/fastu2pp_160ms.pt'),
+            ('ASLP-lab/MeanVC2','meanvc2_120ms_40ms.safetensors','/tmp/MeanVC2/ckpts/pretrained_models/meanvc2_120ms_40ms.safetensors'),
+            ('ASLP-lab/MeanVC2','vocos.pt','/tmp/MeanVC2/ckpts/vocos/vocos.pt'),
+            ('s3prl/converted_ckpts','wavlm_large.pt','/tmp/MeanVC2/preprocess/ckpts/wavlm_large.pt'),
+            ('lmzjms/wavlm-large','wavlm_large_finetune.pth','/tmp/MeanVC2/preprocess/ckpts/wavlm_large_finetune.pth'),
+          ]
+          for repo,name,dst in pairs:
+              src=hf_hub_download(repo,name); shutil.copyfile(src,dst); print(name,'->',dst)
+          PY
+          echo '6fb4b3c3e6aa567f0a997b30855859cb81528ee8078802af439f7b2da0bf100f  /tmp/MeanVC2/preprocess/ckpts/wavlm_large.pt' | sha256sum -c -
+          echo '51f07e3b94d9e0262a6a675ef5a087be3dd09e8c62e9d886827f44f82fe7f94b  /tmp/MeanVC2/preprocess/ckpts/wavlm_large_finetune.pth' | sha256sum -c -
+          python - <<'PY'
+          import torch
+          src='/tmp/MeanVC2/preprocess/ckpts/wavlm_large.pt'; dst='/tmp/MeanVC2/preprocess/ckpts/wavlm_large_cfg.pt'
+          ckpt=torch.load(src,map_location='cpu',weights_only=False)
+          cfg=ckpt.get('cfg',ckpt.get('config'))
+          if cfg is None: raise RuntimeError('WavLM config missing')
+          torch.save(cfg,dst)
+          PY
+          rm -f /tmp/MeanVC2/preprocess/ckpts/wavlm_large.pt
+
+      - name: Extract BN and target embedding sequentially, then convert
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/MeanVC2
+          python - <<'PY'
+          import gc, json, os, sys, time
+          import numpy as np, torch, soundfile as sf
+          sys.path.insert(0,'/tmp/MeanVC2')
+          sys.path.insert(0,'/tmp/MeanVC2/src/infer')
+          from infer_e2e import load_asr_model, extract_bn, vc_inference
+          from runtime.src.speaker import init_speaker_model, extract_embedding
+          from dit_kvcache import DiT
+          from src.model.utils import load_checkpoint
+          root=os.environ['GITHUB_WORKSPACE']
+          source=os.path.join(root,'work','source.wav'); target=os.path.join(root,'work','target.wav')
+
+          asr=load_asr_model('/tmp/MeanVC2/preprocess/ckpts/fastu2pp_160ms.pt','cpu')
+          bn=extract_bn(source,asr,window=19,stride=16,offset_init=8,offset_step=4,req_cache=8).astype('float32')
+          np.save(os.path.join(root,'work','final','source_bn.npy'),bn)
+          del asr; gc.collect()
+
+          spk=init_speaker_model(
+              '/tmp/MeanVC2/preprocess/ckpts/wavlm_large_finetune.pth',
+              device='cpu', wavlm_config='/tmp/MeanVC2/preprocess/ckpts/wavlm_large_cfg.pt')
+          emb=extract_embedding(spk,target,device='cpu').squeeze().detach().cpu().numpy().astype('float32')
+          if emb.shape!=(256,): raise RuntimeError(f'bad embedding shape {emb.shape}')
+          np.save(os.path.join(root,'work','final','Chinese_crisp_podcaster_xvector.npy'),emb)
+          del spk; gc.collect()
+
+          with open('/tmp/MeanVC2/src/config/config_120ms_40ms.json') as f: cfg=json.load(f)
+          model=DiT(**cfg['model'])
+          model=load_checkpoint(model,'/tmp/MeanVC2/ckpts/pretrained_models/meanvc2_120ms_40ms.safetensors',device='cpu',use_ema=True).float().eval()
+          vocos=torch.jit.load('/tmp/MeanVC2/ckpts/vocos/vocos.pt').eval()
+          torch.manual_seed(0)
+          t=time.time()
+          mel,wav=vc_inference(model,vocos,bn,emb,12,4,3,'cpu')
+          elapsed=time.time()-t
+          out=os.path.join(root,'work','final','Chinese_crisp_podcaster_MeanVC2_long_demo_raw.wav')
+          sf.write(out,wav.cpu().squeeze().numpy(),16000)
+          open(os.path.join(root,'work','final','INFERENCE_INFO.txt'),'w').write(
+              f'bn_shape={bn.shape}\nemb_shape={emb.shape}\noutput_seconds={wav.shape[-1]/16000:.3f}\ninference_seconds={elapsed:.3f}\nmodel=120ms_40ms\nsteps=3\n')
+          print('converted',wav.shape[-1]/16000,'sec in',elapsed,'sec')
+          PY
+          cd "$GITHUB_WORKSPACE"
+          ffmpeg -hide_banner -loglevel error -y \
+            -i work/final/Chinese_crisp_podcaster_MeanVC2_long_demo_raw.wav \
+            -af 'highpass=f=55,loudnorm=I=-18:TP=-1.5:LRA=11' -ar 16000 -ac 1 \
+            work/final/Chinese_crisp_podcaster_MeanVC2_long_demo.wav
+          ffmpeg -hide_banner -loglevel error -y \
+            -i work/final/Chinese_crisp_podcaster_MeanVC2_long_demo.wav \
+            -c:a libmp3lame -b:a 192k work/final/Chinese_crisp_podcaster_MeanVC2_long_demo.mp3
+          rm -f work/final/Chinese_crisp_podcaster_MeanVC2_long_demo_raw.wav
+          cp work/source_info.txt work/final/SOURCE_INFO.txt
+          cp work/target_info.txt work/final/TARGET_INFO.txt
+          sha256sum work/final/* > work/final/SHA256SUMS.txt
+
+      - name: Upload long demo
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: Chinese-crisp-podcaster-MeanVC2-long-demo
+          path: work/final
+          compression-level: 6
+          retention-days: 2
+          if-no-files-found: error
+
+      - name: Report success
+        if: success()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh issue comment 123 --repo "$GITHUB_REPOSITORY" --body "MeanVC2 long demo **PASS**; run: \`${GITHUB_RUN_ID}\`; artifact: **Chinese-crisp-podcaster-MeanVC2-long-demo** (id \`${{ steps.upload.outputs.artifact-id }}\`). Target SHA256 exactly matched the uploaded MP3."
+
+      - name: Report failure
+        if: failure()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh issue comment 123 --repo "$GITHUB_REPOSITORY" --body "MeanVC2 long demo **FAILED**; run: \`${GITHUB_RUN_ID}\`. Inspect the failing step."
