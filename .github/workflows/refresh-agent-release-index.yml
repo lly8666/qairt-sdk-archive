@@ -1,234 +1,111 @@
 name: Refresh agent Release index
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
+  release:
+    types: [published, edited, released, prereleased]
+  issues:
+    types: [opened]
 
 permissions:
-  contents: read
-  actions: read
-  issues: write
+  contents: write
 
 jobs:
-  hailuo_demo:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 55
-    env:
-      TARGET_URL: https://cdn.hailuoai.com/hailuo-video-web/public_assets/Chinese_crisp_podcaster.mp3
-      TARGET_SHA256: 6bd6f2cdb3782e14e19723cb5356f8eb606e05a92297d426a034242d4cb12b9e
+  refresh:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'push' ||
+      github.event_name == 'release' ||
+      github.event.issue.title == '[sdk-refresh-release-index]'
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
 
-      - name: Report start
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh issue comment 123 --repo "$GITHUB_REPOSITORY" --body "MeanVC2 long demo started; workflow run ${GITHUB_RUN_ID}."
-
-      - name: Fetch exact target and prepare 45-second source
+      - name: Query all private Releases and build stable agent index
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          mkdir -p work/final work/openpack
-          curl -fL --retry 5 --retry-all-errors --connect-timeout 20 \
-            -A 'Mozilla/5.0' -H 'Referer: https://hailuoai.com/' \
-            "$TARGET_URL" -o work/target.mp3
-          echo "$TARGET_SHA256  work/target.mp3" | sha256sum -c -
-          gh run download 32562278188 --repo "$GITHUB_REPOSITORY" \
-            --name MeanVC2-open-voice-pack-25-with-xvectors --dir work/openpack
-          python -m pip install --disable-pip-version-check -q 'numpy<2.1' scipy soundfile
-          python - <<'PY'
-          import glob, os
-          from math import gcd
-          import numpy as np
-          import soundfile as sf
-          from scipy.signal import resample_poly
+          mkdir -p release-manifest
+          gh api --paginate \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
+            --slurp > /tmp/release-pages.json
 
-          target, sr = sf.read('work/target.mp3', always_2d=False, dtype='float32')
-          if getattr(target, 'ndim', 1) > 1:
-              target = np.mean(target, axis=1)
-          orig_sr = int(sr)
-          if sr != 16000:
-              g = gcd(int(sr), 16000)
-              target = resample_poly(target, 16000 // g, int(sr) // g).astype(np.float32)
-          sf.write('work/target.wav', target, 16000, subtype='PCM_16')
-          with open('work/target_info.txt', 'w') as f:
-              f.write(f'original_sample_rate={orig_sr}\n')
-              f.write(f'original_duration_s={len(target)/16000:.3f}\n')
-              f.write('sha256=6bd6f2cdb3782e14e19723cb5356f8eb606e05a92297d426a034242d4cb12b9e\n')
+          python3 - <<'PY'
+          import datetime, json, pathlib
+          pages=json.load(open('/tmp/release-pages.json'))
+          releases=[r for page in pages for r in page]
+          releases.sort(key=lambda r: (r.get('published_at') or r.get('created_at') or ''), reverse=True)
 
-          files = sorted(glob.glob('work/openpack/references/*.wav'))
-          if not files:
-              raise RuntimeError('open-license reference WAVs missing')
-          pieces, used, total = [], [], 0
-          silence = np.zeros(int(.12 * 16000), np.float32)
-          for p in files:
-              y, sr = sf.read(p, always_2d=False, dtype='float32')
-              if sr != 16000:
-                  raise RuntimeError((p, sr))
-              if getattr(y, 'ndim', 1) > 1:
-                  y = np.mean(y, axis=1)
-              if pieces:
-                  pieces.append(silence)
-                  total += len(silence)
-              pieces.append(y)
-              total += len(y)
-              used.append(os.path.basename(p))
-              if total >= 45 * 16000:
-                  break
-          source = np.concatenate(pieces)[:45 * 16000]
-          sf.write('work/source.wav', source, 16000, subtype='PCM_16')
-          with open('work/source_info.txt', 'w') as f:
-              f.write('source=AISHELL-3 voice-pack references\nlicense=Apache-2.0\n')
-              f.write(f'duration_s={len(source)/16000:.3f}\n')
-              f.write('\n'.join(used))
-          print('target seconds', len(target)/16000)
-          print('source seconds', len(source)/16000, 'clips', len(used))
+          out={
+            'schema': 1,
+            'repository': 'lly8666/qairt-sdk-archive',
+            'generated_at_utc': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            'note': 'Stable, non-secret metadata index for agents. browser_download_url is not a signed credential; private asset download still requires authenticated GitHub access or an export workflow.',
+            'releases': []
+          }
+          for r in releases:
+            rr={
+              'tag_name': r.get('tag_name'),
+              'name': r.get('name'),
+              'draft': bool(r.get('draft')),
+              'prerelease': bool(r.get('prerelease')),
+              'created_at': r.get('created_at'),
+              'published_at': r.get('published_at'),
+              'html_url': r.get('html_url'),
+              'assets': []
+            }
+            for a in sorted(r.get('assets', []), key=lambda x:x.get('name','')):
+              rr['assets'].append({
+                'name': a.get('name'),
+                'id': a.get('id'),
+                'size': a.get('size'),
+                'digest': a.get('digest'),
+                'created_at': a.get('created_at'),
+                'updated_at': a.get('updated_at'),
+                'browser_download_url': a.get('browser_download_url'),
+                'api_url': a.get('url')
+              })
+            out['releases'].append(rr)
+
+          pathlib.Path('release-manifest/AGENT_RELEASE_INDEX.json').write_text(
+            json.dumps(out, indent=2, ensure_ascii=False, sort_keys=False)+'\n', encoding='utf-8')
+
+          lines=['# Agent-visible private Release index','',
+                 '> Generated automatically from GitHub private Release metadata. Do not hand-edit.', '',
+                 'Canonical machine-readable file: `release-manifest/AGENT_RELEASE_INDEX.json`.', '']
+          for r in out['releases']:
+            state=[]
+            if r['draft']: state.append('draft')
+            if r['prerelease']: state.append('prerelease')
+            suffix=(' ['+', '.join(state)+']') if state else ''
+            lines.append(f"## `{r['tag_name']}`{suffix}")
+            if r.get('published_at'): lines.append(f"Published: `{r['published_at']}`")
+            lines.append('')
+            if not r['assets']:
+              lines.append('- _(no assets)_')
+            for a in r['assets']:
+              digest=a.get('digest') or 'digest-unavailable'
+              lines.append(f"- `{a['name']}` — id `{a['id']}`, bytes `{a['size']}`, `{digest}`")
+            lines.append('')
+          pathlib.Path('release-manifest/AGENT_RELEASE_INDEX.md').write_text('\n'.join(lines)+'\n', encoding='utf-8')
           PY
 
-      - name: Install MeanVC2 CPU runtime
+      - name: Commit index when changed
         shell: bash
         run: |
           set -euo pipefail
-          python -m pip install --disable-pip-version-check -q \
-            'torch==2.5.1' 'torchaudio==2.5.1' \
-            --index-url https://download.pytorch.org/whl/cpu
-          python -m pip install --disable-pip-version-check -q \
-            'numpy<2.1' soundfile 'librosa>=0.10' soxr matplotlib \
-            'einops==0.8.0' 'ema-pytorch==0.7.7' 'x-transformers==2.2.11' \
-            'torchdiffeq==0.2.5' 'prefigure==0.0.10' safetensors \
-            's3prl==0.4.18' 'huggingface_hub>=0.25'
-          git clone --depth 1 https://github.com/ASLP-lab/MeanVC2.git /tmp/MeanVC2
-          sed -i '/from src.model.trainer import Trainer/d' /tmp/MeanVC2/src/model/__init__.py
-
-      - name: Download and verify MeanVC2 models
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p /tmp/MeanVC2/preprocess/ckpts \
-                   /tmp/MeanVC2/ckpts/pretrained_models \
-                   /tmp/MeanVC2/ckpts/vocos
-          python - <<'PY'
-          from huggingface_hub import hf_hub_download
-          import shutil
-          pairs=[
-            ('ASLP-lab/MeanVC2','fastu2pp_160ms.pt','/tmp/MeanVC2/preprocess/ckpts/fastu2pp_160ms.pt'),
-            ('ASLP-lab/MeanVC2','meanvc2_120ms_40ms.safetensors','/tmp/MeanVC2/ckpts/pretrained_models/meanvc2_120ms_40ms.safetensors'),
-            ('ASLP-lab/MeanVC2','vocos.pt','/tmp/MeanVC2/ckpts/vocos/vocos.pt'),
-            ('s3prl/converted_ckpts','wavlm_large.pt','/tmp/MeanVC2/preprocess/ckpts/wavlm_large.pt'),
-            ('lmzjms/wavlm-large','wavlm_large_finetune.pth','/tmp/MeanVC2/preprocess/ckpts/wavlm_large_finetune.pth'),
-          ]
-          for repo, name, dst in pairs:
-              src = hf_hub_download(repo, name)
-              shutil.copyfile(src, dst)
-              print(name, '->', dst)
-          PY
-          echo '6fb4b3c3e6aa567f0a997b30855859cb81528ee8078802af439f7b2da0bf100f  /tmp/MeanVC2/preprocess/ckpts/wavlm_large.pt' | sha256sum -c -
-          echo '51f07e3b94d9e0262a6a675ef5a087be3dd09e8c62e9d886827f44f82fe7f94b  /tmp/MeanVC2/preprocess/ckpts/wavlm_large_finetune.pth' | sha256sum -c -
-          python - <<'PY'
-          import torch
-          src='/tmp/MeanVC2/preprocess/ckpts/wavlm_large.pt'
-          dst='/tmp/MeanVC2/preprocess/ckpts/wavlm_large_cfg.pt'
-          ckpt=torch.load(src,map_location='cpu',weights_only=False)
-          cfg=ckpt.get('cfg',ckpt.get('config'))
-          if cfg is None:
-              raise RuntimeError('WavLM config missing')
-          torch.save(cfg,dst)
-          PY
-          rm -f /tmp/MeanVC2/preprocess/ckpts/wavlm_large.pt
-
-      - name: Extract features sequentially and run MeanVC2
-        shell: bash
-        run: |
-          set -euo pipefail
-          cd /tmp/MeanVC2
-          python - <<'PY'
-          import gc, json, os, sys, time
-          import numpy as np
-          import torch
-          import soundfile as sf
-          sys.path.insert(0, '/tmp/MeanVC2')
-          sys.path.insert(0, '/tmp/MeanVC2/src/infer')
-          from infer_e2e import load_asr_model, extract_bn, vc_inference
-          from runtime.src.speaker import init_speaker_model, extract_embedding
-          from dit_kvcache import DiT
-          from src.model.utils import load_checkpoint
-
-          root=os.environ['GITHUB_WORKSPACE']
-          source=os.path.join(root,'work','source.wav')
-          target=os.path.join(root,'work','target.wav')
-
-          asr=load_asr_model('/tmp/MeanVC2/preprocess/ckpts/fastu2pp_160ms.pt','cpu')
-          bn=extract_bn(source,asr,window=19,stride=16,offset_init=8,offset_step=4,req_cache=8).astype('float32')
-          np.save(os.path.join(root,'work','final','source_bn.npy'),bn)
-          del asr
-          gc.collect()
-
-          spk=init_speaker_model(
-              '/tmp/MeanVC2/preprocess/ckpts/wavlm_large_finetune.pth',
-              device='cpu',
-              wavlm_config='/tmp/MeanVC2/preprocess/ckpts/wavlm_large_cfg.pt')
-          emb=extract_embedding(spk,target,device='cpu').squeeze().detach().cpu().numpy().astype('float32')
-          if emb.shape != (256,):
-              raise RuntimeError(f'bad embedding shape {emb.shape}')
-          np.save(os.path.join(root,'work','final','Chinese_crisp_podcaster_xvector.npy'),emb)
-          del spk
-          gc.collect()
-
-          with open('/tmp/MeanVC2/src/config/config_120ms_40ms.json') as f:
-              cfg=json.load(f)
-          model=DiT(**cfg['model'])
-          model=load_checkpoint(
-              model,
-              '/tmp/MeanVC2/ckpts/pretrained_models/meanvc2_120ms_40ms.safetensors',
-              device='cpu', use_ema=True).float().eval()
-          vocos=torch.jit.load('/tmp/MeanVC2/ckpts/vocos/vocos.pt').eval()
-          torch.manual_seed(0)
-          t=time.time()
-          mel,wav=vc_inference(model,vocos,bn,emb,12,4,3,'cpu')
-          elapsed=time.time()-t
-          output=os.path.join(root,'work','final','Chinese_crisp_podcaster_MeanVC2_long_demo.wav')
-          sf.write(output,wav.cpu().squeeze().numpy(),16000,subtype='PCM_16')
-          with open(os.path.join(root,'work','final','INFERENCE_INFO.txt'),'w') as f:
-              f.write(f'bn_shape={bn.shape}\nemb_shape={emb.shape}\n')
-              f.write(f'output_seconds={wav.shape[-1]/16000:.3f}\n')
-              f.write(f'inference_seconds={elapsed:.3f}\nmodel=120ms_40ms\nsteps=3\n')
-          print('converted seconds',wav.shape[-1]/16000,'elapsed',elapsed)
-          PY
-          cd "$GITHUB_WORKSPACE"
-          cp work/source.wav work/final/source_open_license.wav
-          cp work/source_info.txt work/final/SOURCE_INFO.txt
-          cp work/target_info.txt work/final/TARGET_INFO.txt
-          sha256sum work/final/* > work/final/SHA256SUMS.txt
-
-      - name: Upload demo artifact
-        id: upload
-        uses: actions/upload-artifact@v4
-        with:
-          name: Chinese-crisp-podcaster-MeanVC2-long-demo
-          path: work/final
-          compression-level: 6
-          retention-days: 2
-          if-no-files-found: error
-
-      - name: Report success
-        if: success()
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh issue comment 123 --repo "$GITHUB_REPOSITORY" --body "MeanVC2 long demo PASS; workflow run ${GITHUB_RUN_ID}; artifact id ${{ steps.upload.outputs.artifact-id }}; target SHA256 matched uploaded MP3."
-
-      - name: Report failure
-        if: failure()
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh issue comment 123 --repo "$GITHUB_REPOSITORY" --body "MeanVC2 long demo FAILED; workflow run ${GITHUB_RUN_ID}."
+          git add release-manifest/AGENT_RELEASE_INDEX.json release-manifest/AGENT_RELEASE_INDEX.md
+          if git diff --cached --quiet; then
+            echo AGENT_RELEASE_INDEX_UNCHANGED
+            exit 0
+          fi
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git commit -m 'manifest: refresh agent-visible Release index'
+          git push origin HEAD:main
