@@ -1,0 +1,39 @@
+name: Trigger MeanVC2 Xvectors 25
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/trigger-meanvc2-xvectors.yml'
+
+permissions:
+  actions: write
+  contents: read
+  issues: write
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch and track xvector builder
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -uo pipefail
+          gh workflow run build-meanvc2-xvectors-25.yml --repo "$GITHUB_REPOSITORY"
+          run_id=''
+          for i in $(seq 1 20); do
+            sleep 3
+            run_id="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow build-meanvc2-xvectors-25.yml --event workflow_dispatch --limit 1 --json databaseId -q '.[0].databaseId // empty')"
+            [[ -n "$run_id" ]] && break
+          done
+          if [[ -z "$run_id" ]]; then
+            gh issue comment 118 --repo "$GITHUB_REPOSITORY" --body 'Xvector dispatch sent, but no run id resolved.'
+            exit 1
+          fi
+          gh issue comment 118 --repo "$GITHUB_REPOSITORY" --body "Reliable xvector workflow started; run: \`$run_id\`."
+          if gh run watch "$run_id" --repo "$GITHUB_REPOSITORY" --exit-status; then result='PASS'; else result='FAILED'; fi
+          artifacts="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/artifacts" --jq '[.artifacts[] | {id,name,size_in_bytes,expired}]')"
+          gh issue comment 118 --repo "$GITHUB_REPOSITORY" --body "Reliable xvector workflow **$result**; run: \`$run_id\`; artifacts: \`$artifacts\`."
+          [[ "$result" == 'PASS' ]]
