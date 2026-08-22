@@ -1,0 +1,21 @@
+name: Trigger MeanVC2 Voice Pack
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/trigger-meanvc2-voice-pack.yml'
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch voice pack builder
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run build-meanvc2-voice-pack.yml --repo "$GITHUB_REPOSITORY"
