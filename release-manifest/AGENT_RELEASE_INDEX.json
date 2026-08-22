@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "repository": "lly8666/qairt-sdk-archive",
-  "generated_at_utc": "2026-08-22T08:25:48.933238+00:00",
+  "generated_at_utc": "2026-08-22T08:26:20.087395+00:00",
   "note": "Stable, non-secret metadata index for agents. browser_download_url is not a signed credential; private asset download still requires authenticated GitHub access or an export workflow.",
   "releases": [
     {
