@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: read
+  issues: write
 
 jobs:
   demo:
@@ -23,6 +24,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+
+      - name: Report started
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh issue comment 119 --repo "$GITHUB_REPOSITORY" --body "Hailuo crisp-podcaster demo started; run: \`${GITHUB_RUN_ID}\`."
 
       - name: Download and prepare target reference
         shell: bash
@@ -45,8 +52,7 @@ jobs:
           set -euo pipefail
           python -m pip install --disable-pip-version-check -q 'huggingface_hub>=0.25' 'numpy<2.1' scipy soundfile
           python - <<'PY'
-          import os
-          from collections import Counter, defaultdict
+          from collections import defaultdict
           from math import gcd
           import numpy as np
           import soundfile as sf
@@ -62,7 +68,6 @@ jobs:
               parts=p.split('/')
               if len(parts)>=2 and parts[-2].startswith('SSB'):
                   by[parts[-2]].append(p)
-          # Prefer a speaker with many utterances, deterministic tie-break.
           spk=max(sorted(by), key=lambda s: len(by[s]))
           cand=sorted(by[spk])
           sr_out=16000
@@ -73,7 +78,6 @@ jobs:
               y,sr=sf.read(local, always_2d=False)
               if getattr(y,'ndim',1)>1: y=np.mean(y,axis=1)
               y=np.asarray(y,np.float32)
-              # trim low-energy ends without librosa
               if y.size==0: continue
               peak=float(np.max(np.abs(y)))
               if peak<=1e-7: continue
@@ -190,3 +194,17 @@ jobs:
           compression-level: 6
           retention-days: 14
           if-no-files-found: error
+
+      - name: Report success
+        if: success()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh issue comment 119 --repo "$GITHUB_REPOSITORY" --body "Hailuo crisp-podcaster demo **PASS**; run: \`${GITHUB_RUN_ID}\`; artifact: **Hailuo-Chinese-crisp-podcaster-MeanVC2-demo** (id \`${{ steps.upload.outputs.artifact-id }}\`)."
+
+      - name: Report failure
+        if: failure()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh issue comment 119 --repo "$GITHUB_REPOSITORY" --body "Hailuo crisp-podcaster demo **FAILED**; run: \`${GITHUB_RUN_ID}\`. Inspect the failing step."
