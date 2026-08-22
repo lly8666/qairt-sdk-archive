@@ -39,7 +39,6 @@ jobs:
           SR = 16000
           DATASET = 'AISHELL/AISHELL-3'
           presets = [
-            # 15 broad representative voices
             ('base_child_female_north', 'SSB0393', 'base', 'A', 'female', 'north'),
             ('base_older_female_north_1', 'SSB0309', 'base', 'D', 'female', 'north'),
             ('base_older_female_north_2', 'SSB0354', 'base', 'D', 'female', 'north'),
@@ -55,7 +54,7 @@ jobs:
             ('base_male_north_adult_2', 'SSB0407', 'base', 'C', 'male', 'north'),
             ('base_female_north_young', 'SSB0012', 'base', 'B', 'female', 'north'),
             ('base_female_south_young_2', 'SSB0149', 'base', 'B', 'female', 'south'),
-            # 10 generic short-video-style candidates; not named after or cloned from identifiable influencers
+            # Generic short-video style candidates; no identifiable influencer recordings.
             ('sv_sweet_female', 'SSB0016', 'shortvideo_style', 'B', 'female', 'north'),
             ('sv_bright_female', 'SSB0033', 'shortvideo_style', 'B', 'female', 'south'),
             ('sv_soft_female', 'SSB0057', 'shortvideo_style', 'B', 'female', 'north'),
@@ -72,16 +71,12 @@ jobs:
           all_files = api.list_repo_files(DATASET, repo_type='dataset')
           rows = []
           os.makedirs('voice-pack/references', exist_ok=True)
-          os.makedirs('voice-pack/raw', exist_ok=True)
-
           for name, spk, group, age, gender, accent in presets:
               prefix = f'test/wav/{spk}/'
               candidates = sorted([p for p in all_files if p.startswith(prefix) and p.lower().endswith('.wav')])
               if not candidates:
                   raise RuntimeError(f'no wavs for {spk}')
-              pieces = []
-              source_files = []
-              total = 0.0
+              pieces, source_files, total = [], [], 0.0
               for remote in candidates[:6]:
                   local = hf_hub_download(DATASET, remote, repo_type='dataset')
                   y, sr = sf.read(local, always_2d=False)
@@ -100,9 +95,7 @@ jobs:
                   peak = float(np.max(np.abs(y)))
                   if peak > 0:
                       y = y / peak * 0.89
-                  pieces.append(y)
-                  source_files.append(remote)
-                  total += len(y) / SR
+                  pieces.append(y); source_files.append(remote); total += len(y) / SR
                   if total >= 10.0:
                       break
               if not pieces:
@@ -110,14 +103,12 @@ jobs:
               silence = np.zeros(int(0.15 * SR), np.float32)
               merged = []
               for i, p in enumerate(pieces):
-                  if i:
-                      merged.append(silence)
+                  if i: merged.append(silence)
                   merged.append(p)
               y = np.concatenate(merged)[:12 * SR]
-              out = f'voice-pack/references/{name}.wav'
-              sf.write(out, y, SR, subtype='PCM_16')
+              sf.write(f'voice-pack/references/{name}.wav', y, SR, subtype='PCM_16')
 
-              f0, voiced, probs = librosa.pyin(y, fmin=60, fmax=500, sr=SR, frame_length=1024)
+              f0, _, _ = librosa.pyin(y, fmin=60, fmax=500, sr=SR, frame_length=1024)
               vf0 = f0[np.isfinite(f0)] if f0 is not None else np.array([])
               rms = librosa.feature.rms(y=y, frame_length=1024, hop_length=256)[0]
               centroid = librosa.feature.spectral_centroid(y=y, sr=SR, n_fft=1024, hop_length=256)[0]
@@ -132,9 +123,7 @@ jobs:
                   'rms_mean': round(float(np.mean(rms)), 6),
                   'spectral_centroid_hz': round(float(np.mean(centroid)), 2),
                   'zcr_mean': round(float(np.mean(zcr)), 6),
-                  'source_files': source_files,
-                  'license': 'Apache-2.0',
-                  'source_dataset': DATASET,
+                  'source_files': source_files, 'license': 'Apache-2.0', 'source_dataset': DATASET,
               }
               rows.append(row)
               print(json.dumps(row, ensure_ascii=False))
@@ -143,10 +132,8 @@ jobs:
               json.dump(rows, f, ensure_ascii=False, indent=2)
           keys = ['preset','speaker_id','group','age_group','gender','accent','duration_s','f0_median_hz','f0_p10_hz','f0_p90_hz','rms_mean','spectral_centroid_hz','zcr_mean','license','source_dataset']
           with open('voice-pack/manifest.csv', 'w', newline='', encoding='utf-8') as f:
-              w = csv.DictWriter(f, fieldnames=keys)
-              w.writeheader()
-              for r in rows:
-                  w.writerow({k:r.get(k) for k in keys})
+              w = csv.DictWriter(f, fieldnames=keys); w.writeheader()
+              for r in rows: w.writerow({k:r.get(k) for k in keys})
           PY
           python /tmp/build_refs.py
 
@@ -171,33 +158,63 @@ jobs:
         run: |
           set -euo pipefail
           python -m pip install --disable-pip-version-check -q 'torch==2.5.1' 'torchaudio==2.5.1' --index-url https://download.pytorch.org/whl/cpu
-          python -m pip install --disable-pip-version-check -q gdown 's3prl>=0.4' soundfile numpy
+          python -m pip install --disable-pip-version-check -q 's3prl==0.4.18' 'huggingface_hub>=0.25' soundfile 'numpy<2.1'
           git clone --depth 1 https://github.com/ASLP-lab/MeanVC2.git /tmp/MeanVC2
           mkdir -p /tmp/MeanVC2/preprocess/ckpts voice-pack/xvectors
+
+          # Microsoft WavLM-Large is only used once to extract the tiny architecture config.
           wget -q --show-progress -O /tmp/MeanVC2/preprocess/ckpts/wavlm_large.pt https://github.com/microsoft/unilm/releases/download/wavlm/WavLM-Large.pt
-          gdown --fuzzy 'https://drive.google.com/file/d/1-aE1NfzpRCLxA4GUxX9ITI3F9LlbtEGP/view' -O /tmp/MeanVC2/preprocess/ckpts/wavlm_large_finetune.pth
-          cd /tmp/MeanVC2
-          python preprocess/extract_spk_emb.py --input_dir "$GITHUB_WORKSPACE/voice-pack/references" --output_dir "$GITHUB_WORKSPACE/voice-pack/xvectors" --device cpu
-          cd "$GITHUB_WORKSPACE"
           python - <<'PY'
-          import glob, json, os, numpy as np
-          out=[]
-          for p in sorted(glob.glob('voice-pack/xvectors/*.npy')):
-              x=np.load(p).astype('float32')
-              n=float(np.linalg.norm(x))
-              if n>0: x=x/n
-              np.save(p,x)
-              out.append({'file':os.path.basename(p),'shape':list(x.shape),'l2_norm':float(np.linalg.norm(x))})
-          with open('voice-pack/xvectors_manifest.json','w') as f: json.dump(out,f,indent=2)
-          assert len(out)==25, f'expected 25 embeddings, got {len(out)}'
+          import torch
+          src='/tmp/MeanVC2/preprocess/ckpts/wavlm_large.pt'
+          dst='/tmp/MeanVC2/preprocess/ckpts/wavlm_large_cfg.pt'
+          ckpt=torch.load(src, map_location='cpu', weights_only=False)
+          cfg=ckpt.get('cfg', ckpt.get('config'))
+          if cfg is None: raise RuntimeError('WavLM config missing')
+          torch.save(cfg,dst)
           PY
-          echo 'embedding_status=success' > voice-pack/EMBEDDING_STATUS.txt
+          rm -f /tmp/MeanVC2/preprocess/ckpts/wavlm_large.pt
+
+          # Verified mirror of the same MeanVC/MeanVC2 speaker-verification checkpoint.
+          python - <<'PY'
+          from huggingface_hub import hf_hub_download
+          import shutil
+          p=hf_hub_download('lmzjms/wavlm-large','wavlm_large_finetune.pth')
+          shutil.copyfile(p,'/tmp/MeanVC2/preprocess/ckpts/wavlm_large_finetune.pth')
+          PY
+          echo '51f07e3b94d9e0262a6a675ef5a087be3dd09e8c62e9d886827f44f82fe7f94b  /tmp/MeanVC2/preprocess/ckpts/wavlm_large_finetune.pth' | sha256sum -c -
+
+          cd /tmp/MeanVC2
+          python - <<'PY'
+          import glob, json, os, sys
+          import numpy as np
+          sys.path.insert(0, '/tmp/MeanVC2')
+          from runtime.src.speaker import init_speaker_model, extract_embedding
+          ckpt='/tmp/MeanVC2/preprocess/ckpts/wavlm_large_finetune.pth'
+          cfg='/tmp/MeanVC2/preprocess/ckpts/wavlm_large_cfg.pt'
+          model=init_speaker_model(ckpt_path=ckpt, device='cpu', wavlm_config=cfg)
+          out=[]
+          outdir=os.path.join(os.environ['GITHUB_WORKSPACE'],'voice-pack','xvectors')
+          os.makedirs(outdir,exist_ok=True)
+          for wav in sorted(glob.glob(os.path.join(os.environ['GITHUB_WORKSPACE'],'voice-pack','references','*.wav'))):
+              emb=extract_embedding(model,wav,device='cpu').squeeze().detach().cpu().numpy().astype('float32')
+              dst=os.path.join(outdir,os.path.basename(wav).replace('.wav','.npy'))
+              np.save(dst,emb)
+              out.append({'file':os.path.basename(dst),'shape':list(emb.shape),'l2_norm':float(np.linalg.norm(emb))})
+              print(out[-1])
+          with open(os.path.join(os.environ['GITHUB_WORKSPACE'],'voice-pack','xvectors_manifest.json'),'w') as f:
+              json.dump(out,f,indent=2)
+          assert len(out)==25, f'expected 25 embeddings, got {len(out)}'
+          assert all(x['shape']==[256] for x in out)
+          PY
+          cd "$GITHUB_WORKSPACE"
+          echo 'embedding_status=success; official MeanVC2 runtime speaker encoder; raw 256-d float32 embeddings.' > voice-pack/EMBEDDING_STATUS.txt
 
       - name: Record embedding fallback status
         if: steps.embed.outcome != 'success'
         shell: bash
         run: |
-          echo 'embedding_status=failed; references and acoustic manifest are still valid. Inspect Actions logs for WavLM/Google Drive/s3prl failure.' > voice-pack/EMBEDDING_STATUS.txt
+          echo 'embedding_status=failed; references and acoustic manifest are still valid. Inspect Actions logs for speaker-encoder failure.' > voice-pack/EMBEDDING_STATUS.txt
 
       - name: Verify pack
         id: verify
@@ -212,6 +229,7 @@ jobs:
           echo "refs_bytes=$refs_bytes" >> "$GITHUB_OUTPUT"
           echo "emb_count=$emb_count" >> "$GITHUB_OUTPUT"
           sha256sum voice-pack/references/*.wav > voice-pack/REFERENCE_SHA256SUMS.txt
+          if [[ "$emb_count" = 25 ]]; then sha256sum voice-pack/xvectors/*.npy > voice-pack/XVECTOR_SHA256SUMS.txt; fi
 
       - name: Upload voice pack
         id: upload
