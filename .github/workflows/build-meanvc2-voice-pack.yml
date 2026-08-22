@@ -1,0 +1,240 @@
+name: Build MeanVC2 Open Voice Pack 25
+
+on:
+  workflow_dispatch:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  build:
+    if: github.event_name == 'workflow_dispatch' || github.event.issue.title == '[build-meanvc2-voice-pack]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Build open-license reference pack
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check -q 'huggingface_hub>=0.25' 'numpy<2.1' scipy soundfile librosa
+          mkdir -p voice-pack/references voice-pack/raw
+          cat > /tmp/build_refs.py <<'PY'
+          import csv, json, os
+          import numpy as np
+          import soundfile as sf
+          import librosa
+          from scipy.signal import resample_poly
+          from huggingface_hub import HfApi, hf_hub_download
+
+          SR = 16000
+          DATASET = 'AISHELL/AISHELL-3'
+          presets = [
+            # 15 broad representative voices
+            ('base_child_female_north', 'SSB0393', 'base', 'A', 'female', 'north'),
+            ('base_older_female_north_1', 'SSB0309', 'base', 'D', 'female', 'north'),
+            ('base_older_female_north_2', 'SSB0354', 'base', 'D', 'female', 'north'),
+            ('base_female_other_accent', 'SSB0342', 'base', 'B', 'female', 'others'),
+            ('base_female_south_young', 'SSB0009', 'base', 'B', 'female', 'south'),
+            ('base_female_north_adult', 'SSB0011', 'base', 'C', 'female', 'north'),
+            ('base_female_south_adult', 'SSB0197', 'base', 'C', 'female', 'south'),
+            ('base_female_north_adult_2', 'SSB0267', 'base', 'C', 'female', 'north'),
+            ('base_male_north_young', 'SSB0073', 'base', 'B', 'male', 'north'),
+            ('base_male_south_young', 'SSB0139', 'base', 'B', 'male', 'south'),
+            ('base_male_north_adult', 'SSB0261', 'base', 'C', 'male', 'north'),
+            ('base_male_south_young_2', 'SSB0375', 'base', 'B', 'male', 'south'),
+            ('base_male_north_adult_2', 'SSB0407', 'base', 'C', 'male', 'north'),
+            ('base_female_north_young', 'SSB0012', 'base', 'B', 'female', 'north'),
+            ('base_female_south_young_2', 'SSB0149', 'base', 'B', 'female', 'south'),
+            # 10 generic short-video-style candidates; not named after or cloned from identifiable influencers
+            ('sv_sweet_female', 'SSB0016', 'shortvideo_style', 'B', 'female', 'north'),
+            ('sv_bright_female', 'SSB0033', 'shortvideo_style', 'B', 'female', 'south'),
+            ('sv_soft_female', 'SSB0057', 'shortvideo_style', 'B', 'female', 'north'),
+            ('sv_youthful_female', 'SSB0080', 'shortvideo_style', 'B', 'female', 'south'),
+            ('sv_gentle_female', 'SSB0112', 'shortvideo_style', 'B', 'female', 'south'),
+            ('sv_cool_female', 'SSB0380', 'shortvideo_style', 'B', 'female', 'north'),
+            ('sv_warm_female', 'SSB0385', 'shortvideo_style', 'B', 'female', 'south'),
+            ('sv_young_male', 'SSB0273', 'shortvideo_style', 'B', 'male', 'north'),
+            ('sv_bright_male', 'SSB0316', 'shortvideo_style', 'B', 'male', 'north'),
+            ('sv_magnetic_male', 'SSB0394', 'shortvideo_style', 'B', 'male', 'north'),
+          ]
+
+          api = HfApi()
+          all_files = api.list_repo_files(DATASET, repo_type='dataset')
+          rows = []
+          os.makedirs('voice-pack/references', exist_ok=True)
+          os.makedirs('voice-pack/raw', exist_ok=True)
+
+          for name, spk, group, age, gender, accent in presets:
+              prefix = f'test/wav/{spk}/'
+              candidates = sorted([p for p in all_files if p.startswith(prefix) and p.lower().endswith('.wav')])
+              if not candidates:
+                  raise RuntimeError(f'no wavs for {spk}')
+              pieces = []
+              source_files = []
+              total = 0.0
+              for remote in candidates[:6]:
+                  local = hf_hub_download(DATASET, remote, repo_type='dataset')
+                  y, sr = sf.read(local, always_2d=False)
+                  if getattr(y, 'ndim', 1) > 1:
+                      y = np.mean(y, axis=1)
+                  y = np.asarray(y, dtype=np.float32)
+                  if sr != SR:
+                      from math import gcd
+                      g = gcd(int(sr), SR)
+                      y = resample_poly(y, SR // g, int(sr) // g).astype(np.float32)
+                  if y.size == 0:
+                      continue
+                  y, _ = librosa.effects.trim(y, top_db=35)
+                  if y.size < int(0.5 * SR):
+                      continue
+                  peak = float(np.max(np.abs(y)))
+                  if peak > 0:
+                      y = y / peak * 0.89
+                  pieces.append(y)
+                  source_files.append(remote)
+                  total += len(y) / SR
+                  if total >= 10.0:
+                      break
+              if not pieces:
+                  raise RuntimeError(f'no usable audio for {spk}')
+              silence = np.zeros(int(0.15 * SR), np.float32)
+              merged = []
+              for i, p in enumerate(pieces):
+                  if i:
+                      merged.append(silence)
+                  merged.append(p)
+              y = np.concatenate(merged)[:12 * SR]
+              out = f'voice-pack/references/{name}.wav'
+              sf.write(out, y, SR, subtype='PCM_16')
+
+              f0, voiced, probs = librosa.pyin(y, fmin=60, fmax=500, sr=SR, frame_length=1024)
+              vf0 = f0[np.isfinite(f0)] if f0 is not None else np.array([])
+              rms = librosa.feature.rms(y=y, frame_length=1024, hop_length=256)[0]
+              centroid = librosa.feature.spectral_centroid(y=y, sr=SR, n_fft=1024, hop_length=256)[0]
+              zcr = librosa.feature.zero_crossing_rate(y, frame_length=1024, hop_length=256)[0]
+              row = {
+                  'preset': name, 'speaker_id': spk, 'group': group,
+                  'age_group': age, 'gender': gender, 'accent': accent,
+                  'duration_s': round(len(y)/SR, 3),
+                  'f0_median_hz': round(float(np.median(vf0)), 2) if vf0.size else None,
+                  'f0_p10_hz': round(float(np.percentile(vf0, 10)), 2) if vf0.size else None,
+                  'f0_p90_hz': round(float(np.percentile(vf0, 90)), 2) if vf0.size else None,
+                  'rms_mean': round(float(np.mean(rms)), 6),
+                  'spectral_centroid_hz': round(float(np.mean(centroid)), 2),
+                  'zcr_mean': round(float(np.mean(zcr)), 6),
+                  'source_files': source_files,
+                  'license': 'Apache-2.0',
+                  'source_dataset': DATASET,
+              }
+              rows.append(row)
+              print(json.dumps(row, ensure_ascii=False))
+
+          with open('voice-pack/manifest.json', 'w', encoding='utf-8') as f:
+              json.dump(rows, f, ensure_ascii=False, indent=2)
+          keys = ['preset','speaker_id','group','age_group','gender','accent','duration_s','f0_median_hz','f0_p10_hz','f0_p90_hz','rms_mean','spectral_centroid_hz','zcr_mean','license','source_dataset']
+          with open('voice-pack/manifest.csv', 'w', newline='', encoding='utf-8') as f:
+              w = csv.DictWriter(f, fieldnames=keys)
+              w.writeheader()
+              for r in rows:
+                  w.writerow({k:r.get(k) for k in keys})
+          PY
+          python /tmp/build_refs.py
+
+          cat > voice-pack/LICENSE_SOURCES.md <<'EOF'
+          # Voice Pack Sources
+
+          All 25 reference voices in this artifact are sampled from AISHELL-3 / OpenSLR SLR93.
+
+          - Dataset: AISHELL-3
+          - Publisher: Beijing Shell Shell Technology Co., Ltd.
+          - License: Apache License 2.0
+          - OpenSLR: https://www.openslr.org/93/
+          - Hugging Face mirror used by this workflow: https://huggingface.co/datasets/AISHELL/AISHELL-3
+
+          The 10 `sv_*` names are generic style labels only. They do not identify, claim to reproduce, or use recordings of specific influencers or public figures.
+          EOF
+
+      - name: Try official MeanVC2 speaker embeddings
+        id: embed
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check -q 'torch==2.5.1' 'torchaudio==2.5.1' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install --disable-pip-version-check -q gdown 's3prl>=0.4' soundfile numpy
+          git clone --depth 1 https://github.com/ASLP-lab/MeanVC2.git /tmp/MeanVC2
+          mkdir -p /tmp/MeanVC2/preprocess/ckpts voice-pack/xvectors
+          wget -q --show-progress -O /tmp/MeanVC2/preprocess/ckpts/wavlm_large.pt https://github.com/microsoft/unilm/releases/download/wavlm/WavLM-Large.pt
+          gdown --fuzzy 'https://drive.google.com/file/d/1-aE1NfzpRCLxA4GUxX9ITI3F9LlbtEGP/view' -O /tmp/MeanVC2/preprocess/ckpts/wavlm_large_finetune.pth
+          cd /tmp/MeanVC2
+          python preprocess/extract_spk_emb.py --input_dir "$GITHUB_WORKSPACE/voice-pack/references" --output_dir "$GITHUB_WORKSPACE/voice-pack/xvectors" --device cpu
+          cd "$GITHUB_WORKSPACE"
+          python - <<'PY'
+          import glob, json, os, numpy as np
+          out=[]
+          for p in sorted(glob.glob('voice-pack/xvectors/*.npy')):
+              x=np.load(p).astype('float32')
+              n=float(np.linalg.norm(x))
+              if n>0: x=x/n
+              np.save(p,x)
+              out.append({'file':os.path.basename(p),'shape':list(x.shape),'l2_norm':float(np.linalg.norm(x))})
+          with open('voice-pack/xvectors_manifest.json','w') as f: json.dump(out,f,indent=2)
+          assert len(out)==25, f'expected 25 embeddings, got {len(out)}'
+          PY
+          echo 'embedding_status=success' > voice-pack/EMBEDDING_STATUS.txt
+
+      - name: Record embedding fallback status
+        if: steps.embed.outcome != 'success'
+        shell: bash
+        run: |
+          echo 'embedding_status=failed; references and acoustic manifest are still valid. Inspect Actions logs for WavLM/Google Drive/s3prl failure.' > voice-pack/EMBEDDING_STATUS.txt
+
+      - name: Verify pack
+        id: verify
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(find voice-pack/references -maxdepth 1 -name '*.wav' | wc -l)" = 25
+          test -s voice-pack/manifest.json
+          test -s voice-pack/manifest.csv
+          refs_bytes="$(du -sb voice-pack/references | awk '{print $1}')"
+          emb_count="$(find voice-pack/xvectors -maxdepth 1 -name '*.npy' 2>/dev/null | wc -l || true)"
+          echo "refs_bytes=$refs_bytes" >> "$GITHUB_OUTPUT"
+          echo "emb_count=$emb_count" >> "$GITHUB_OUTPUT"
+          sha256sum voice-pack/references/*.wav > voice-pack/REFERENCE_SHA256SUMS.txt
+
+      - name: Upload voice pack
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: MeanVC2-open-voice-pack-25
+          path: voice-pack
+          compression-level: 6
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Report result
+        if: success() && github.event_name == 'issues'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "Voice pack build PASS. Artifact: **MeanVC2-open-voice-pack-25** (artifact id \`${{ steps.upload.outputs.artifact-id }}\`). References: 25; reference bytes: \`${{ steps.verify.outputs.refs_bytes }}\`; official MeanVC2 xvectors produced: \`${{ steps.verify.outputs.emb_count }}\` / 25. Source is AISHELL-3 (Apache-2.0). The 10 sv_* presets are generic short-video-style candidates, not specific influencer clones."
+
+      - name: Report failure
+        if: failure() && github.event_name == 'issues'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue comment "${{ github.event.issue.number }}" --repo "$GITHUB_REPOSITORY" --body "Voice pack build FAILED. Run: \`${GITHUB_RUN_ID}\`. Inspect the failing step."
