@@ -39,3 +39,5 @@ The permanent source of truth remains the private Release. Actions artifacts are
 ## Historical archive
 
 The older tag `qairt-sdk-archive-v1` retains QAIRT 2.42.0.251225 and QAIRT 2.48.40.260702. Historical hashes remain in `release-manifest/SHA256SUMS`; older fixed-ID broker/export workflows are retained only for reproducibility of those closed experiments.
+
+<!-- ChatGPT GitHub connector write smoke test: 2026-08-31 -->
