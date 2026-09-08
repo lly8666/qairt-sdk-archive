@@ -17,57 +17,45 @@ jobs:
     timeout-minutes: 120
 
     steps:
-      - name: Check out RustDesk Web source
+      - name: Check out reproducible OSS Web builder
         uses: actions/checkout@v4
         with:
-          repository: rustdesk/rustdesk
-          ref: 22b1ed169aa473b320e338c546f1f7b9a511f23f
-          submodules: recursive
-          path: rustdesk
+          repository: pmietlicki/docker-rustdesk-web-client
+          ref: 53b466586ba1de91ae489cd55e33bf99968e97c8
+          path: builder
 
-      - name: Install build dependencies
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install -y wget npm
-
-      - name: Install Flutter 3.24.5
-        uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          flutter-version: 3.24.5
-          cache: true
-
-      - name: Apply RustDesk Flutter compatibility patch
-        shell: bash
-        run: |
-          cd "$(dirname "$(dirname "$(which flutter)")")"
-          git apply "$GITHUB_WORKSPACE/rustdesk/.github/patches/flutter_3.24.4_dropdown_menu_enableFilter.diff"
-
-      - name: Build RustDesk Web client
+      - name: Compile RustDesk Web client
         shell: bash
         run: |
           set -euxo pipefail
-          cd "$GITHUB_WORKSPACE/rustdesk/flutter/web/js"
-          sudo npm install -g yarn typescript protoc vite@2.8
-          npm install ts-proto
-          yarn install
-          yarn build
+          docker build \
+            --file "$GITHUB_WORKSPACE/builder/Dockerfile" \
+            --tag rustdesk-web-compiled:20260908 \
+            "$GITHUB_WORKSPACE/builder"
 
-          cd "$GITHUB_WORKSPACE/rustdesk/flutter/web"
-          wget -q https://github.com/rustdesk/doc.rustdesk.com/releases/download/console/web_deps.tar.gz
-          tar xzf web_deps.tar.gz
-
-          cd "$GITHUB_WORKSPACE/rustdesk/flutter"
-          flutter build web --release
-          printf '%s\n' 'RustDesk OSS Web Client 22b1ed169aa473b320e338c546f1f7b9a511f23f' > build/web/BUILD-INFO.txt
-          tar -C build -czf rustdesk-web-oss-20260908.tar.gz web
+      - name: Extract static Web client
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p "$GITHUB_WORKSPACE/artifact/web"
+          cid="$(docker create rustdesk-web-compiled:20260908)"
+          trap 'docker rm -f "$cid" >/dev/null 2>&1 || true' EXIT
+          docker cp "$cid:/usr/share/nginx/html/." "$GITHUB_WORKSPACE/artifact/web/"
+          printf '%s\n' \
+            'RustDesk OSS Web Client' \
+            'Builder commit: 53b466586ba1de91ae489cd55e33bf99968e97c8' \
+            'Built by lly8666/qairt-sdk-archive GitHub Actions' \
+            > "$GITHUB_WORKSPACE/artifact/web/BUILD-INFO.txt"
+          tar -C "$GITHUB_WORKSPACE/artifact" -czf \
+            "$GITHUB_WORKSPACE/artifact/rustdesk-web-oss-20260908.tar.gz" web
+          sha256sum "$GITHUB_WORKSPACE/artifact/rustdesk-web-oss-20260908.tar.gz"
 
       - name: Upload Web client artifact
         uses: actions/upload-artifact@v4
         with:
           name: rustdesk-web-oss-20260908
           path: |
-            rustdesk/flutter/build/web
-            rustdesk/flutter/rustdesk-web-oss-20260908.tar.gz
+            artifact/web
+            artifact/rustdesk-web-oss-20260908.tar.gz
           if-no-files-found: error
           retention-days: 7
