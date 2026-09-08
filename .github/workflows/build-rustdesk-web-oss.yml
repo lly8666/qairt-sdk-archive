@@ -1,0 +1,73 @@
+name: Build RustDesk OSS Web Client
+
+on:
+  push:
+    branches:
+      - codex/rustdesk-web-1.4.7
+    paths:
+      - .github/workflows/build-rustdesk-web-oss.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-web:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 120
+
+    steps:
+      - name: Check out RustDesk 1.4.7
+        uses: actions/checkout@v4
+        with:
+          repository: rustdesk/rustdesk
+          ref: 1.4.7
+          submodules: recursive
+          path: rustdesk
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y wget npm
+
+      - name: Install Flutter 3.24.5
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.24.5
+          cache: true
+
+      - name: Apply RustDesk Flutter compatibility patch
+        shell: bash
+        run: |
+          cd "$(dirname "$(dirname "$(which flutter)")")"
+          git apply "$GITHUB_WORKSPACE/rustdesk/.github/patches/flutter_3.24.4_dropdown_menu_enableFilter.diff"
+
+      - name: Build RustDesk Web client
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cd "$GITHUB_WORKSPACE/rustdesk/flutter/web/js"
+          sudo npm install -g yarn typescript protoc vite@2.8
+          npm install ts-proto
+          yarn install
+          yarn build
+
+          cd "$GITHUB_WORKSPACE/rustdesk/flutter/web"
+          wget -q https://github.com/rustdesk/doc.rustdesk.com/releases/download/console/web_deps.tar.gz
+          tar xzf web_deps.tar.gz
+
+          cd "$GITHUB_WORKSPACE/rustdesk/flutter"
+          flutter build web --release
+          printf '%s\n' 'RustDesk OSS Web Client 1.4.7' > build/web/BUILD-INFO.txt
+          tar -C build -czf rustdesk-web-oss-1.4.7.tar.gz web
+
+      - name: Upload Web client artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rustdesk-web-oss-1.4.7
+          path: |
+            rustdesk/flutter/build/web
+            rustdesk/flutter/rustdesk-web-oss-1.4.7.tar.gz
+          if-no-files-found: error
+          retention-days: 7
