@@ -17,11 +17,11 @@ jobs:
     timeout-minutes: 120
 
     steps:
-      - name: Check out RustDesk 1.4.7
+      - name: Check out RustDesk Web source
         uses: actions/checkout@v4
         with:
           repository: rustdesk/rustdesk
-          ref: 1.4.7
+          ref: 22b1ed169aa473b320e338c546f1f7b9a511f23f
           submodules: recursive
           path: rustdesk
 
@@ -59,15 +59,15 @@ jobs:
 
           cd "$GITHUB_WORKSPACE/rustdesk/flutter"
           flutter build web --release
-          printf '%s\n' 'RustDesk OSS Web Client 1.4.7' > build/web/BUILD-INFO.txt
-          tar -C build -czf rustdesk-web-oss-1.4.7.tar.gz web
+          printf '%s\n' 'RustDesk OSS Web Client 22b1ed169aa473b320e338c546f1f7b9a511f23f' > build/web/BUILD-INFO.txt
+          tar -C build -czf rustdesk-web-oss-20260908.tar.gz web
 
       - name: Upload Web client artifact
         uses: actions/upload-artifact@v4
         with:
-          name: rustdesk-web-oss-1.4.7
+          name: rustdesk-web-oss-20260908
           path: |
             rustdesk/flutter/build/web
-            rustdesk/flutter/rustdesk-web-oss-1.4.7.tar.gz
+            rustdesk/flutter/rustdesk-web-oss-20260908.tar.gz
           if-no-files-found: error
           retention-days: 7
