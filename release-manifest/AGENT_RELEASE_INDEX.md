@@ -4,6 +4,11 @@
 
 Canonical machine-readable file: `release-manifest/AGENT_RELEASE_INDEX.json`.
 
+## `npcap`
+Published: `2026-09-14T16:08:34Z`
+
+- _(no assets)_
+
 ## `20260820.2`
 Published: `2026-08-20T11:21:27Z`
 
