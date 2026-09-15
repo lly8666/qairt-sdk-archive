@@ -82,6 +82,7 @@ jobs:
           cd "$GITHUB_WORKSPACE/rustdesk/flutter/web/js"
           yarn install
           yarn add --dev --exact @types/node@16.18.11
+          yarn add --exact libsodium@0.7.9 libsodium-wrappers@0.7.9
           yarn build
 
       - name: Compile matching RustDesk Flutter web UI
