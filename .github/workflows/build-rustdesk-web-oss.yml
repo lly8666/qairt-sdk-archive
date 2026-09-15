@@ -17,11 +17,11 @@ jobs:
     timeout-minutes: 120
 
     steps:
-      - name: Check out RustDesk 1.4.7 with submodules
+      - name: Check out RustDesk 1.4.0 with submodules
         uses: actions/checkout@v4
         with:
           repository: rustdesk/rustdesk
-          ref: 1.4.7
+          ref: 1.4.0
           submodules: recursive
           path: rustdesk
 
@@ -48,6 +48,33 @@ jobs:
           cd "$flutter_root"
           git apply "$GITHUB_WORKSPACE/rustdesk/.github/patches/flutter_3.24.4_dropdown_menu_enableFilter.diff"
 
+      - name: Prepare the matching RustDesk 1.4.0 web sources
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cd "$GITHUB_WORKSPACE/rustdesk/flutter/web"
+          cp -a v1/. .
+          sed -i 's|const SCHEMA = "ws://";|const SCHEMA = "wss://";|' js/src/connection.ts
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("index.html")
+          text = path.read_text()
+          defaults = """  <script>
+            if (!localStorage.getItem('custom-rendezvous-server')) {
+              localStorage.setItem('custom-rendezvous-server', '1.995588.xyz:23555');
+            }
+            if (!localStorage.getItem('relay-server')) {
+              localStorage.setItem('relay-server', '1.995588.xyz:23556');
+            }
+            if (!localStorage.getItem('key')) {
+              localStorage.setItem('key', 'eY20l6H5TIx4hh4+UMfUTS1Swe8eFqHFtnbXVSc36P8=');
+            }
+          </script>\n"""
+          text = text.replace("</head>", defaults + "</head>", 1)
+          path.write_text(text)
+          PY
+
       - name: Compile matching RustDesk JavaScript bridge
         shell: bash
         run: |
@@ -65,6 +92,8 @@ jobs:
           tar xzf web_deps.tar.gz
           cd "$GITHUB_WORKSPACE/rustdesk/flutter"
           flutter build web --release
+          mkdir -p build/web/js
+          cp -a web/js/dist build/web/js/
 
       - name: Package unified static client
         shell: bash
@@ -74,21 +103,21 @@ jobs:
           cp -a "$GITHUB_WORKSPACE/rustdesk/flutter/build/web" "$GITHUB_WORKSPACE/artifact/web"
           printf '%s\n' \
             'RustDesk OSS Web Client' \
-            'RustDesk tag: 1.4.7' \
-            'RustDesk commit: 0c86d4616298f09435f6236599b300964aa61460' \
+            'RustDesk tag: 1.4.0' \
+            'RustDesk commit: e6aefcfa3006623524e0d5a082e9bd80b4189637' \
             'Flutter: 3.24.5' \
             'UI and JavaScript connection bridge compiled from the same source tree.' \
             > "$GITHUB_WORKSPACE/artifact/web/BUILD-INFO.txt"
           tar -C "$GITHUB_WORKSPACE/artifact" -czf \
-            "$GITHUB_WORKSPACE/artifact/rustdesk-web-1.4.7-unified.tar.gz" web
-          sha256sum "$GITHUB_WORKSPACE/artifact/rustdesk-web-1.4.7-unified.tar.gz"
+            "$GITHUB_WORKSPACE/artifact/rustdesk-web-1.4.0-unified.tar.gz" web
+          sha256sum "$GITHUB_WORKSPACE/artifact/rustdesk-web-1.4.0-unified.tar.gz"
 
       - name: Upload unified web client artifact
         uses: actions/upload-artifact@v4
         with:
-          name: rustdesk-web-1.4.7-unified
+          name: rustdesk-web-1.4.0-unified
           path: |
             artifact/web
-            artifact/rustdesk-web-1.4.7-unified.tar.gz
+            artifact/rustdesk-web-1.4.0-unified.tar.gz
           if-no-files-found: error
           retention-days: 7
