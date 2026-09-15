@@ -81,6 +81,7 @@ jobs:
           set -euxo pipefail
           cd "$GITHUB_WORKSPACE/rustdesk/flutter/web/js"
           yarn install
+          yarn add --dev --exact @types/node@16.18.11
           yarn build
 
       - name: Compile matching RustDesk Flutter web UI
