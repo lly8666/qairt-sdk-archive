@@ -1,0 +1,145 @@
+name: Build Richman 4 Android ARM64 (personal sideload)
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/build-richman4-android.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: richman4-android-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      RICH4_UPSTREAM_SHA: 3f4209a7dfb5b2f20799bf54e6c03c5faa11c557
+
+    steps:
+      - name: Checkout build workspace
+        uses: actions/checkout@v4
+
+      - name: Install Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Prepare Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android platform and NDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager --install "platforms;android-36" "build-tools;36.0.0" "ndk;28.2.13676358" "cmake;3.22.1"
+
+      - name: Install RAR extraction tools
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq unar p7zip-full
+
+      - name: Fetch fixed upstream Richman 4 native Android source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git init "$RUNNER_TEMP/richman4-src"
+          git -C "$RUNNER_TEMP/richman4-src" remote add origin https://github.com/lhr0909/richman4-remastered.git
+          git -C "$RUNNER_TEMP/richman4-src" fetch --depth 1 origin "$RICH4_UPSTREAM_SHA"
+          git -C "$RUNNER_TEMP/richman4-src" checkout --detach FETCH_HEAD
+          echo "RICH4_SOURCE=$RUNNER_TEMP/richman4-src" >> "$GITHUB_ENV"
+          git -C "$RUNNER_TEMP/richman4-src" rev-parse HEAD
+
+      - name: Fetch three original game RAR volumes from testrich4 Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          parts="$RUNNER_TEMP/richman4-parts"
+          mkdir -p "$parts"
+          gh release download testrich4 --repo "$GITHUB_REPOSITORY" \
+            --dir "$parts" --pattern '4.rar.*'
+          printf '%s  %s\n' \
+            '21ef5b2a7fb49a5aa0ebef6e80b45d28f5421a423472c2d44cee250e697ec431' "$parts/4.rar.001" | sha256sum -c -
+          printf '%s  %s\n' \
+            'c59db4174e387c33612a86e5f9a8bc1961f2769f927794a4a70c72c9bc7bf0cd' "$parts/4.rar.002" | sha256sum -c -
+          printf '%s  %s\n' \
+            'cf32105f112fc7076f9309582711c8de1ff4184c0004788921ed30d2185e7d0a' "$parts/4.rar.003" | sha256sum -c -
+
+      - name: Extract and audit all seven original game archives
+        shell: bash
+        run: |
+          set -euo pipefail
+          parts="$RUNNER_TEMP/richman4-parts"
+          output="$RUNNER_TEMP/richman4-unpacked"
+          mkdir -p "$output"
+          if ! unar -quiet -force-overwrite -output-directory "$output" "$parts/4.rar.001"; then
+            echo "unar failed; falling back to 7z"
+            7z x -y "-o$output" "$parts/4.rar.001"
+          fi
+          data_file="$(find "$output" -type f -iname 'Data.mkf' -print -quit)"
+          test -n "$data_file"
+          assets="$(dirname "$data_file")"
+          test -f "$assets/rich4.exe"
+          echo "RICH4_GAME_ASSETS=$assets" >> "$GITHUB_ENV"
+          python3 "$RUNNER_TEMP/richman4-src/scripts/audit_assets.py" "$assets"
+          echo "Game assets audited in temporary directory (never committed)."
+
+      - name: Build complete, debug-signed arm64-v8a Android APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RICH4_SOURCE"
+          chmod +x scripts/build_android.sh android/gradlew
+          scripts/build_android.sh
+
+      - name: Verify APK embeds full game data and native libraries
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk="$RICH4_SOURCE/android/app/build/outputs/apk/debug/app-debug.apk"
+          python3 - "$apk" <<'PY'
+          import sys
+          from pathlib import Path
+          from zipfile import ZipFile
+          apk = Path(sys.argv[1])
+          with ZipFile(apk) as z:
+              names = set(z.namelist())
+              required = [
+                  "assets/rich4-data/game/Data.mkf",
+                  "assets/rich4-data/game/Effect.mkf",
+                  "assets/rich4-data/game/Panel.mkf",
+                  "assets/rich4-data/game/Speaking.mkf",
+                  "assets/rich4-data/game/help.mkf",
+                  "assets/rich4-data/game/jump.mkf",
+                  "assets/rich4-data/game/map.mkf",
+                  "assets/rich4-data/GeneralUser-GS.sf2",
+                  "lib/arm64-v8a/libmain.so",
+                  "lib/arm64-v8a/libSDL3.so",
+              ]
+              missing = [item for item in required if item not in names]
+              mids = [item for item in names if item.startswith("assets/rich4-data/game/") and item.lower().endswith(".mid")]
+              assert not missing, f"APK missing {missing}"
+              assert len(mids) >= 20, f"Only {len(mids)} MIDI tracks in APK"
+              print("APK contents verified:", len(required), "required files,", len(mids), "MIDI tracks")
+              print("APK bytes:", apk.stat().st_size)
+          PY
+          mkdir -p "$GITHUB_WORKSPACE/build-results"
+          cp "$apk" "$GITHUB_WORKSPACE/build-results/Richman4-Android-arm64-personal.apk"
+          (cd "$GITHUB_WORKSPACE/build-results" && sha256sum Richman4-Android-arm64-personal.apk > SHA256SUMS.txt)
+
+      - name: Upload personal sideload APK (short retention, not a public Release)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Richman4-Android-arm64-personal-${{ github.run_number }}
+          path: build-results/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 3
