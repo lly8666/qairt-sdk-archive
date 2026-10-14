@@ -42,10 +42,26 @@ jobs:
           yes | sdkmanager --licenses >/dev/null || true
           sdkmanager --install "platforms;android-36" "build-tools;36.0.0" "ndk;28.2.13676358" "cmake;3.22.1"
 
-      - name: Install libarchive extraction dependency
+      - name: Build pinned libarchive 3.7.4 (RAR4 CRC bug fix)
+        shell: bash
         run: |
+          set -euo pipefail
           sudo apt-get update -qq
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq libarchive-dev
+          url="https://github.com/libarchive/libarchive/releases/download/v3.7.4/libarchive-3.7.4.tar.gz"
+          curl -fsSL --retry 4 -o "$RUNNER_TEMP/libarchive-3.7.4.tar.gz" "$url"
+          printf '%s  %s\n' \
+            '7875d49596286055b52439ed42f044bd8ad426aa4cc5aabd96bfe7abb971d5e8' \
+            "$RUNNER_TEMP/libarchive-3.7.4.tar.gz" | sha256sum -c -
+          tar xf "$RUNNER_TEMP/libarchive-3.7.4.tar.gz" -C "$RUNNER_TEMP"
+          prefix="$RUNNER_TEMP/libarchive-3.7.4-install"
+          cmake -S "$RUNNER_TEMP/libarchive-3.7.4" -B "$RUNNER_TEMP/libarchive-build" \
+            -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$prefix" \
+            -DENABLE_TEST=OFF -DENABLE_TAR=OFF -DENABLE_CPIO=OFF -DENABLE_CAT=OFF \
+            -DBUILD_SHARED_LIBS=ON
+          cmake --build "$RUNNER_TEMP/libarchive-build" --parallel 4
+          cmake --install "$RUNNER_TEMP/libarchive-build"
+          echo "LIBARCHIVE_PREFIX=$prefix" >> "$GITHUB_ENV"
 
       - name: Fetch fixed upstream Richman 4 native Android source
         shell: bash
@@ -83,7 +99,8 @@ jobs:
           output="$RUNNER_TEMP/richman4-assets"
           mkdir -p "$output"
           cc -O2 -Wall -Wextra "$GITHUB_WORKSPACE/.github/scripts/extract-richman4-assets.c" \
-            -larchive -o "$RUNNER_TEMP/extract-rich4"
+            -I"$LIBARCHIVE_PREFIX/include" -L"$LIBARCHIVE_PREFIX/lib" \
+            -Wl,-rpath,"$LIBARCHIVE_PREFIX/lib" -larchive -o "$RUNNER_TEMP/extract-rich4"
           "$RUNNER_TEMP/extract-rich4" "$output" \
             "$parts/4.rar.001" "$parts/4.rar.002" "$parts/4.rar.003"
           echo "RICH4_GAME_ASSETS=$output" >> "$GITHUB_ENV"
