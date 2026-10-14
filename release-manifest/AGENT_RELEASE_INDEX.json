@@ -1,9 +1,50 @@
 {
   "schema": 1,
   "repository": "lly8666/qairt-sdk-archive",
-  "generated_at_utc": "2026-09-14T16:08:41.144529+00:00",
+  "generated_at_utc": "2026-10-14T13:44:41.818506+00:00",
   "note": "Stable, non-secret metadata index for agents. browser_download_url is not a signed credential; private asset download still requires authenticated GitHub access or an export workflow.",
   "releases": [
+    {
+      "tag_name": "testrich4",
+      "name": "onlytest",
+      "draft": false,
+      "prerelease": true,
+      "created_at": "2026-09-14T16:08:41Z",
+      "published_at": "2026-10-14T13:44:33Z",
+      "html_url": "https://github.com/lly8666/qairt-sdk-archive/releases/tag/testrich4",
+      "assets": [
+        {
+          "name": "4.rar.001",
+          "id": 640513763,
+          "size": 39845888,
+          "digest": "sha256:21ef5b2a7fb49a5aa0ebef6e80b45d28f5421a423472c2d44cee250e697ec431",
+          "created_at": "2026-10-14T13:44:16Z",
+          "updated_at": "2026-10-14T13:44:22Z",
+          "browser_download_url": "https://github.com/lly8666/qairt-sdk-archive/releases/download/testrich4/4.rar.001",
+          "api_url": "https://api.github.com/repos/lly8666/qairt-sdk-archive/releases/assets/640513763"
+        },
+        {
+          "name": "4.rar.002",
+          "id": 640514063,
+          "size": 39845888,
+          "digest": "sha256:c59db4174e387c33612a86e5f9a8bc1961f2769f927794a4a70c72c9bc7bf0cd",
+          "created_at": "2026-10-14T13:44:22Z",
+          "updated_at": "2026-10-14T13:44:29Z",
+          "browser_download_url": "https://github.com/lly8666/qairt-sdk-archive/releases/download/testrich4/4.rar.002",
+          "api_url": "https://api.github.com/repos/lly8666/qairt-sdk-archive/releases/assets/640514063"
+        },
+        {
+          "name": "4.rar.003",
+          "id": 640513352,
+          "size": 36386709,
+          "digest": "sha256:cf32105f112fc7076f9309582711c8de1ff4184c0004788921ed30d2185e7d0a",
+          "created_at": "2026-10-14T13:44:07Z",
+          "updated_at": "2026-10-14T13:44:16Z",
+          "browser_download_url": "https://github.com/lly8666/qairt-sdk-archive/releases/download/testrich4/4.rar.003",
+          "api_url": "https://api.github.com/repos/lly8666/qairt-sdk-archive/releases/assets/640513352"
+        }
+      ]
+    },
     {
       "tag_name": "npcap",
       "name": "npcap",

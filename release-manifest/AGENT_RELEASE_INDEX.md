@@ -4,6 +4,13 @@
 
 Canonical machine-readable file: `release-manifest/AGENT_RELEASE_INDEX.json`.
 
+## `testrich4` [prerelease]
+Published: `2026-10-14T13:44:33Z`
+
+- `4.rar.001` — id `640513763`, bytes `39845888`, `sha256:21ef5b2a7fb49a5aa0ebef6e80b45d28f5421a423472c2d44cee250e697ec431`
+- `4.rar.002` — id `640514063`, bytes `39845888`, `sha256:c59db4174e387c33612a86e5f9a8bc1961f2769f927794a4a70c72c9bc7bf0cd`
+- `4.rar.003` — id `640513352`, bytes `36386709`, `sha256:cf32105f112fc7076f9309582711c8de1ff4184c0004788921ed30d2185e7d0a`
+
 ## `npcap`
 Published: `2026-09-14T16:08:34Z`
 
