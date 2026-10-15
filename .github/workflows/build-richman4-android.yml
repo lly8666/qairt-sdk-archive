@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     env:
-      RICH4_UPSTREAM_SHA: cd47e3cb558f49bc85a66e07b34433c386345a65
+      RICH4_UPSTREAM_SHA: c1a4b2e7922250682ddc1e33fd2c4e95bb79693b
 
     steps:
       - name: Checkout build workspace
