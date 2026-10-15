@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     env:
-      RICH4_UPSTREAM_SHA: 3f4209a7dfb5b2f20799bf54e6c03c5faa11c557
+      RICH4_UPSTREAM_SHA: c9a6ed3f68660c6f25e97963ab9a2dcdd84762fe
 
     steps:
       - name: Checkout build workspace
@@ -68,7 +68,7 @@ jobs:
         run: |
           set -euo pipefail
           git init "$RUNNER_TEMP/richman4-src"
-          git -C "$RUNNER_TEMP/richman4-src" remote add origin https://github.com/lhr0909/richman4-remastered.git
+          git -C "$RUNNER_TEMP/richman4-src" remote add origin https://github.com/lly8666/richman4-remastered.git
           git -C "$RUNNER_TEMP/richman4-src" fetch --depth 1 origin "$RICH4_UPSTREAM_SHA"
           git -C "$RUNNER_TEMP/richman4-src" checkout --detach FETCH_HEAD
           echo "RICH4_SOURCE=$RUNNER_TEMP/richman4-src" >> "$GITHUB_ENV"
