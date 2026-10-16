@@ -21,6 +21,18 @@ jobs:
       RICH4_UPSTREAM_SHA: dfb2c75743a188834e5b58ed0103763bb5c21ee0
 
     steps:
+      - name: Require retained MOD signing key
+        shell: bash
+        env:
+          RICH4_KEYSTORE_B64: ${{ secrets.RICH4_KEYSTORE_B64 }}
+          RICH4_KEYSTORE_PASSWORD: ${{ secrets.RICH4_KEYSTORE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${RICH4_KEYSTORE_B64:-}" || -z "${RICH4_KEYSTORE_PASSWORD:-}" ]]; then
+            echo "::error::Missing persistent signing Secrets RICH4_KEYSTORE_B64/RICH4_KEYSTORE_PASSWORD. Refusing an ephemeral key that prevents Android in-place upgrades."
+            exit 1
+          fi
+
       - name: Checkout build workspace
         uses: actions/checkout@v4
 
@@ -126,24 +138,17 @@ jobs:
           original="$RICH4_SOURCE/android/app/build/outputs/apk/debug/app-debug.apk"
           signed="$GITHUB_WORKSPACE/build-results/Richman4-Android-arm64-test-signed.apk"
           keystore="$RUNNER_TEMP/richman4-personal-test.p12"
-          # Stable reinstall-compatible signing is possible only with the SAME
-          # retained private key. Owners may configure both encrypted Actions
-          # secrets (PKCS12 base64 and password). Never commit the private key
-          # to this public repository or upload it as a workflow artifact.
-          if [[ -n "${RICH4_KEYSTORE_B64:-}" && -n "${RICH4_KEYSTORE_PASSWORD:-}" ]]; then
-            printf '%s' "$RICH4_KEYSTORE_B64" | base64 --decode > "$keystore"
-            password="$RICH4_KEYSTORE_PASSWORD"
-            echo "Using configured persistent personal signing key."
-          else
-            password="$(openssl rand -hex 24)"
-            keytool -genkeypair -noprompt \
-              -alias rich4-local-test \
-              -keyalg RSA -keysize 3072 -validity 3650 \
-              -dname "CN=Richman4 Android Local Test, O=Personal Sideload, C=US" \
-              -storetype PKCS12 -keystore "$keystore" \
-              -storepass "$password" -keypass "$password"
-            echo "No retained signing key configured; using ephemeral test key."
+          # The .p12 private key and its password are NEVER kept in public Git.
+          # Once the owner configures Secrets, this key signs every MOD build.
+          if [[ -z "${RICH4_KEYSTORE_B64:-}" || -z "${RICH4_KEYSTORE_PASSWORD:-}" ]]; then
+            echo "::error::Persistent signing key not configured."
+            exit 1
           fi
+          printf '%s' "$RICH4_KEYSTORE_B64" | base64 --decode > "$keystore"
+          password="$RICH4_KEYSTORE_PASSWORD"
+          keytool -list -alias rich4-local-test -storetype PKCS12 \
+            -keystore "$keystore" -storepass "$password" >/dev/null
+          echo "Using retained private key from GitHub Actions encrypted Secrets."
           chmod 600 "$keystore"
           signer="$ANDROID_HOME/build-tools/36.0.0/apksigner"
           "$signer" sign \
@@ -172,11 +177,15 @@ jobs:
             "$GITHUB_WORKSPACE/build-results/SIGNING-CERTIFICATE.txt"
           unzip -Z1 "$signed" | grep -Eq '^META-INF/[^/]+\.(RSA|DSA|EC)$'
           test -s "$signed"
-          if [[ -z "${RICH4_KEYSTORE_B64:-}" || -z "${RICH4_KEYSTORE_PASSWORD:-}" ]]; then
-            echo "Test key is ephemeral; a previous build may require uninstalling."
-          else
-            echo "Persistent test signing key used; matching prior signed builds can update in place."
+          # Pin certificate identity, not just the keystore alias: a secret
+          # accidentally replaced with a different private key must fail.
+          expected="36778ecf6ef797072560d5cf75777ff508d67a30aa06e15b3e5fabb74e65577d"
+          actual="$(sed -n 's/.*Signer #1 certificate SHA-256 digest: //p' "$GITHUB_WORKSPACE/build-results/SIGNING-CERTIFICATE.txt" | head -n 1)"
+          if [[ "$actual" != "$expected" ]]; then
+            echo "::error::Unexpected MOD signing certificate; refusing incompatible APK."
+            exit 1
           fi
+          echo "Persistent MOD certificate verified (SHA-256: $actual)."
 
       - name: Verify APK embeds full game data and native libraries
         shell: bash
