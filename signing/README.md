@@ -15,10 +15,10 @@ Expected alias: `rich4-local-test`.
    and `RICH4_KEYSTORE_PASSWORD` to the file's exact secret password (no final newline).
    Linux: `base64 -w 0 ./Richman4-MOD-PERSISTENT-SIGNING-KEEP-PRIVATE.p12`;
    macOS: `base64 < ./Richman4-MOD-PERSISTENT-SIGNING-KEEP-PRIVATE.p12 | tr -d '\\n'`.
-3. Re-run `.github/workflows/build-richman4-android-mod.yml`. The job now fails before
-   building if either secret is missing, and rejects a certificate fingerprint mismatch.
+3. Re-run `.github/workflows/build-richman4-android-mod.yml`. The compile stage may run for code validation without secrets, but signing and artifact upload
+   strictly fail if either secret is missing. The certificate fingerprint is checked each run.
 4. Record and retain the .p12/password securely. In-place upgrades require the **same**
-   certificate **and** greater `versionCode` (see Android app Gradle configuration).
+   certificate **and** greater `versionCode` (the MOD workflow now sets it to monotonically increasing `github.run_number`).
 5. APKs signed before this new key was created CANNOT be updated in place with this new key.
    Back up `.DAT`, `.DAT.mod`, `.rng` before uninstalling historical builds.
 
