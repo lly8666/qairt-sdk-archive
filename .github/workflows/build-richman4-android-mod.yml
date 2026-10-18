@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     env:
-      RICH4_UPSTREAM_SHA: 011bae0024df033be92622b98176216118867a0e
+      RICH4_UPSTREAM_SHA: 92a2541e696263ff4db3c1b7d14cfdacadce5a77
 
     steps:
       - name: Check signing readiness (compile-only is still tested)
