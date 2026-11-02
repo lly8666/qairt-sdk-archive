@@ -75,6 +75,8 @@ def synthetic(out):
                 line=proc.stderr.readline()
                 if "listening on" in line:break
             else:raise RuntimeError("tcpdump not ready")
+            # Give the capture process one scheduling quantum on the hosted runner.
+            time.sleep(0.5)
             trusted=ssl.create_default_context(cafile=str(crt))
             with socket.create_connection(("127.0.0.1",port),timeout=3) as sock:
                 with trusted.wrap_socket(sock,server_hostname="localhost") as conn:
@@ -88,11 +90,15 @@ def synthetic(out):
             assert rejected
             worker.join(6);assert not worker.is_alive() and seen==[b"LAB-HELLO\n"]
         finally:
+            # Let -U flush frames before stopping the capture.
+            time.sleep(0.7)
             proc.terminate()
             try:proc.wait(timeout=5)
             except subprocess.TimeoutExpired:proc.kill()
         packets=command("tcpdump","-n","-r",pcap,capture_output=True).stdout.splitlines()
-        assert pcap.stat().st_size>300 and len(packets)>=6
+        if not (pcap.stat().st_size>300 and len(packets)>=6):
+            raise AssertionError("capture diagnostics: bytes="+str(pcap.stat().st_size)+
+                                 " packets="+str(len(packets)))
         assert all("127.0.0.1." in p for p in packets if "IP " in p)
         verdict(out/"synthetic.json",{"status":"PASS","endpoint":"127.0.0.1",
             "packet_count":len(packets),"pcap_sha256":sha(pcap),
