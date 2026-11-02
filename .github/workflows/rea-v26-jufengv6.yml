@@ -110,6 +110,44 @@ jobs:
           (root/'run-status.json').write_text(json.dumps(status,indent=2)+'\n')
           print(json.dumps(status))
           PY
+      - name: Decompile V25 native anchors from exact file offsets
+        shell: bash
+        env:
+          GHIDRA_INSTALL_DIR: ${ runner.temp }}/ghidra/ghidra_12.1.4_PUBLIC
+          GHIDRA_HEADLESS_MAXMEM: 6G
+          REA_GHIDRA_STARTUP_TIMEOUT_MS: '3600000'
+          REA_GHIDRA_DECOMPILE_TIMEOUT_SECONDS: '150'
+        run: |
+          set -uo pipefail
+          REA="$RUNNER_TEMP/rea/node_modules/rea-agents/scripts/rea.mjs"
+          CPUs="$(cat results/cpu-affinity.txt)"
+          for item in \
+            '0x52fe98:mtc_connection_send' \
+            '0xd37618:receiver_candidate' \
+            '0xda6e30:agent_call_constructor' \
+            '0xd6c120:object_agent_dispatch' \
+            '0xdc7540:account_provider_candidate'; do
+            off="${item%%:*}"
+            name="${item#*:}"
+            timeout --signal=TERM --kill-after=30s 950s taskset -c "$CPUs" \
+              node "$REA" decompile "$RUNNER_TEMP/inputs/libmtc.so" --file-offset "$off" --provider ghidra --format json \
+              > "results/decompile-$name.json" 2> "results/decompile-$name.stderr"
+            printf '%s\n' "$?" > "results/decompile-$name.exit"
+          done
+          python3 - <<'PY'
+          import json,pathlib
+          root=pathlib.Path('results')
+          rows=[]
+          for p in sorted(root.glob('decompile-*.exit')):
+              code=int(p.read_text().strip())
+              js=p.with_suffix('.json')
+              try: obj=json.loads(js.read_text())
+              except Exception: obj=None
+              rows.append({'target':p.stem,'exit':code,'json_loaded':isinstance(obj,dict),'has_error':bool(obj.get('error')) if isinstance(obj,dict) else None,'json_bytes':js.stat().st_size if js.exists() else 0})
+          (root/'decompile-index.json').write_text(json.dumps(rows,indent=2)+'\n')
+          print(json.dumps(rows))
+          PY
+
       - name: Upload evidence only
         if: always()
         uses: actions/upload-artifact@v4
