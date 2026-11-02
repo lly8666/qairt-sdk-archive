@@ -1,0 +1,120 @@
+name: REA V26 jufengv6 offline ELF
+on:
+  push:
+    branches:
+      - sandbox/rea-jufeng-v6-20261103
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: rea-jufengv6
+  cancel-in-progress: false
+jobs:
+  analyze:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 115
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Fetch verified jufengv6 Release ZIP
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/inputs" results
+          gh release download jufengv6 --repo "$GITHUB_REPOSITORY" --pattern v6.zip --dir "$RUNNER_TEMP/inputs" --clobber
+          test "$(stat -c %s "$RUNNER_TEMP/inputs/v6.zip")" -eq 59488232
+          echo "1ba353c5dc71cdc92e6852b9efc853dfbeb63bda2d3d74636af4a52b73457627  $RUNNER_TEMP/inputs/v6.zip" | sha256sum -c -
+          unzip -tq "$RUNNER_TEMP/inputs/v6.zip"
+      - name: Extract libmtc ARM64 and record immutable identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib,json,os,pathlib,struct,zipfile
+          zip_path=pathlib.Path(os.environ['RUNNER_TEMP'])/'inputs/v6.zip'
+          output=pathlib.Path(os.environ['RUNNER_TEMP'])/'inputs/libmtc.so'
+          want='57086cd624d8227dc1b1b64a63d7c8b2258f87b261779b681a9bfd306ad9d2e8'
+          found=[]
+          report={'release':'jufengv6','asset':'v6.zip','candidates':[],'selected':None}
+          with zipfile.ZipFile(zip_path) as z:
+            for f in z.infolist():
+              if pathlib.PurePosixPath(f.filename).name.lower()!='libmtc.so' or f.is_dir() or f.file_size>150000000: continue
+              data=z.read(f)
+              sha=hashlib.sha256(data).hexdigest()
+              arm64=len(data)>=64 and data[:4]==bytes.fromhex('7f454c46') and data[4:7]==bytes([2,1,1]) and struct.unpack_from('<H',data,18)[0]==183
+              report['candidates'].append({'entry':f.filename,'size':len(data),'sha256':sha,'arm64':arm64,'matches_v25':sha==want})
+              if arm64: found.append((sha,f.filename,data))
+          chosen=[x for x in found if x[0]==want]
+          if not chosen and len(found)==1: chosen=found
+          if len(chosen)==1:
+            sha,name,data=chosen[0]
+            output.write_bytes(data)
+            report['selected']={'entry':name,'size':len(data),'sha256':sha,'matches_v25':sha==want}
+          pathlib.Path('results/input-identity.json').write_text(json.dumps(report,indent=2)+'\n')
+          print(json.dumps(report,indent=2))
+          if report['selected'] is None: raise SystemExit('No unambiguous arm64 libmtc.so in v6.zip')
+          PY
+          readelf -W -h -l -S -d "$RUNNER_TEMP/inputs/libmtc.so" > results/libmtc-elf-layout.txt
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.22.1'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install pinned REA CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --prefix "$RUNNER_TEMP/rea" --ignore-scripts --omit=dev --no-audit --no-fund --no-save --no-package-lock rea-agents@6.8.0
+          "$RUNNER_TEMP/rea/node_modules/.bin/rea" --version
+      - name: Install verified Ghidra 12.1.4
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/ghidra"
+          cd "$RUNNER_TEMP/ghidra"
+          curl -fL --retry 3 --retry-all-errors -o ghidra.zip \
+            https://github.com/NationalSecurityAgency/ghidra/releases/download/Ghidra_12.1.4_build/ghidra_12.1.4_PUBLIC_20260921.zip
+          echo 'ddac49f903da9d5bac833e5cc79395098b9c33cfd3279be5f31bd00387d2d4db  ghidra.zip' | sha256sum -c -
+          unzip -q ghidra.zip
+          test -x ghidra_12.1.4_PUBLIC/support/analyzeHeadless
+      - name: Analyze release ELF with REA and Ghidra
+        shell: bash
+        env:
+          GHIDRA_INSTALL_DIR: ${{ runner.temp }}/ghidra/ghidra_12.1.4_PUBLIC
+          GHIDRA_HEADLESS_MAXMEM: 6G
+          REA_GHIDRA_STARTUP_TIMEOUT_MS: '3600000'
+        run: |
+          set -uo pipefail
+          REA="$RUNNER_TEMP/rea/node_modules/rea-agents/scripts/rea.mjs"
+          node "$REA" doctor --provider ghidra --format json > results/doctor.json 2> results/doctor.stderr
+          echo "$?" > results/doctor.exit
+          CPUs="$(python3 -c 'import os;print(",".join(map(str,sorted(os.sched_getaffinity(0))[:2])))')"
+          echo "$CPUs" > results/cpu-affinity.txt
+          timeout --signal=TERM --kill-after=30s 4800s taskset -c "$CPUs" \
+            node "$REA" inspect "$RUNNER_TEMP/inputs/libmtc.so" --provider ghidra --format json \
+            > results/inspect.json 2> results/inspect.stderr
+          rc=$?
+          echo "$rc" > results/inspect.exit
+          python3 - <<'PY'
+          import json,pathlib
+          root=pathlib.Path('results')
+          rc=int((root/'inspect.exit').read_text())
+          try: obj=json.loads((root/'inspect.json').read_text())
+          except Exception: obj=None
+          status={'exit':rc,'json_ok':isinstance(obj,dict),'error':obj.get('error') if isinstance(obj,dict) else 'invalid_json','success':rc==0 and isinstance(obj,dict) and not obj.get('error')}
+          (root/'run-status.json').write_text(json.dumps(status,indent=2)+'\n')
+          print(json.dumps(status))
+          PY
+      - name: Upload evidence only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rea-v26-jufengv6-${{ github.run_id }}
+          path: results/
+          if-no-files-found: warn
+          retention-days: 3
