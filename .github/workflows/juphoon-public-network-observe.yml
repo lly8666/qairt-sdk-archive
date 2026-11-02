@@ -1,0 +1,34 @@
+name: Juphoon published router and public HTTPS passive evidence
+run-name: "JUPHOON-PUBLIC-NET | ${{ github.sha }}"
+on:
+  push:
+    branches:
+      - experiment/jufeng-v6-wirelab-20261102
+    paths:
+      - '.github/workflows/juphoon-public-network-observe.yml'
+      - 'tools/juphoon_public_network_ci.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  public-network-metadata-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Checkout experiment only
+        uses: actions/checkout@v4
+      - name: Verify bounded allowlist and sensitive-data filtering
+        run: python3 tools/juphoon_public_network_ci.py --selftest
+      - name: Observe official documented public endpoints once (NO login or RPC)
+        run: |
+          set -euo pipefail
+          python3 tools/juphoon_public_network_ci.py --out evidence/public-endpoint-observation.json
+          python3 -m json.tool evidence/public-endpoint-observation.json > /dev/null
+      - name: Upload JSON METADATA ONLY (no packet bytes, tokens or binaries)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: juphoon-public-network-metadata-${{ github.run_id }}
+          path: evidence/public-endpoint-observation.json
+          if-no-files-found: warn
+          retention-days: 1
