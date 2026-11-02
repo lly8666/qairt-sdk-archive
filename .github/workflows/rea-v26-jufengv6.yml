@@ -113,7 +113,7 @@ jobs:
       - name: Decompile V25 native anchors from exact file offsets
         shell: bash
         env:
-          GHIDRA_INSTALL_DIR: ${ runner.temp }}/ghidra/ghidra_12.1.4_PUBLIC
+          GHIDRA_INSTALL_DIR: ${{ runner.temp }}/ghidra/ghidra_12.1.4_PUBLIC
           GHIDRA_HEADLESS_MAXMEM: 6G
           REA_GHIDRA_STARTUP_TIMEOUT_MS: '3600000'
           REA_GHIDRA_DECOMPILE_TIMEOUT_SECONDS: '150'
