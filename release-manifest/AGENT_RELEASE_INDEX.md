@@ -4,6 +4,11 @@
 
 Canonical machine-readable file: `release-manifest/AGENT_RELEASE_INDEX.json`.
 
+## `jufengv6` [prerelease]
+Published: `2026-11-02T09:10:34Z`
+
+- `v6.zip` — id `701153905`, bytes `59488232`, `sha256:1ba353c5dc71cdc92e6852b9efc853dfbeb63bda2d3d74636af4a52b73457627`
+
 ## `testrich4` [prerelease]
 Published: `2026-10-14T13:44:33Z`
 

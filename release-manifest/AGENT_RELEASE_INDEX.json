@@ -1,9 +1,30 @@
 {
   "schema": 1,
   "repository": "lly8666/qairt-sdk-archive",
-  "generated_at_utc": "2026-10-18T15:46:04.421319+00:00",
+  "generated_at_utc": "2026-11-02T09:10:43.115390+00:00",
   "note": "Stable, non-secret metadata index for agents. browser_download_url is not a signed credential; private asset download still requires authenticated GitHub access or an export workflow.",
   "releases": [
+    {
+      "tag_name": "jufengv6",
+      "name": "jufeng v6",
+      "draft": false,
+      "prerelease": true,
+      "created_at": "2026-10-18T15:46:04Z",
+      "published_at": "2026-11-02T09:10:34Z",
+      "html_url": "https://github.com/lly8666/qairt-sdk-archive/releases/tag/jufengv6",
+      "assets": [
+        {
+          "name": "v6.zip",
+          "id": 701153905,
+          "size": 59488232,
+          "digest": "sha256:1ba353c5dc71cdc92e6852b9efc853dfbeb63bda2d3d74636af4a52b73457627",
+          "created_at": "2026-11-02T09:10:03Z",
+          "updated_at": "2026-11-02T09:10:18Z",
+          "browser_download_url": "https://github.com/lly8666/qairt-sdk-archive/releases/download/jufengv6/v6.zip",
+          "api_url": "https://api.github.com/repos/lly8666/qairt-sdk-archive/releases/assets/701153905"
+        }
+      ]
+    },
     {
       "tag_name": "testrich4",
       "name": "onlytest",
