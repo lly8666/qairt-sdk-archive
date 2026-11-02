@@ -1,0 +1,55 @@
+name: Juphoon v6 archived static evidence and synthetic TLS loopback capture
+run-name: "JUPHOON-v6-SAFE-LAB | ${{ github.sha }}"
+on:
+  push:
+    branches:
+      - experiment/jufeng-v6-wirelab-20261102
+    paths:
+      - '.github/workflows/juphoon-v6-offline-wirelab.yml'
+      - 'tools/juphoon_v6_ci.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-replay-and-local-wirelab:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install packet capture tools for own loopback
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -qq -y tcpdump binutils
+      - name: Download exact frozen v6 Release archive, verify SHA256
+        run: |
+          set -euo pipefail
+          mkdir -p input evidence/juphoon-v6
+          curl --fail --location --retry 3 --silent --show-error \
+            "https://github.com/lly8666/qairt-sdk-archive/releases/download/jufengv6/v6.zip" \
+            -o input/v6.zip
+          echo "1ba353c5dc71cdc92e6852b9efc853dfbeb63bda2d3d74636af4a52b73457627  input/v6.zip" | sha256sum -c -
+          test "$(stat -c %s input/v6.zip)" = 59488232
+      - name: Replay 29 ARM64 RPC selectors, negative control; capture local TLS fixture
+        run: |
+          set -euo pipefail
+          python3 tools/juphoon_v6_ci.py input/v6.zip evidence/juphoon-v6
+      - name: Print minimal verdicts (no secret payloads)
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import json,pathlib
+          for p in sorted(pathlib.Path('evidence/juphoon-v6').glob('*.json')):
+              data=json.loads(p.read_text())
+              print(p.name,data.get('status'),data.get('scope'))
+          PY
+      - name: Upload only synthetic loopback packet capture and results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: juphoon-v6-offline-and-loopback-${{ github.run_id }}
+          path: |
+            evidence/juphoon-v6/*.json
+            evidence/juphoon-v6/synthetic-loopback-only.pcap
+          if-no-files-found: warn
+          retention-days: 3
