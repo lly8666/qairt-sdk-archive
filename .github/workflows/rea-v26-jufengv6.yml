@@ -1,4 +1,4 @@
-name: REA V26 jufengv6 offline ELF
+name: REA V31 parallel native and ABI audit
 on:
   push:
     branches:
@@ -7,12 +7,22 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: rea-jufengv6
+  group: rea-v31-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  analyze:
+  native:
+    name: REA native ${{ matrix.lane }}
     runs-on: ubuntu-24.04
     timeout-minutes: 115
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        include:
+          - lane: auth-im
+            addresses: '0x7b8380,0x7b7538,0x7afc14,0x6c6850,0x6c2e68,0x6b471c,0x6b3bc0,0x6b3684,0x7ab9f4,0x7abb9c'
+          - lane: voice-media
+            addresses: '0x73886c,0x73ab90,0x73ad5c,0x743e58,0x738758,0x7014b4,0x738074,0x6fd194,0x701268,0x700fd0,0x62ff60'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -89,6 +99,8 @@ jobs:
           GHIDRA_HEADLESS_MAXMEM: 6G
           REA_GHIDRA_STARTUP_TIMEOUT_MS: '4200000'
           REA_GHIDRA_DECOMPILE_TIMEOUT_SECONDS: '180'
+          V31_ADDRESSES: ${{ matrix.addresses }}
+          V31_LANE: ${{ matrix.lane }}
         run: |
           set -euo pipefail
           cat > "$RUNNER_TEMP/rea/batch.mjs" <<'JS'
@@ -98,10 +110,10 @@ jobs:
           const out = process.env.GITHUB_WORKSPACE + '/results';
           const sdkPath = process.env.RUNNER_TEMP + '/rea/node_modules/rea-agents/scripts/rea.mjs';
           const target = process.env.RUNNER_TEMP + '/inputs/libmtc.so';
-          const addresses = ['0xe787c4','0xf87e2c','0xe73ab0','0xe75388','0xe818a8','0xe7fcc8'];
+          const addresses = (process.env.V31_ADDRESSES||'').split(',').map(s=>s.trim()).filter(Boolean);
           const tr = new StdioClientTransport({command:process.execPath,args:[sdkPath,'mcp'],env:{...process.env,REA_MCP_MAX_RESPONSE_BYTES:'33554432'},stderr:'pipe',maxBufferSize:33554432});
           tr.stderr?.on('data', (c)=>fs.appendFileSync(out+'/rea-mcp.stderr',c));
-          const client = new Client({name:'jufeng-v26-router-batch',version:'1.0.0'});
+          const client = new Client({name:'jufeng-v31-${{ matrix.lane }}',version:'1.0.0'});
           function store(name,obj){fs.writeFileSync(out+'/'+name,JSON.stringify(obj,null,2)+'\n');}
           function unwrap(r){if(r.structuredContent!==undefined)return r.structuredContent;const txt=r.content?.find(c=>c.type==='text')?.text;try{return JSON.parse(txt)}catch{return {text:txt}}}
           const state={addresses,steps:[],complete:false};
@@ -150,11 +162,149 @@ jobs:
             printf "cgroup_memory_max="; cat /sys/fs/cgroup/memory.max 2>/dev/null || echo unavailable
             printf "cpu_affinity="; cat results/cpu-affinity.txt 2>/dev/null || echo unavailable
           } > results/runner-environment.txt
+      - name: Accept decompile output by item and original sample ID
+        if: always()
+        shell: bash
+        env:
+          V31_ADDRESSES: ${{ matrix.addresses }}
+          V31_LANE: ${{ matrix.lane }}
+        run: |
+          python3 - <<'PY'
+          import json,os,pathlib,sys
+          root=pathlib.Path('results')
+          ids=json.loads((root/'input-identity.json').read_text())
+          expected='57086cd624d8227dc1b1b64a63d7c8b2258f87b261779b681a9bfd306ad9d2e8'
+          planned=os.environ['V31_ADDRESSES'].split(',')
+          try: obj=json.loads((root/'batch-decompile.json').read_text())
+          except Exception as e: obj={'normalized_result':{'items':[]},'failure':str(e)}
+          items=obj.get('normalized_result',{}).get('items',[])
+          report={'lane':os.environ['V31_LANE'],'planned':planned,'returned':len(items),'source_verified':ids.get('selected',{}).get('sha256')==expected,'results':[]}
+          for v in items:
+            body=v.get('pseudocode')
+            report['results'].append({'requested_address':v.get('address'),'canonical_address':(v.get('procedure') or {}).get('address'),'status':v.get('status'),'body_characters':len(body) if isinstance(body,str) else 0,'warnings':body.count('WARNING:') if isinstance(body,str) else 0})
+          report['succeeded']=sum(x['status']=='ok' and x['body_characters']>=20 for x in report['results'])
+          report['passed']=report['source_verified'] and len(planned)==len(items) and report['succeeded']==len(planned)
+          (root/'lane-acceptance.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n')
+          print(json.dumps({k:report[k] for k in ('lane','returned','succeeded','passed')}))
+          sys.exit(0 if report['passed'] else 1)
+          PY
       - name: Upload evidence only
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: rea-v26-jufengv6-${{ github.run_id }}
+          name: rea-v31-${{ matrix.lane }}-${{ github.run_id }}
           path: results/
           if-no-files-found: warn
+          retention-days: 3
+
+  static-audit:
+    name: Symbol and JNI inventory (no Ghidra)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify immutable SO and export business entrypoints
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results "$RUNNER_TEMP/inputs"
+          gh release download jufengv6 --repo "$GITHUB_REPOSITORY" --pattern v6.zip --dir "$RUNNER_TEMP/inputs" --clobber
+          echo '1ba353c5dc71cdc92e6852b9efc853dfbeb63bda2d3d74636af4a52b73457627  '"$RUNNER_TEMP/inputs/v6.zip" | sha256sum -c -
+          python3 - <<'PY'
+          import zipfile,pathlib,os,hashlib
+          p=pathlib.Path(os.environ['RUNNER_TEMP'])/'inputs/v6.zip'
+          dest=pathlib.Path(os.environ['RUNNER_TEMP'])/'inputs/libmtc.so'
+          wanted='57086cd624d8227dc1b1b64a63d7c8b2258f87b261779b681a9bfd306ad9d2e8'
+          with zipfile.ZipFile(p) as z:
+            candidates=[(name,z.read(name)) for name in z.namelist() if name.rsplit('/',1)[-1]=='libmtc.so']
+          found=[(name,b) for name,b in candidates if hashlib.sha256(b).hexdigest()==wanted]
+          assert len(found)==1, 'ambiguous or wrong target'
+          dest.write_bytes(found[0][1])
+          PY
+          readelf -Ws "$RUNNER_TEMP/inputs/libmtc.so" > results/dynsym-full.txt
+          python3 - <<'PY'
+          import pathlib,re,json
+          lines=pathlib.Path('results/dynsym-full.txt').read_text().splitlines()
+          rows=[]
+          for l in lines:
+            m=re.search(r'^\s*\d+:\s+([0-9a-fA-F]+)\s+(\d+)\s+FUNC\s+GLOBAL\s+DEFAULT\s+\S+\s+(\S+)',l)
+            if m and m.group(3).startswith(('Mtc_Cli','Mtc_Im','Mtc_Call','Java_com_justalk_cloud_lemon')):
+              rows.append((m.group(3),int(m.group(1),16),int(m.group(2))))
+          rows=sorted(set(rows))
+          with open('results/business-export-map.tsv','w') as f:
+            f.write('symbol\telf_vma\tghidra_vma\tsize\n')
+            for n,a,s in rows:f.write(f'{n}\t0x{a:x}\t0x{a+0x100000:x}\t{s}\n')
+          must={'Mtc_CliLogin','Mtc_CliGetRouterInfo','Mtc_ImSendText','Mtc_ImRecv','Mtc_CallOut','Mtc_CallTerm'}
+          present={n for n,_,_ in rows}
+          report={'exports':len(rows),'jni_exports':sum(n.startswith('Java_com_justalk_cloud_lemon') for n,_,_ in rows),'key_symbols_verified':sorted(must & present),'missing':sorted(must-present)}
+          pathlib.Path('results/static-acceptance.json').write_text(json.dumps(report,indent=2)+'\n')
+          print(json.dumps(report))
+          assert not report['missing']
+          PY
+          uname -srm > results/runner-environment.txt
+          python3 --version >> results/runner-environment.txt 2>&1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rea-v31-static-${{ github.run_id }}
+          path: results/
+          retention-days: 3
+
+  i386-abi:
+    name: i386 freestanding ABI smoke under QEMU
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Compile test and run positive and mutation-negative variants
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results
+          if ! command -v qemu-i386 >/dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq qemu-user >/dev/null
+          fi
+          cat > results/abi-smoke.c <<'C'
+          typedef unsigned int u32;
+          static u32 rol(u32 x, int n) {return (x<<n)|(x>>(32-n));}
+          static int check(void) {
+            unsigned char b[4]={0x12,0x34,0x56,0x78};
+            u32 be=((u32)b[0]<<24)|((u32)b[1]<<16)|((u32)b[2]<<8)|b[3];
+            u32 le=(u32)b[0]|((u32)b[1]<<8)|((u32)b[2]<<16)|((u32)b[3]<<24);
+            int ok=(sizeof(void*)==4 && be==0x12345678u && le==0x78563412u && rol(0x10203040u,8)==0x20304010u);
+          #ifdef MUTATE_EXPECTED
+            ok= !ok;
+          #endif
+            return ok?0:1;
+          }
+          __attribute__((noreturn)) void _start(void) {
+            int code=check();
+            __asm__ volatile("int $0x80"::"a"(1),"b"(code):"memory");
+            __builtin_unreachable();
+          }
+          C
+          clang --target=i386-linux-gnu -O2 -fuse-ld=lld -nostdlib -static -ffreestanding -Wl,-e,_start -o results/abi-positive results/abi-smoke.c
+          clang --target=i386-linux-gnu -O2 -fuse-ld=lld -nostdlib -static -ffreestanding -DMUTATE_EXPECTED -Wl,-e,_start -o results/abi-negative results/abi-smoke.c
+          readelf -h results/abi-positive > results/elf32-header.txt
+          python3 - <<'PY'
+          import subprocess,os,json,pathlib,platform
+          cases=[]
+          for fn,expect in [('abi-positive',0),('abi-negative',1)]:
+            p=subprocess.run(['qemu-i386',f'results/{fn}'],capture_output=True,text=True,timeout=20)
+            cases.append({'program':fn,'expected_exit':expect,'actual_exit':p.returncode,'passed':p.returncode==expect,'stderr':p.stderr[:400]})
+          report={'arch':platform.machine(),'cases':cases,'pass':all(c['passed'] for c in cases)}
+          pathlib.Path('results/i386-acceptance.json').write_text(json.dumps(report,indent=2)+'\n')
+          print(json.dumps(report))
+          assert report['pass']
+          PY
+          { uname -srm; clang --version | head -1; qemu-i386 --version | head -1; } > results/runner-environment.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rea-v31-i386-${{ github.run_id }}
+          path: results/
           retention-days: 3
