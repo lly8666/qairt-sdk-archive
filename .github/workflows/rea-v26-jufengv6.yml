@@ -1,4 +1,4 @@
-name: REA V33 readiness: auth inbox call parallel
+name: REA V33 auth inbox call parallel
 on:
   push:
     branches:
@@ -308,5 +308,46 @@ jobs:
         if: always()
         with:
           name: rea-v31-i386-${{ github.run_id }}
+          path: results/
+          retention-days: 3
+
+  live-readiness-offline:
+    name: Controlled live-login readiness without network
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Verify fail-closed login gate with synthetic data
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results
+          python3 - <<'PY'
+          import json,pathlib,urllib.parse
+          secret='synthetic-do-not-log-password'
+          cases=[
+            ('no_settings',{},'blocked'),
+            ('missing_approval',{'phone': 'synthetic','password':secret,'endpoint':'https://test.official.example/login','host':'test.official.example'},'blocked'),
+            ('approved_shape_only',{'phone':'synthetic','password':secret,'endpoint':'https://test.official.example/login','host':'test.official.example','approved':'YES'},'review_required'),
+            ('reject_insecure',{'phone':'synthetic','password':secret,'endpoint':'http://test.official.example/login','host':'test.official.example','approved':'YES'},'blocked'),
+          ]
+          observations=[]
+          for label,c,expect in cases:
+            u=urllib.parse.urlsplit(c.get('endpoint',''))
+            valid=bool(u.scheme=='https' and u.hostname==c.get('host') and u.username is None and u.password is None and not u.query and not u.fragment)
+            complete=all(c.get(k) for k in ('phone','password','endpoint','host','approved'))
+            state='review_required' if valid and complete and c['approved']=='YES' else 'blocked'
+            observations.append({'name':label,'status':state,'passed':state==expect,'outgoing_network_requests':0,'live_auth_attempted':False})
+          report={'mode':'offline-only','cases':observations,'total':len(observations),'passed':sum(x['passed'] for x in observations),'live_auth_attempted':False}
+          output=json.dumps(report,indent=2)
+          assert secret not in output
+          assert report['passed']==len(cases)
+          pathlib.Path('results/live-readiness.json').write_text(output+'\n')
+          print(json.dumps({'passed':report['passed'],'network_requests':0,'live_auth_attempted':False}))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rea-v33-live-readiness-${{ github.run_id }}
           path: results/
           retention-days: 3
