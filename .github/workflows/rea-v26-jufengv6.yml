@@ -1,4 +1,4 @@
-name: REA V33 auth inbox call parallel
+name: REA V34 focused login readiness and offline audit
 on:
   push:
     branches:
@@ -16,15 +16,13 @@ jobs:
     timeout-minutes: 115
     strategy:
       fail-fast: false
-      max-parallel: 3
+      max-parallel: 2
       matrix:
         include:
-          - lane: login-auth-provision
-            addresses: '0x7b8268,0x7b77fc,0x7b6f28,0x7a7f7c,0x6866a8,0x6866f0,0x7a1740'
-          - lane: inbox-delivery
-            addresses: '0x6b42e4,0x6b6280,0x65bbc0,0x61fc3c,0x6acb94,0x6acc54'
-          - lane: call-session-media
-            addresses: '0x70e420,0x70caac,0x70b96c,0x6fbbd4,0x6f9170,0x72fc48'
+          - lane: login-auth-state
+            addresses: '0x7b52f8,0x7a74ec,0x7b1460,0x7a4bb0,0x7b6cf8,0x7aa92c'
+          - lane: login-rtc-provision
+            addresses: '0x7a793c,0x7b6740,0x7a7454,0x7a5c74,0x7a7908,0x7a6ee8'
     steps:
       - uses: actions/checkout@v4
         with:
