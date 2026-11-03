@@ -1,4 +1,4 @@
-name: REA V32 login inbound and call lifecycle parallel
+name: REA V33 readiness: auth inbox call parallel
 on:
   push:
     branches:
@@ -19,12 +19,12 @@ jobs:
       max-parallel: 3
       matrix:
         include:
-          - lane: login-core
-            addresses: '0x7b7978,0x758bd0,0x7a793c,0x7b6cf8,0x7b6740'
-          - lane: message-inbound
-            addresses: '0x6b44f4,0x6b6510,0x6b0184,0x6a8008,0x6c2ff4,0x6c6748,0x6c9f30'
-          - lane: call-lifecycle
-            addresses: '0x70eca0,0x70d4b0,0x70bbdc,0x70d32c,0x73aa74,0x6ff5fc,0x700e3c'
+          - lane: login-auth-provision
+            addresses: '0x7b8268,0x7b77fc,0x7b6f28,0x7a7f7c,0x6866a8,0x6866f0,0x7a1740'
+          - lane: inbox-delivery
+            addresses: '0x6b42e4,0x6b6280,0x65bbc0,0x61fc3c,0x6acb94,0x6acc54'
+          - lane: call-session-media
+            addresses: '0x70e420,0x70caac,0x70b96c,0x6fbbd4,0x6f9170,0x72fc48'
     steps:
       - uses: actions/checkout@v4
         with:
