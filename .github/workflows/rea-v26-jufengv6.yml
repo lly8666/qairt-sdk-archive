@@ -1,4 +1,4 @@
-name: REA V31 parallel native and ABI audit
+name: REA V32 login inbound and call lifecycle parallel
 on:
   push:
     branches:
@@ -16,13 +16,15 @@ jobs:
     timeout-minutes: 115
     strategy:
       fail-fast: false
-      max-parallel: 2
+      max-parallel: 3
       matrix:
         include:
-          - lane: auth-im
-            addresses: '0x7b8380,0x7b7538,0x7afc14,0x6c6850,0x6c2e68,0x6b471c,0x6b3bc0,0x6b3684,0x7ab9f4,0x7abb9c'
-          - lane: voice-media
-            addresses: '0x73886c,0x73ab90,0x73ad5c,0x743e58,0x738758,0x7014b4,0x738074,0x6fd194,0x701268,0x700fd0,0x62ff60'
+          - lane: login-core
+            addresses: '0x7b7978,0x758bd0,0x7a793c,0x7b6cf8,0x7b6740'
+          - lane: message-inbound
+            addresses: '0x6b44f4,0x6b6510,0x6b0184,0x6a8008,0x6c2ff4,0x6c6748,0x6c9f30'
+          - lane: call-lifecycle
+            addresses: '0x70eca0,0x70d4b0,0x70bbdc,0x70d32c,0x73aa74,0x6ff5fc,0x700e3c'
     steps:
       - uses: actions/checkout@v4
         with:
