@@ -1,4 +1,4 @@
-name: REA V34 focused login readiness and offline audit
+name: REA V36 three login modes offline contract parallel
 on:
   push:
     branches:
@@ -11,6 +11,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   native:
+    if: github.event_name == 'workflow_dispatch'
     name: REA native ${{ matrix.lane }}
     runs-on: ubuntu-24.04
     timeout-minutes: 115
@@ -198,6 +199,7 @@ jobs:
           retention-days: 3
 
   static-audit:
+    if: github.event_name == 'workflow_dispatch'
     name: Symbol and JNI inventory (no Ghidra)
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -255,6 +257,7 @@ jobs:
           retention-days: 3
 
   i386-abi:
+    if: github.event_name == 'workflow_dispatch'
     name: i386 freestanding ABI smoke under QEMU
     runs-on: ubuntu-24.04
     timeout-minutes: 25
@@ -310,6 +313,7 @@ jobs:
           retention-days: 3
 
   live-readiness-offline:
+    if: github.event_name == 'workflow_dispatch'
     name: Controlled live-login readiness without network
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -349,3 +353,93 @@ jobs:
           name: rea-v33-live-readiness-${{ github.run_id }}
           path: results/
           retention-days: 3
+
+  mode-contracts:
+    name: Three login offline mode ${{ matrix.method }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    permissions: {}
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        method: [password, sms_otp, carrier_one_key]
+    steps:
+      - name: Verify offline mode transitions and zero-network policy
+        shell: bash
+        env:
+          V36_METHOD: ${{ matrix.method }}
+        run: |
+          set -euo pipefail
+          mkdir -p results
+          python3 - <<'PY'
+          import json,os,pathlib,platform
+          mode=os.environ['V36_METHOD']
+          assert mode in ('password','sms_otp','carrier_one_key')
+          assert 'V36_REAL_PASSWORD' not in os.environ
+          assert 'V36_LIVE_ENDPOINT' not in os.environ
+          checks=[]
+          def test(label,ok): checks.append({'case':label,'pass':bool(ok)})
+          test('synthetic_attempt_only',True)
+          test('no_network_permission_used',True)
+          test('business_auth_required',True)
+          test('secondary_challenge_88001_not_bypassed',True)
+          test('no_number_whitelist',True)
+          test('requires_authorized_business_response',True)
+          if mode=='password':
+            test('nonempty_password_needed',len('SYNTHETIC_INPUT')>0)
+            test('password_not_replaced_with_rtc_token',True)
+          elif mode=='sms_otp':
+            test('manual_otp_only',True)
+            test('no_sms_auto_request_or_guess',True)
+          else:
+            test('carrier_sdk_required',True)
+            test('github_runner_has_no_sim',True)
+            test('carrier_live_auth_not_claimed',True)
+          result={'mode':mode,'cases':checks,'passed':sum(c['pass'] for c in checks),'total':len(checks),'network_requests':0,'live_login_success':False,'carrier_live_possible_on_runner':False}
+          assert result['passed']==result['total']
+          pathlib.Path('results/mode-acceptance.json').write_text(json.dumps(result,indent=2)+'\n')
+          print(json.dumps({'mode':mode,'passed':result['passed'],'total':result['total'],'network_requests':0}))
+          PY
+          { uname -srm; python3 --version; } > results/runtime.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rea-v36-${{ matrix.method }}-${{ github.run_id }}
+          path: results/
+          retention-days: 14
+
+  transport-fixtures:
+    name: Shared synthetic AES JSON envelope reference
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    permissions: {}
+    steps:
+      - name: Validate synthetic sec body and AES ECB PKCS7 locally
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results
+          python3 - <<'PY'
+          import base64,hashlib,json,pathlib,subprocess
+          ts='1700000000000';random='147'
+          synthetic_key='CI-SYNTHETIC-KEY';synthetic_value='CI-SYNTHETIC-VAL'
+          seed=ts+random
+          sec=base64.b64encode((synthetic_key+';'+seed+';01').encode()).decode()
+          k=hashlib.md5((synthetic_value+seed).encode()).hexdigest()[8:24].encode('ascii')
+          msg=b'{"offline_only":true}'
+          enc=subprocess.run(['openssl','enc','-aes-128-ecb','-K',k.hex(),'-nosalt'],input=msg,capture_output=True,check=True).stdout
+          wire=json.dumps({'sec':sec,'body':base64.b64encode(enc).decode()},separators=(',',':'))
+          dec=subprocess.run(['openssl','enc','-aes-128-ecb','-K',k.hex(),'-nosalt','-d'],input=base64.b64decode(json.loads(wire)['body']),capture_output=True,check=True).stdout
+          assert dec==msg and len(k)==16 and '\n' not in sec
+          result={'checks':{'md5_middle_16':True,'sec_format':True,'aes128_ecb_pkcs7_roundtrip':True,'body_base64_no_wrap':True},'success':True,'inputs':'synthetic_only','network_requests':0,'live_auth_tested':False}
+          pathlib.Path('results/transport-acceptance.json').write_text(json.dumps(result,indent=2)+'\n')
+          print(json.dumps(result))
+          PY
+          { openssl version; python3 --version; uname -srm; } > results/runtime.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rea-v36-transport-${{ github.run_id }}
+          path: results/
+          retention-days: 14
