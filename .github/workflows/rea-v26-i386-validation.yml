@@ -1,0 +1,132 @@
+name: V26 i386 freestanding XOR runtime check
+
+on:
+  push:
+    branches:
+      - sandbox/v26-i386-validation-20261103
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  i386:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Install Linux i386 user-mode emulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq qemu-user
+          command -v clang ld qemu-i386
+
+      - name: Build i386 reference entirely from workflow inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/xor-i386" results
+          cd "$RUNNER_TEMP/xor-i386"
+          cat > v26_stream_xor.h <<'HEADER'
+          #ifndef V26_STREAM_XOR_H
+          #define V26_STREAM_XOR_H
+          #include <stddef.h>
+          #include <stdint.h>
+          typedef struct {
+              uint32_t state_a, state_b, counter;
+              uint8_t block[16];
+          } v26_stream_xor_t;
+          void v26_xor_init(v26_stream_xor_t *s, uint32_t seed);
+          void v26_xor_apply(v26_stream_xor_t *s, uint8_t *bytes, size_t n);
+          #endif
+          HEADER
+          cat > v26_stream_xor.c <<'C'
+          #include "v26_stream_xor.h"
+          static void be32(uint8_t *out,uint32_t n) {
+            out[0]=(uint8_t)(n>>24);out[1]=(uint8_t)(n>>16);
+            out[2]=(uint8_t)(n>>8);out[3]=(uint8_t)n;
+          }
+          void v26_xor_init(v26_stream_xor_t *s,uint32_t seed) {
+            unsigned i;
+            s->state_a=seed;s->state_b=seed;s->counter=0;
+            for(i=0;i<16;i++)s->block[i]=0;
+          }
+          static void block(v26_stream_xor_t *s) {
+            uint32_t x=s->state_b+UINT32_C(0x3249a234);
+            uint32_t m=x*s->state_a;
+            uint32_t y=m^(m<<16);
+            uint32_t a=s->state_a+UINT32_C(0x10923487);
+            uint32_t b=y^(a+(s->counter>>4));
+            be32(s->block,x);be32(s->block+4,m);
+            be32(s->block+8,y);be32(s->block+12,b);
+            s->state_a=a;s->state_b=b;
+          }
+          void v26_xor_apply(v26_stream_xor_t *s,uint8_t *bytes,size_t n) {
+            size_t i;
+            for(i=0;i<n;i++) {
+              if((s->counter&15U)==0U)block(s);
+              bytes[i]^=s->block[s->counter&15U];
+              s->counter++;
+            }
+          }
+          C
+          cat > test_i386.c <<'C'
+          #include "v26_stream_xor.h"
+          static const uint8_t expected[64] = {
+            0x44,0x7c,0xfa,0xaf,0x03,0x83,0x5e,0xa7,0x57,0x2f,0x52,0xab,0x71,0xed,0xdc,0x50,
+            0xa0,0x3b,0x66,0x80,0x18,0xc6,0x4a,0x7a,0x48,0xa7,0x46,0x76,0x7f,0xfb,0xfd,0xf5,
+            0xb6,0x11,0xa4,0x3d,0xc1,0xe3,0xb3,0x93,0x58,0x5b,0xbf,0x9f,0x1f,0xb5,0x4f,0x94,
+            0x55,0xd3,0x31,0xdc,0x89,0x9a,0xc9,0x14,0x7a,0xb5,0xc5,0x18,0x2a,0xcc,0xe9,0x8b,
+          };
+          __attribute__((noreturn)) void _start(void) {
+            v26_stream_xor_t s;
+            uint8_t data[64];
+            int failed=0;
+            unsigned i;
+            for(i=0;i<64;i++)data[i]=(uint8_t)i;
+            v26_xor_init(&s,UINT32_C(0x12345678));
+            v26_xor_apply(&s,data,64);
+            for(i=0;i<64;i++)if(data[i]!=expected[i])failed=1;
+            if(s.counter!=64)failed=1;
+            __asm__ volatile ("movl $1, %%eax; int $0x80" : : "b"(failed) : "eax","memory");
+            __builtin_unreachable();
+          }
+          C
+          RESOURCE="$(clang -print-resource-dir)"
+          CFLAGS=(--target=i386-pc-linux-gnu -ffreestanding -nostdinc -isystem "$RESOURCE/include" -fno-stack-protector -fno-pie -O2 -Wall -Wextra -Werror)
+          clang "${CFLAGS[@]}" -c v26_stream_xor.c -o xor.o
+          clang "${CFLAGS[@]}" -c test_i386.c -o test.o
+          ld -m elf_i386 -nostdlib --build-id=none -e _start -o test_i386.elf test.o xor.o
+          file test_i386.elf | tee "$GITHUB_WORKSPACE/results/elf-file.txt"
+          readelf -h test_i386.elf > "$GITHUB_WORKSPACE/results/elf-header.txt"
+          sha256sum v26_stream_xor.c v26_stream_xor.h test_i386.c test_i386.elf > "$GITHUB_WORKSPACE/results/SHA256SUMS.txt"
+          cp test_i386.elf "$GITHUB_WORKSPACE/results/"
+          cp v26_stream_xor.c v26_stream_xor.h test_i386.c "$GITHUB_WORKSPACE/results/"
+
+      - name: Execute synthetic vector and negative control via QEMU i386
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/xor-i386"
+          qemu-i386 ./test_i386.elf
+          printf '%s\n' "PASS" > "$GITHUB_WORKSPACE/results/positive.txt"
+          sed 's/0x44,0x7c/0x45,0x7c/' test_i386.c > test_i386_negative.c
+          RESOURCE="$(clang -print-resource-dir)"
+          clang --target=i386-pc-linux-gnu -ffreestanding -nostdinc -isystem "$RESOURCE/include" -fno-stack-protector -fno-pie -O2 -Wall -Wextra -Werror -c test_i386_negative.c -o negative.o
+          ld -m elf_i386 -nostdlib --build-id=none -e _start -o test_i386_negative.elf negative.o xor.o
+          set +e
+          qemu-i386 ./test_i386_negative.elf
+          result=$?
+          set -e
+          test "$result" -eq 1
+          printf '%s\n' "PASS: incorrect expected vector returned exit code 1" > "$GITHUB_WORKSPACE/results/negative-control.txt"
+
+      - name: Upload reproducible i386 test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v26-i386-runtime-${ github.run_id }}
+          path: results/
+          retention-days: 3
+          if-no-files-found: warn
