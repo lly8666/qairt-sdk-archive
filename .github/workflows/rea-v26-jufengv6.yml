@@ -98,7 +98,7 @@ jobs:
           const out = process.env.GITHUB_WORKSPACE + '/results';
           const sdkPath = process.env.RUNNER_TEMP + '/rea/node_modules/rea-agents/scripts/rea.mjs';
           const target = process.env.RUNNER_TEMP + '/inputs/libmtc.so';
-          const addresses = ['0xe70350','0xe6ed20','0xe809dc','0xe8045c','0xe700a4','0xe70768'];
+          const addresses = ['0xe6f230','0xe70248','0x10184cc','0x1018504','0x104c1c8','0xe80368'];
           const tr = new StdioClientTransport({command:process.execPath,args:[sdkPath,'mcp'],env:{...process.env,REA_MCP_MAX_RESPONSE_BYTES:'33554432'},stderr:'pipe',maxBufferSize:33554432});
           tr.stderr?.on('data', (c)=>fs.appendFileSync(out+'/rea-mcp.stderr',c));
           const client = new Client({name:'jufeng-v26-router-batch',version:'1.0.0'});
