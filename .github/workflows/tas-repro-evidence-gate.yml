@@ -6,6 +6,8 @@ on:
       - 'emui11-tas/tools/tas_repro_evidence_gate.py'
       - 'emui11-tas/tools/tas_context_decision.py'
       - 'emui11-tas/tools/tas_mrx235_to_tas185_static_gate.py'
+      - 'emui11-tas/tools/tas_mali_elf_inventory.py'
+      - 'emui11-tas/validation/TAS_MALI_PINNED_ELF_SYMBOL_INVENTORY_20261112.json'
       - 'emui11-tas/tools/tas_kernel_patch_status.py'
       - 'emui11-tas/tools/tas_public_ghostlock_apk_gate.py'
       - '.github/workflows/tas-repro-evidence-gate.yml'
@@ -28,6 +30,8 @@ jobs:
           python3 -m py_compile emui11-tas/tools/tas_context_decision.py
           python3 -m py_compile emui11-tas/tools/tas_mrx235_to_tas185_static_gate.py
           python3 emui11-tas/tools/tas_mrx235_to_tas185_static_gate.py --selftest | tee out/MRX235_TAS185_STATIC_GATE_SELFTEST.txt
+          python3 -m py_compile emui11-tas/tools/tas_mali_elf_inventory.py
+          python3 emui11-tas/tools/tas_mali_elf_inventory.py --selftest | tee out/MALI_PINNED_ELF_SELFTEST.txt
           python3 emui11-tas/tools/tas_context_decision.py --selftest | tee out/CONTEXT_SCOPE_SELFTEST.txt
           python3 emui11-tas/tools/tas_context_decision.py --out out/CONTEXT_SCOPE_NO_EXTRA_LOGS.json
           python3 -m py_compile emui11-tas/tools/tas_kernel_patch_status.py
@@ -67,6 +71,14 @@ jobs:
               print('MRX235_TAS185_REJECT_WRONG_INPUT_PASS')
           else:
               raise AssertionError('Wrong hash accepted')
+          mali=json.load(open('emui11-tas/validation/TAS_MALI_PINNED_ELF_SYMBOL_INVENTORY_20261112.json',encoding='utf-8'))
+          assert mali['input']['sha256']=='b31c32928f2f095497825b28cc7c31a291ff649bfc4afe2a825bbda0b0ff3716'
+          assert mali['counts_including_cfi']['kbase']==1065
+          assert mali['kbase_cfi_symbols']+mali['kbase_non_cfi_symbols']==1065
+          assert mali['interpretation']['cve_2021_44828_vendor_backport_status']=='UNKNOWN'
+          assert mali['interpretation']['binary_function_presence_is_patch_proof'] is False
+          assert mali['interpretation']['tas_root_observed'] is False
+          print('EXACT_MALI_SYMBOL_RECORD_NO_FALSE_PATCH_OR_ROOT_CLAIMS_PASS')
           assert data['root_status']=='NOT_VERIFIED'
           assert data['root_claim_allowed'] is False
           assert data['evidence']['mali_api']=='NOT_PROVIDED'
