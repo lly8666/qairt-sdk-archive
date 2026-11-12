@@ -86,9 +86,9 @@ jobs:
           ! grep -q '^uses-permission' /tmp/tasdiag-out/apk-badging.txt
           "$apksigner" verify --verbose "$apk" > /tmp/tasdiag-out/apk-signature.txt
           grep -q 'Verified using v2 scheme' /tmp/tasdiag-out/apk-signature.txt
-          cp "$apk" /tmp/tasdiag-out/TAS_EMUI11_Diagnostic_v1-debug.apk
+          cp "$apk" /tmp/tasdiag-out/TAS_EMUI11_Diagnostic_v1_1-debug.apk
           cp /tmp/tasdiag-unit-tests.txt /tmp/tasdiag-out/host-tests.txt
-          sha256sum /tmp/tasdiag-out/TAS_EMUI11_Diagnostic_v1-debug.apk > /tmp/tasdiag-out/SHA256SUMS
+          sha256sum /tmp/tasdiag-out/TAS_EMUI11_Diagnostic_v1_1-debug.apk > /tmp/tasdiag-out/SHA256SUMS
           cat > /tmp/tasdiag-out/BUILD_PROVENANCE.txt <<EOF
           Target firmware: TAS-LGRP3-CHN 11.0.0.185
           Target Android: 10 / API 29
@@ -105,7 +105,7 @@ jobs:
       - name: Publish installable diagnostic APK and test evidence
         uses: actions/upload-artifact@v4
         with:
-          name: TAS-EMUI11-Diagnostic-Android10-v1
+          name: TAS-EMUI11-Diagnostic-Android10-v1_1
           path: /tmp/tasdiag-out/
           compression-level: 0
           retention-days: 14
