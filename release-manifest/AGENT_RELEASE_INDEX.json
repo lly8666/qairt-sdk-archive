@@ -1,9 +1,30 @@
 {
   "schema": 1,
   "repository": "lly8666/qairt-sdk-archive",
-  "generated_at_utc": "2026-11-02T09:10:43.115390+00:00",
+  "generated_at_utc": "2026-11-12T04:45:18.363249+00:00",
   "note": "Stable, non-secret metadata index for agents. browser_download_url is not a signed credential; private asset download still requires authenticated GitHub access or an export workflow.",
   "releases": [
+    {
+      "tag_name": "emui11_t",
+      "name": "mate30 emui11",
+      "draft": false,
+      "prerelease": true,
+      "created_at": "2026-11-02T09:10:43Z",
+      "published_at": "2026-11-12T04:45:12Z",
+      "html_url": "https://github.com/lly8666/qairt-sdk-archive/releases/tag/emui11_t",
+      "assets": [
+        {
+          "name": "UPDATE.APP.zip",
+          "id": 738096196,
+          "size": 303573408,
+          "digest": "sha256:fb4cec6aa905416ede031cca602783bc1e59fdd89ee96ba1aaa54dbdaf351b0f",
+          "created_at": "2026-11-12T04:43:51Z",
+          "updated_at": "2026-11-12T04:45:02Z",
+          "browser_download_url": "https://github.com/lly8666/qairt-sdk-archive/releases/download/emui11_t/UPDATE.APP.zip",
+          "api_url": "https://api.github.com/repos/lly8666/qairt-sdk-archive/releases/assets/738096196"
+        }
+      ]
+    },
     {
       "tag_name": "jufengv6",
       "name": "jufeng v6",

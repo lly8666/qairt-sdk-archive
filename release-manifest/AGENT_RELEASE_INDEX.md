@@ -4,6 +4,11 @@
 
 Canonical machine-readable file: `release-manifest/AGENT_RELEASE_INDEX.json`.
 
+## `emui11_t` [prerelease]
+Published: `2026-11-12T04:45:12Z`
+
+- `UPDATE.APP.zip` — id `738096196`, bytes `303573408`, `sha256:fb4cec6aa905416ede031cca602783bc1e59fdd89ee96ba1aaa54dbdaf351b0f`
+
 ## `jufengv6` [prerelease]
 Published: `2026-11-02T09:10:34Z`
 
