@@ -40,11 +40,11 @@ $cmd = Get-Command $AdbPath -ErrorAction SilentlyContinue
 if (-not $cmd) { throw 'adb.exe missing. Install official Windows Android platform-tools.' }
 $AdbPath = $cmd.Source
 
-function Invoke-Adb([string[]]$Args) {
+function Invoke-Adb([string[]]$Arguments) {
     $previous=$ErrorActionPreference
     $ErrorActionPreference='Continue'
     try {
-        $lines=@(& $AdbPath @Args 2>&1 | ForEach-Object { $_.ToString() })
+        $lines=@(& $AdbPath @Arguments 2>&1 | ForEach-Object { $_.ToString() })
         $code=$LASTEXITCODE
     } finally { $ErrorActionPreference=$previous }
     return [pscustomobject]@{
@@ -53,7 +53,7 @@ function Invoke-Adb([string[]]$Args) {
     }
 }
 
-$listed=Invoke-Adb @('devices')
+$listed=Invoke-Adb -Arguments @('devices')
 if ($listed.Code -ne 0) { throw $listed.Text }
 $connected = @(
     foreach ($line in ($listed.Text -split '\r?\n')) {
@@ -69,8 +69,8 @@ if ($Serial -eq '') {
     throw 'Selected ADB serial is not authorized/connected.'
 }
 
-$model = Invoke-Adb @('-s',$Serial,'shell','getprop ro.product.model')
-$sdk = Invoke-Adb @('-s',$Serial,'shell','getprop ro.build.version.sdk')
+$model = Invoke-Adb -Arguments @('-s',$Serial,'shell','getprop ro.product.model')
+$sdk = Invoke-Adb -Arguments @('-s',$Serial,'shell','getprop ro.build.version.sdk')
 if ($model.Code -ne 0 -or $model.Text -ne 'TAS-AN00') { throw "Expected TAS-AN00. Received: $($model.Text)" }
 if ($sdk.Code -ne 0 -or $sdk.Text -ne '29') { throw "Expected Android10 SDK29. Received: $($sdk.Text)" }
 
@@ -82,19 +82,19 @@ $uploaded=$false
 $probeResult=$null
 try {
     Write-Host 'Uploading ONLY verified read-only perf diagnostic to /data/local/tmp ...'
-    $push=Invoke-Adb @('-s',$Serial,'push',$probe,$remotePath)
+    $push=Invoke-Adb -Arguments @('-s',$Serial,'push',$probe,$remotePath)
     if ($push.Code -ne 0) { throw ("adb push failed: "+$push.Text) }
     $uploaded=$true
-    $chmod=Invoke-Adb @('-s',$Serial,'shell',"chmod 700 $remotePath")
+    $chmod=Invoke-Adb -Arguments @('-s',$Serial,'shell',"chmod 700 $remotePath")
     if ($chmod.Code -ne 0) { throw ("Unable to mark diagnostic executable: "+$chmod.Text) }
     Write-Host 'Running 13 isolated read-only cases under authorized ADB shell ...'
-    $probeResult=Invoke-Adb @('-s',$Serial,'shell',"$remotePath --batch")
+    $probeResult=Invoke-Adb -Arguments @('-s',$Serial,'shell',"$remotePath --batch")
     if ($probeResult.Code -ne 0) {
         Write-Host ("Diagnostic returned nonzero: {0}; retaining output." -f $probeResult.Code)
     }
 } finally {
     if ($uploaded) {
-        $cleanup=Invoke-Adb @('-s',$Serial,'shell',"rm -f $remotePath")
+        $cleanup=Invoke-Adb -Arguments @('-s',$Serial,'shell',"rm -f $remotePath")
         Write-Host ("Temporary probe cleanup: exit={0}" -f $cleanup.Code)
         if ($cleanup.Code -ne 0) { Write-Warning 'Manual cleanup may be needed for the exact /data/local/tmp/tas_batchprobe_readonly file.' }
     }
