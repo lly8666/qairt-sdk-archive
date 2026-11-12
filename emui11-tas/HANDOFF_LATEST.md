@@ -2,6 +2,20 @@
 Updated: 2026-11-12 (UTC) | Status: **TAS V2 dumpstate.rc confirms 4 init service modes across system/vendor; Mali 11.16 owned-page compatibility PASS; no elevated process observed; app perf EACCES; Root NOT obtained.**
 Branch: `emui11-firmware-offline-audit-20261112` | Draft PR: https://github.com/lly8666/qairt-sdk-archive/pull/124
 
+## LATEST DEEP RE-AUDIT: earlier MRX→TAS privilege blockers overstated (2026-11-12)
+
+Owner's latest message challenges the earlier inference that MRX EMUI11.0.0.235 success does not transfer to TAS EMUI11.0.0.185, and requests a **deeper investigation of our missed work**. We independently identified **two overly strong negatives** (not a Root success); see the [primary-source corrective audit](validation/TAS_MRX_PRESTAGE_ASSUMPTION_REAUDIT_20261112.md).
+
+1. **`bugreportz` client is NOT a categorical full prestage blocker.** The BKL README simplifying MRX as a unified-`bugreportz` target differs from the original MRX `FACTS.md` describing a **dumpstate libc-page-cache prerequisite** with `bugreportz` in the trigger sequence (FACTS lines 24-27, 1045-1079, 4837-4849). Additionally, [historical AOSP `bugreportz.cpp`](https://android.googlesource.com/platform/frameworks/native/+/324b700b4b0669683efff3d696324dc0d4e24ec5/cmds/bugreportz/bugreportz.cpp) demonstrates the normal socket-client → `dumpstatez` architecture. TAS's actual `bugreportz` ELF is indeed an 11,632B client, but **that alone cannot rule out a separate common-library process interaction**. The TAS APEX libc SHA is known; neither runtime elevated use nor a protected-code alteration was demonstrated. Do not infer either impossibility or successful compatibility.
+2. **App `perf_event_open` EACCES was over-interpreted.** Four TAS calls under `untrusted_app_27`, UID 10161 and no caps prove **pre-stage app EACCES**. MRX's research log also started with Perf restrictions and describes a subsequent change under different execution conditions. A hypothetical **post-privileged-stage Perf outcome on TAS is unmeasured**, not “permanently blocked”. Repeated probes in the same unchanged app context do not resolve this.
+3. **Independent difference remains:** MRX was driven in an **ADB shell** execution context with distinct SELinux and UID; TAS owner requires **APK-only, no PC/ADB**. Even a byte-identical kernel would not grant the ordinary third-party app shell's privileges. Differences in exact EMUI build and merged SELinux policy remain relevant. The theory “.235 success means .185 guaranteed” is **not proven**, though the shared chipset/kernel and TAS static vulnerable pattern justify continued research.
+
+**Engineering correction committed** to [tools/tas_context_decision.py](tools/tas_context_decision.py), schema `TAS_CONTEXT_DECISION_V2`: separates `app_perf_scope` from `post_privileged_stage_perf`, distinguishes MRX ADB shell from TAS APK, and removes the old ADB recommendation and categorical `APP_AND_SHELL_PERF_DENIED` stopping condition. Added regression selftests to [.github/workflows/tas-repro-evidence-gate.yml](../.github/workflows/tas-repro-evidence-gate.yml). [CI run 43227776731](https://github.com/lly8666/qairt-sdk-archive/actions/runs/43227776731) passed. Existing compatibility, MRX proof and pre-Root acceptance docs now point to the superseding correction.
+
+**No new phone test or root-capable APK was produced**, no live kernel exploit ran, Root not obtained. Do not mislabel the correction itself as a solved privilege crossing. Stop repeating GPU, ELF, init or unchanged app Perf baselines. Prioritize measured execution-domain feasibility in a legitimate, explicitly authorized way under the owner's APK-only constraint.
+
+
+
 ## LATEST SOURCE CORRECTION: MRX Kirin990 4.14.116 ROOT REALLY REPORTED (2026-11-12)
 
 **User direction:** Stop comparing modern 5.x/6.x generic Root APKs. Continue using **MRX-W09 Kirin990 / Linux4.14.116 / EMUI11.0.0.235**, the reference most relevant to owner TAS-AN00 Kirin990 / Linux4.14.116 / EMUI11.0.0.185. Owner priority: **APK only / no PC/ADB**, validate pre-root readiness without activating final Root; privacy cleanup comes later.
