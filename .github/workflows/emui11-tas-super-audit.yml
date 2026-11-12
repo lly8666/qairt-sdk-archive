@@ -1,0 +1,75 @@
+name: TAS-AN00 11.0.0.185 SUPER.img offline partition audit
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/emui11-tas-super-audit.yml'
+      - 'emui11-tas/tools/super_inventory.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  super-inventory:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Confirm release asset and download once
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p work/super work/partitions work/report
+          gh release download emui11_t \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern 'SUPER.img' \
+            --dir work/super
+          test "$(wc -c < work/super/SUPER.img)" -eq 1435996536
+          sha256sum work/super/SUPER.img | tee work/report/SUPER_SHA256.txt
+          file work/super/SUPER.img | tee work/report/SUPER_FILE_TYPE.txt
+          xxd -l 256 work/super/SUPER.img > work/report/SUPER_HEADER.txt
+          df -h . | tee work/report/DISK_BEFORE.txt
+      - name: Build pinned lpunpack for LP metadata and extraction
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth=1 https://github.com/soe1hom-arch/lpunpack-go.git work/lpunpack-go
+          git -C work/lpunpack-go fetch --depth=1 origin 073a3302a3c3ffae01633989e6dd1e60b6de15b7
+          git -C work/lpunpack-go checkout --detach 073a3302a3c3ffae01633989e6dd1e60b6de15b7
+          (cd work/lpunpack-go && go build -o ../lpunpack .)
+          work/lpunpack -h || true
+      - name: Extract selected firmware partitions (never flash or write to device)
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq android-sdk-libsparse-utils e2fsprogs >/dev/null
+          src=work/super/SUPER.img
+          if file "$src" | grep -iq 'Android sparse image'; then
+            simg2img "$src" work/super/SUPER.raw.img
+            src=work/super/SUPER.raw.img
+          fi
+          work/lpunpack -v "$src" work/partitions 2>&1 | tee work/report/LPPARTITIONS_LOG.txt
+          ls -lah work/partitions | tee work/report/PARTITIONS_LS.txt
+          for img in work/partitions/*.img; do
+            file "$img" || true
+          done | tee work/report/PARTITIONS_FILE_TYPE.txt
+          df -h . | tee work/report/DISK_AFTER.txt
+      - name: Extract and hash matching system and vendor targets
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 emui11-tas/tools/super_inventory.py work/partitions work/report
+          cat work/report/super_inventory.txt
+      - name: Publish small offline reports, no full ROM upload
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tas-an00-super-static-inspection
+          path: work/report/
+          compression-level: 6
+          retention-days: 7
+          if-no-files-found: error
