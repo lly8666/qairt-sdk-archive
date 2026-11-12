@@ -1,5 +1,8 @@
 # MRX-W09 Kirin 990, Linux 4.14.116: published successful Root evidence vs. TAS-AN00
 
+> **Further source finding, 2026-11-12:** The MRX `FACTS.md` describes a **dumpstate libc-page-cache prerequisite**, whereas the BKL README's summary describes a unified `bugreportz` target. Those are not identical representations of the entry point. Therefore, real TAS `bugreportz` being only a client is not alone a universal incompatibility proof. Ordinary TAS app Perf EACCES also does not determine Perf rights in an unmeasured elevated context. This clarifies, but does not remove, the missing end-to-end evidence. See [stage interpretation re-audit](TAS_MRX_PRESTAGE_ASSUMPTION_REAUDIT_20261112.md).
+
+
 Date: 2026-11-12. Scope: **source provenance, outcome verification, non-operational firmware compatibility**. Owner's priority: **temporary Root research first**, Android APK-only, no PC/ADB; final Root activation expressly not wanted before controlled validation.
 
 ## Critical correction to earlier project interpretation
