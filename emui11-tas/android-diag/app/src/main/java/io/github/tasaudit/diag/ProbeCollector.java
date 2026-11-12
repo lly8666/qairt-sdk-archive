@@ -38,6 +38,15 @@ public final class ProbeCollector {
         p.put("proc_self_no_new_privs", fieldFromProcStatus("NoNewPrivs:"));
         p.put("proc_self_seccomp", fieldFromProcStatus("Seccomp:"));
         for (String k: PROPERTIES) p.put(k, getprop(k));
+        // Public Android APIs are a fallback when EMUI blocks getprop execution.
+        if (empty(p.get("ro.product.board"))) p.put("ro.product.board", scrub(Build.BOARD));
+        if (empty(p.get("ro.product.cpu.abi")) && Build.SUPPORTED_ABIS.length > 0)
+            p.put("ro.product.cpu.abi", scrub(Build.SUPPORTED_ABIS[0]));
+        if (empty(p.get("ro.build.display.id"))) p.put("ro.build.display.id", scrub(Build.DISPLAY));
+        if (empty(p.get("ro.build.version.incremental")))
+            p.put("ro.build.version.incremental", scrub(Build.VERSION.INCREMENTAL));
+        if (empty(p.get("ro.build.version.security_patch")))
+            p.put("ro.build.version.security_patch", scrub(Build.VERSION.SECURITY_PATCH));
         if (empty(p.get("ro.product.model"))) p.put("ro.product.model", scrub(Build.MODEL));
         if (empty(p.get("ro.product.device"))) p.put("ro.product.device", scrub(Build.DEVICE));
         if (empty(p.get("ro.build.version.release"))) p.put("ro.build.version.release", scrub(Build.VERSION.RELEASE));
