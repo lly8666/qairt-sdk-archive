@@ -2,6 +2,15 @@
 Updated: 2026-11-12 (UTC) | Status: **TAS V2 dumpstate.rc confirms 4 init service modes across system/vendor; Mali 11.16 owned-page compatibility PASS; no elevated process observed; app perf EACCES; Root NOT obtained.**
 Branch: `emui11-firmware-offline-audit-20261112` | Draft PR: https://github.com/lly8666/qairt-sdk-archive/pull/124
 
+## APK-ONLY USER REQUIREMENT — no PC/ADB (2026-11-12)
+
+The user explicitly requests **install-and-run APK only** for temporary root, and does **not** want to connect a computer or send ADB output. Do not request ADB again and do not repeat any already-completed GPU/ELF/init surveys. See [APK_ONLY_TEMP_ROOT_FEASIBILITY_20261112.md](APK_ONLY_TEMP_ROOT_FEASIBILITY_20261112.md) for full grounded feasibility and state.
+
+**Known facts:** Mali API 11.16 + GPU memory import + app-owned page-cache test all confirmed; four `dumpstate` init service modes confirmed; **none demonstrated privileged code execution**, the app remains `untrusted_app_27`, app perf APIs return EACCES, the production device has locked AVB green boot. There is currently **NO working Root APK and NO proven one-click phone-only privilege escalation chain**. Do not claim otherwise.
+
+**Operator constraints:** pursue only accurately scoped, authorized research and device-side diagnostics; no unnecessary new APK version. Legitimate Root needs a verified authorized privilege route. For any future claim, independently check effective UID, capabilities, SELinux context and a privileged operation; do not confuse a matching GPU ABI or app-owned file cache experiment with root.
+
+
 ## LATEST CONFIRMED V2 SERVICE-CONFIG RESULT (2026-11-12)
 
 **Read-only v1.3 APK ran on actual TAS handset** in `u:r:untrusted_app_27:s0:c512,c768` UID 10161. Full authoritative record: [validation/TAS_SERVICE_CONTEXT_V2_DUMPSTATE_RC_20261112.md](validation/TAS_SERVICE_CONTEXT_V2_DUMPSTATE_RC_20261112.md).
