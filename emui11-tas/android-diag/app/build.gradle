@@ -6,8 +6,8 @@ android {
         applicationId 'io.github.tasaudit.diag'
         minSdk 29
         targetSdk 29
-        versionCode 1
-        versionName '1.0.0-tas185'
+        versionCode 2
+        versionName '1.1.0-tas185'
     }
     buildTypes {
         debug { minifyEnabled false }
