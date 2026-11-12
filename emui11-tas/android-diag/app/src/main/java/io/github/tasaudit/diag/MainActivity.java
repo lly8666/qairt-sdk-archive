@@ -100,7 +100,7 @@ public final class MainActivity extends Activity {
         StringBuilder b=new StringBuilder(4000);
         b.append("TAS_EMUI11_DIAG_V1_BEGIN\n");
         line(b,"schema","TAS_EMUI11_DIAG_V1");
-        line(b,"tool_version","1.0.0-tas185");
+        line(b,"tool_version","1.1.0-tas185");
         line(b,"captured_utc",Instant.now().toString());
         line(b,"expected_firmware",TargetMatcher.FIRMWARE);
         line(b,"expected_archive_sha256",TargetMatcher.ZIP_SHA256);
