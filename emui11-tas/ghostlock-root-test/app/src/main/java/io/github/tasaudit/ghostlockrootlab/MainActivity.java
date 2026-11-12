@@ -18,7 +18,7 @@ import android.widget.Toast;
 /** Experimental on-device launcher for pinned TAS-AN00 GhostLock core. */
 public final class MainActivity extends Activity {
     private TextView output;
-    private Button identity,leak,attempt;
+    private Button identity,batch,leak,attempt;
     private volatile boolean busy=false;
     private final StringBuilder live=new StringBuilder();
     private static final int MAX_UI=150000;
@@ -29,14 +29,15 @@ public final class MainActivity extends Activity {
         int padding=Math.round(12*getResources().getDisplayMetrics().density);
         root.setPadding(padding,padding,padding,padding);
         TextView heading=new TextView(this);
-        heading.setText("GhostLock · TAS-AN00 Root 实验版\nHuawei Mate 30 · EMUI 11.0.0.185 · Linux 4.14.116");
+        heading.setText("GhostLock · TAS-AN00 Root Lab v0.2\nHuawei Mate 30 · EMUI 11.0.0.185 · Linux 4.14.116");
         heading.setTextSize(17);heading.setTypeface(Typeface.DEFAULT_BOLD);root.addView(heading);
         TextView info=new TextView(this);
         info.setText("本安装包包含针对 TAS 内核编译的 GhostLock 原生研究核心。只有‘实验性 Root’会尝试内核利用；可能直接卡死、重启或变砖。静态适配不等于 Root 已验证。应用没有网络和自动上传功能。");
         info.setTextSize(13);root.addView(info);
         identity=button(root,"1. 原生核心 / 型号门禁检查（不触发漏洞）");
-        leak=button(root,"2. 内核地址读取路径测试");
-        attempt=button(root,"3. 实验性临时 Root（高风险）");
+        batch=button(root,"2. 一键批量 KASLR 排障（13 项独立测试）");
+        leak=button(root,"3. 内核地址读取路径测试");
+        attempt=button(root,"4. 实验性临时 Root（高风险）");
         Button previous=button(root,"查看上次运行日志（重启后可看）");
         Button copy=button(root,"复制日志");
         Button share=button(root,"系统分享日志");
@@ -48,6 +49,7 @@ public final class MainActivity extends Activity {
         root.addView(scroll,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,0,1));
         setContentView(root);
         identity.setOnClickListener(v->run("--tas-profile",15));
+        batch.setOnClickListener(v->run("--batch",48));
         leak.setOnClickListener(v->run("--leak",40));
         attempt.setOnClickListener(v->new AlertDialog.Builder(this)
             .setTitle("运行实验性内核提权？")
@@ -72,7 +74,7 @@ public final class MainActivity extends Activity {
         Button b=new Button(this);b.setText(label);group.addView(b);return b;
     }
     private void setBusy(boolean active) {
-        identity.setEnabled(!active);leak.setEnabled(!active);attempt.setEnabled(!active);
+        identity.setEnabled(!active);batch.setEnabled(!active);leak.setEnabled(!active);attempt.setEnabled(!active);
     }
     private void run(String mode,int timeout) {
         if(busy)return;
