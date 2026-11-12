@@ -65,7 +65,7 @@ def summarize(args,record):
            "dumpstate_service_launched=false",
            "system_files_modified=false",
            f"source_device_model={record.get('ro.product.model','unknown')}"]
-    for section in ("meta","properties","shell","paths","processes","services","unix_sockets","dumpstate_elf","optional_perf"):
+    for section in ("meta","properties","shell","paths","processes","services","init_config","unix_sockets","dumpstate_elf","optional_perf"):
         lines.append(f"\n[{section}]")
         value=record.get(section,{})
         if isinstance(value,dict):
@@ -89,7 +89,7 @@ def collect(ns):
                     "script":"tas_service_context_collect.py","read_only":True,
                     "no_root":True,"no_service_trigger":True},
             "properties":{},"shell":{},"paths":{},"processes":{},"services":{},
-            "unix_sockets":{},"dumpstate_elf":{},"optional_perf":{}}
+            "unix_sockets":{},"dumpstate_elf":{},"init_config":{},"optional_perf":{}}
     shell=lambda *argv:command(base+["shell"]+list(argv),ns.timeout)
     for p in PROPERTIES:
         r=shell("getprop",p)
@@ -114,9 +114,15 @@ def collect(ns):
     record["processes"]["pidof_dumpstate"]=shell("pidof","dumpstate")
     record["processes"]["pidof_dumpstatez"]=shell("pidof","dumpstatez")
     record["services"]["service_list"]=filtered(shell("service","list"))
-    for name in ["dumpstate","dumpstatez","incident"]:
+    for name in ["bugreport","dumpstate","dumpstatez","incident"]:
         record["services"]["service_check_"+name]=shell("service","check",name)
     record["unix_sockets"]["net_unix_dumpstate"]=filtered(shell("cat","/proc/net/unix"))
+    record["init_config"]["system_dumpstate_rc"]=shell("cat","/system/etc/init/dumpstate.rc")
+    record["init_config"]["system_dumpstate_rc_sha256"]=shell("sha256sum","/system/etc/init/dumpstate.rc")
+    record["init_config"]["vendor_kirin990_dumpstate"]=filtered(
+        shell("grep","-n","-i","dumpstate","/vendor/etc/init/hw/init.kirin990.rc"))
+    record["init_config"]["vendor_kirin990E_dumpstate"]=filtered(
+        shell("grep","-n","-i","dumpstate","/vendor/etc/init/hw/init.kirin990E.rc"))
     file=dst/"system_bin_dumpstate"
     if not ns.no_pull:
         p=command(base+["pull","/system/bin/dumpstate",str(file)],25,1200)
@@ -172,6 +178,7 @@ def main():
         assert not FILTER.search("com.personal.messaging")
         assert len(PROPERTIES)>=15
         assert "dumpstate" in PATHS[0]
+        assert "bugreport" in ["bugreport","dumpstate","dumpstatez","incident"]
         print("SELFTEST_PASS: metadata filtering and property allowlist")
         return 0
     return collect(args)
