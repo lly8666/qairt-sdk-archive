@@ -2,6 +2,8 @@
 Updated: 2026-11-12 (UTC) | Status: **TAS V2 dumpstate.rc confirms 4 init service modes across system/vendor; Mali 11.16 owned-page compatibility PASS; no elevated process observed; app perf EACCES; Root NOT obtained.**
 Branch: `emui11-firmware-offline-audit-20261112` | Draft PR: https://github.com/lly8666/qairt-sdk-archive/pull/124
 
+> **Same-round strengthened kernel evidence:** Direct read-only scan of original decompressed 52,439,052-byte TAS BOOT `Image`, SHA256 `d4b6f00aff4a4e05a3d5d794552165b0c950913aa841b356cae9bc69ae8ea2e5`, found **exactly once each** `K:r18p0-01bet0(GPL)`, `r18p0-01bet0 (UK version 11.16)`, and source identifier `bifrost-r18p0-01rel0/mali_kbase_mem.c`. So the **TAS shipped kernel binary itself** confirms Mali r18p0 (a member of CVE-2021-44828 public affected-version range), not just the old source listing. **Exact Huawei backport/patch status and protected-memory effect remain unknown.** The updated [offline gate](tools/tas_mrx235_to_tas185_static_gate.py) optionally checks `--kernel-image` by both exact SHA256 and these embedded strings; executed successfully against owner's three pinned inputs. GitHub [CI run 43238520471](https://github.com/lly8666/qairt-sdk-archive/actions/runs/43238520471) **SUCCESS**. The user-facing local offline analysis ZIP, SHA256 `050e9472d676c405f3bad00e5f7bccfc06eac350573f5bb60785c51fac3dfe6a`, contains source, actual JSON and Chinese notes, **not a Root payload**.
+
 ## LATEST: MRX 235's TWO-CVE prerequisite and TAS 185 partial system image (2026-11-12)
 
 Owner requests continued **MRX-W09 Kirin990 Linux4.14.116 EMUI11.0.0.235 successful Root** comparison against **TAS-AN00 EMUI11.0.0.185**, using the already completed Windows ADB shell tests rather than rerunning them.
