@@ -26,7 +26,7 @@ import java.util.ArrayList;
  * SELinux labels. No root requests, no start/stop of services, no GPU ioctls.
  */
 public final class ServiceSurvey {
-    public static final String LOG_NAME="TAS_SERVICE_CONTEXT_V1_last.txt";
+    public static final String LOG_NAME="TAS_SERVICE_CONTEXT_V2_last.txt";
     private static final String[] PROPERTIES={
         "ro.product.model",
         "ro.hardware",
@@ -42,6 +42,8 @@ public final class ServiceSurvey {
         "init.svc.bugreport",
         "init.svc.bugreportd",
         "init.svc.bugreportm",
+        "init.svc.bugreportplus",
+        "init.svc.bugreportremote",
         "init.svc.adbd",
         "init.svc.vendor.dumpstate",
         "init.svc.dmesgd",
@@ -64,6 +66,11 @@ public final class ServiceSurvey {
         "/dev/socket/dumpstatez_callback",
         "/dev/socket/dumpstatez_ppid",
         "/system/etc/init/dumpstate.rc",
+        "/system/etc/init/bugreport.rc",
+        "/system/etc/init/bugreportd.rc",
+        "/system/etc/init/bugreportplus.rc",
+        "/vendor/etc/init/hw/init.kirin990.rc",
+        "/vendor/etc/init/hw/init.kirin990E.rc",
         "/system/etc/init/dumpstatez.rc",
         "/vendor/etc/init/dumpstate.rc",
         "/vendor/etc/init/dumpstatez.rc",
@@ -170,7 +177,7 @@ public final class ServiceSurvey {
     }
     public static String collect(Context context){
         StringBuilder b=new StringBuilder(10000);
-        b.append("TAS_SERVICE_CONTEXT_V1_BEGIN\n");
+        b.append("TAS_SERVICE_CONTEXT_V2_BEGIN\n");
         row(b,"scope","app_sandbox_service_metadata_read_only");
         row(b,"root_triggered","false");
         row(b,"dumpstate_service_started","false");
@@ -189,8 +196,26 @@ public final class ServiceSurvey {
             row(b,"f"+String.format(Locale.ROOT,"%02d",i)+"_"+TARGETS[i],stat(TARGETS[i]));
         }
         b.append("[/file_labels]\n");
+        b.append("[init_rc_content]\n");
+        row(b,"read_only_source","fixed_service_configuration_files");
+        row(b,"file_system_state_changes","none");
+        final String[] configFiles={
+            "/system/etc/init/dumpstate.rc",
+            "/system/etc/init/bugreport.rc",
+            "/system/etc/init/bugreportd.rc",
+            "/system/etc/init/bugreportplus.rc",
+            "/vendor/etc/init/hw/init.kirin990.rc",
+            "/vendor/etc/init/hw/init.kirin990E.rc"
+        };
+        for(int i=0;i<configFiles.length;i++){
+            String k="rc"+String.format(Locale.ROOT,"%02d",i);
+            row(b,k+"_path",configFiles[i]);
+            row(b,k+"_content",readFiltered(configFiles[i],"",8192));
+        }
+        b.append("[/init_rc_content]\n");
         b.append("[service_manager]\n");
         row(b,"service_check_dumpstate",exec(3000,"/system/bin/service","check","dumpstate"));
+        row(b,"service_check_bugreport",exec(3000,"/system/bin/service","check","bugreport"));
         row(b,"service_check_dumpstatez",exec(3000,"/system/bin/service","check","dumpstatez"));
         row(b,"service_check_incident",exec(3000,"/system/bin/service","check","incident"));
         row(b,"service_list_filtered",exec(3800,"/system/bin/service","list"));
@@ -203,7 +228,7 @@ public final class ServiceSurvey {
         row(b,"proc_self_context",readFiltered("/proc/self/attr/current","",256));
         row(b,"proc_1_context",readFiltered("/proc/1/attr/current","",256));
         b.append("[/process_visibility]\n");
-        b.append("TAS_SERVICE_CONTEXT_V1_END\n");
+        b.append("TAS_SERVICE_CONTEXT_V2_END\n");
         return b.toString();
     }
     public static void persist(Context ctx,String report) throws Exception {
