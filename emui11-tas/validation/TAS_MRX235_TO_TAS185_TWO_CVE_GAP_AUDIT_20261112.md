@@ -12,6 +12,23 @@ The actual published MRX primary record is the [pinned `docs/FACTS.md`](https://
 
 **Independent public vulnerability record:** [CVE-2021-44828](https://nvd.nist.gov/vuln/detail/CVE-2021-44828) concerns Arm Mali drivers; the reported affected Bifrost range includes **r0p0–r34p0**, and the failure mode allows nonprivileged access to otherwise read-only memory. TAS source was earlier identified as **Bifrost r18p0 family**, inside the *public version range*. That is a **version-exposure indicator only**: we have **not** examined all Huawei backports, proved this exact vendor build lacks a fix, or reproduced CVE-2021-44828 against protected memory on TAS. The successful app-owned-file cache canary is not a substitute.
 
+## Additional original kernel binary confirmation (same round)
+
+The exact **decompressed BOOT kernel Image** from the owner's `emui11_t` release was independently SHA256-checked as:
+
+`d4b6f00aff4a4e05a3d5d794552165b0c950913aa841b356cae9bc69ae8ea2e5`
+
+A read-only bytes/strings scan of this exact **52,439,052B** kernel found **each of the following once**:
+- Embedded module/version line `K:r18p0-01bet0(GPL)`.
+- Embedded driver ABI line `r18p0-01bet0 (UK version ((__u16)11).((__u16)16))`.
+- Compiled source location `bifrost-r18p0-01rel0/mali_kbase_mem.c`.
+
+**Improved confidence:** r18p0 is now **confirmed from the actual shipped BOOT kernel binary** — not simply inferred from an accompanying source-tree directory or `/dev/mali0` ABI. These embedded strings corroborate the phone's runtime UK ABI 11.16 observation and the public affected-family range for CVE-2021-44828.
+
+**Strict limit:** An embedded module version string does not prove the entire GPU driver is *unpatched*. The Huawei vendor could have selectively backported a fix without changing the version string. The actual protected-memory weakness is **NOT VERIFIED on TAS**.
+
+The updated offline audit script now optionally accepts `--kernel-image` and requires the kernel's exact SHA256 plus all three embedded strings, before it can label `BIFROST_R18P0_DIRECT_KERNEL_STRINGS_CONFIRMED`. The real pinned kernel was audited successfully along with both original ZIPs; there was **no on-device operation**.
+
 ## New pinned-file comparison of the actual data available
 
 The owner already supplied `system-elfs.zip` SHA256 **`1e92d7a89d33063b4040beb25b774472c81c821ef12aaa59990eb9ff6ded19e0`**; its actual TAS Bionic libc bytes are from:
