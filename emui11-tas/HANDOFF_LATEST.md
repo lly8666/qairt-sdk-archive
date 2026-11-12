@@ -2,6 +2,21 @@
 Updated: 2026-11-12 (UTC) | Status: **TAS V2 dumpstate.rc confirms 4 init service modes across system/vendor; Mali 11.16 owned-page compatibility PASS; no elevated process observed; app perf EACCES; Root NOT obtained.**
 Branch: `emui11-firmware-offline-audit-20261112` | Draft PR: https://github.com/lly8666/qairt-sdk-archive/pull/124
 
+## Most recent request: pre-Root proof, no final Root activation (2026-11-12)
+
+The owner asks to complete investigation and on-device proof of the published Kirin990/GhostLock route, **stopping before the final Root-privilege activation**, on their spare device with no PC/ADB. The precise milestone/limitations are documented in [validation/TAS_PRE_ROOT_NO_CREDENTIAL_CHANGE_ACCEPTANCE_20261112.md](validation/TAS_PRE_ROOT_NO_CREDENTIAL_CHANGE_ACCEPTANCE_20261112.md).
+
+- G0 exact build/firmware and G1 static GhostLock `remove_waiter` pattern: established for extracted files.
+- G2 Mali11.16 and the 3-view **APP-OWNED** page-cache test: real-device PASS.
+- G3 protected-service privileged execution: **not demonstrated**. TAS `bugreportz` is a socket client and app `dumpstate` access is EACCES, despite 4 genuine init declarations.
+- G4 app kernel-address leak: **blocked** by `perf_event_open EACCES`.
+- G5 ability to perform a constrained, non-credential privileged operation: **not demonstrated**.
+- G6 credential/UID0 change: not attempted or achieved, consistent with request not to activate final Root.
+
+**Important engineering distinction:** an actual end-to-end pre-Root proof, even if avoiding the last UID0 credential step, necessarily involves operationally crossing into a privileged system/kernel context. A read-only dry-run cannot establish that. There is no new on-device result in this round because the current assistant has no connection to the owner's phone. Do not claim G3–G5 complete, do not issue a false Root APK, and do not rerun G0–G2. The full operational kernel/privileged-system executable exploit was not developed or delivered.
+
+
+
 ## NEWEST ROUND — achievable research path, pinned firmware GhostLock code (2026-11-12)
 
 **Owner goal:** own TAS-AN00, **APK-only temporary Root, no computer/ADB**; only consider preinstalled-app privacy handling after Root. Current status: **not rooted; no verified one-click root APK**.
