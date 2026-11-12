@@ -100,6 +100,9 @@ jobs:
           python3 emui11-tas/tools/tas_service_context_collect.py --selftest             | tee out/SERVICE_CONTEXT_COLLECTOR_SMOKE.txt
           python3 -m py_compile emui11-tas/tools/tas_service_context_collect.py
           cp emui11-tas/tools/tas_service_context_collect.py out/tas_service_context_collect.py
+          python3 emui11-tas/tools/tas_context_decision.py --selftest \
+            | tee out/SERVICE_CONTEXT_DECISION_SMOKE.txt
+          cp emui11-tas/tools/tas_context_decision.py out/tas_context_decision.py
       - name: Build installable Android 10 diagnostic APK
         shell: bash
         run: |
