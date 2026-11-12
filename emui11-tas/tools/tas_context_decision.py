@@ -98,7 +98,7 @@ def main():
         assert d["evidence"]["tas_bugreportz_client"]=="NOT_A_PROOF_OF_PRESTAGE_IMPOSSIBILITY"
         assert not any("optional read-only shell comparison remains useful" in x for x in d["recommendations"])
         assert not any("APP_AND_SHELL_PERF_DENIED: do not repeat" in x for x in d["recommendations"])
-        ds=decide(perf_shell="perf_exact_result=error\\nperf_exact_errno=13")
+        ds=decide(perf_shell="perf_exact_result=error\nperf_exact_errno=13")
         assert ds["evidence"]["shell_perf_diagnostic"]=="EACCES"
         assert ds["evidence"]["post_privileged_stage_perf"]=="UNMEASURED"
         assert ds["recommendations"][0].startswith("PRESTAGE_APP_AND_SHELL_PERF_DENIED")
