@@ -1,6 +1,23 @@
 # TAS-AN00 GhostLock Research — Current State / Next-Agent Handoff
-Updated: 2026-11-12 (UTC) | Status: **Mali 11.16 six-case real-device PASS; exact toybox/BKL static layout match and vendor init bugreport service verified; v1.2 service survey APK built; app-context perf EACCES persists; root not achieved.**
+Updated: 2026-11-12 (UTC) | Status: **Mali 11.16 on-device six-case PASS; V1 service report confirms Binder bugreport + readable system dumpstate.rc; v1.3 exact config collector in build; Root not achieved.**
 Branch: `emui11-firmware-offline-audit-20261112` | Draft PR: https://github.com/lly8666/qairt-sdk-archive/pull/124
+
+## NEWEST on-device V1 service evidence (2026-11-12; full scan done)
+
+Device V1 report from user: `TAS_SERVICE_CONTEXT_V1_BEGIN ... END`, application UID10155, SELinux `u:r:untrusted_app_27:s0:c512,c768`. Exact report analysis is in [validation/TAS_SERVICE_CONTEXT_V1_20261112.md](validation/TAS_SERVICE_CONTEXT_V1_20261112.md).
+
+**Hard observations:**
+- OS `user`, `ro.debuggable=0`, `ro.secure=1`, verified boot `green`, locked.
+- Android **Binder service `bugreport` registered**, `service list` reports `bugreport: []`; `dumpstate` and `dumpstatez` Binder names not registered. Binder name != init service name != socket service name. This is NOT evidence of a UID0 `dumpstate` process.
+- `/system/bin/dumpstate` `lstat=EACCES` in app context (not absent). `/system/bin/dumpstatez` ENOENT as a standalone executable.
+- **`/system/etc/init/dumpstate.rc` exists and is READABLE by the APK**, 799B, owner=root:root, label `system_file`. V1 collected only stat: exact contents NOT YET SEEN, and this is the highest-value cheap next read.
+- `/system/bin/toybox`: `toolbox_exec`; `/dev/mali0`: `gpu_device`, mode 0666; confirms known reference assumptions.
+- `init.svc.dumpstate`, `init.svc.dumpstatez`, `init.svc.bugreport[...]` return empty **not** `stopped` or `running`. Not sufficient to infer the service never exists or is disabled. `init.svc.adbd=running`.
+- `ps -AZ` only returned app and its `ps` child; `pidof` failed. App visibility limited; absence of a visible process is NOT proof that no background service exists.
+
+**New code already added to branch:** same Android app now v1.3 (`io.github.tasaudit.runtimeinventory.v13`, versionCode 4, min29/target27), button 4 captures `TAS_SERVICE_CONTEXT_V2` with actual `dumpstate.rc` content in `[init_rc_content]` plus `service check bugreport`. All service checks are read-only. Updated `emui11-tas/tools/tas_service_context_collect.py` does the equivalent ADB collection with hash and tries to pull `dumpstate` ELF if readable. The existing 6-case GPU test was already confirmed; DO NOT request another run.
+
+**Status:** V1.3 APK CI build underway, verify signed final artifact before reporting link or SHA. v1.2 logs and all firmware/system ELF evidence have already been received. Remaining question: contents of the 799B system `dumpstate.rc`, actual service runtime UID/domain, then whether any previously postulated elevated context is even observable. Root not achieved; app `perf_event_open` still EACCES.
 
 ## LATEST ROUND 2026-11-12: privilege-entry static preflight + v1.2 service collector
 
