@@ -206,9 +206,9 @@ static int run_test(int id,const char*private_dir){
     int f=open(filename,O_RDONLY|O_CLOEXEC|O_NOFOLLOW);
     if(f<0){result("canary_readonly_open",-1,errno);unlink(filename);close_device(&g);return 11;}
     /* Exact reference shape: imported X, unmap X, remap X as RO file page. */
+    void*old_user_va=X;
     munmap(X,4096);X=MAP_FAILED;
-    X=mmap(X,4096,PROT_READ,MAP_PRIVATE|MAP_FIXED,f,0);
-    /* We must retain the old virtual address explicitly; handled below. */
+    X=mmap(old_user_va,4096,PROT_READ,MAP_PRIVATE|MAP_FIXED,f,0);
     if(X==MAP_FAILED){
         result("canary_ro_map",-1,errno);
         close(f);unlink(filename);munmap(cmap,4096);close_device(&g);return 12;
