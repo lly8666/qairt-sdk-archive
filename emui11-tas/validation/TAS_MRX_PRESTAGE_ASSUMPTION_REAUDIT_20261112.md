@@ -24,6 +24,12 @@ Date: 2026-11-12. Owner requested deeper review because **MRX EMUI11.0.0.235 rec
 
 The actual TAS APEX libc was obtained and hashed (`ecdaf9a20bafd6659649d755023c34137a2788d6fdedb543c10dd20ad2b77ecd`); its exact contents do not establish that an app-controlled page-cache operation affects an elevated process.
 
+### Independent AOSP corroboration: a `bugreportz` socket client is normal Android architecture
+
+AOSP's public [`cmds/bugreportz/bugreportz.cpp` implementation](https://android.googlesource.com/platform/frameworks/native/+/324b700b4b0669683efff3d696324dc0d4e24ec5/cmds/bugreportz/bugreportz.cpp) already uses `socket_local_client` to connect to the `dumpstate` service rather than acting as the service. Its historical [development diff](https://android.googlesource.com/platform/frameworks/native/+/d65a388e1b426afb1a4e4c5dd9b47c605ed26b96%5E2..d65a388e1b426afb1a4e4c5dd9b47c605ed26b96/) also explicitly separates the client from the started `dumpstatez` service. This is source-level architectural background, **not confirmation of an exact TAS or MRX runtime privilege**.
+
+Therefore the original TAS ELF observation is best understood as **consistent with Android's familiar bugreport client/service split**, rather than inherently evidence of a removed functionality in the older/other EMUI build. Whether a privileged process loads and executes the relevant shared library, and whether an ordinary APK has any effect across that security boundary, are **unverified**.
+
 ### B. Perf EACCES is a measurement of its **starting security context**, not every context
 
 **What was overclaimed:** `perf_event_open EACCES` in the TAS user APK was repeatedly presented as proof that the MRX-style leak is simply blocked. The same labels appeared as “G4 BLOCKED” without the qualifier `in the app's current context`.
