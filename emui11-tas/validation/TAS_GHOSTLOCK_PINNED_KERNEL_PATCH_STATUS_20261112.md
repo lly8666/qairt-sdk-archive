@@ -1,5 +1,8 @@
 # TAS-AN00 GhostLock read-only kernel patch-status audit — independently rechecked
 
+> **Update 2026-11-12 — classifier v2 supersedes v1 signature method.** The original v1 checker could falsely classify an unrelated three-instruction sample as unpatched. The [v2 correction and real-kernel rerun](TAS_GHOSTLOCK_STATIC_AUDIT_V2_FALSE_POSITIVE_FIX_20261112.md) requires an ordered, same-function current-task lock / tree-erase / field-clear / unlock sequence. v2 still classifies the exact pinned TAS ELF as `CONSISTENT_WITH_UNPATCHED_GHOSTLOCK`, but it does **not** prove exploitability or a working Root chain. Use the v2 checker and its current output schema for future research; the v1-specific JSON field names below are historical only.
+
+
 Date: 2026-11-12. **This is a static defect audit, not an exploit or proof of Root**.
 
 ## Source provenance (exact owner-supplied release)
