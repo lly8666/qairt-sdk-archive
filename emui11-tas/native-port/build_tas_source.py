@@ -2,7 +2,7 @@
 """Produce a hash-pinned TAS-AN00 port from the published MIT MRX source."""
 import hashlib, pathlib, re, sys
 OLD_SHA='70b95785a11c2a80059eba7a95b52c8a8f8380be6b8fc4eb3efc23e7d1aa4eba'
-PORT_SHA='27fb8eb80c227f7b1b9f95a84f173e4bef933b849a4bb7c97ca3ab5c1fd0319b'
+PORT_SHA='dda52fc17459f52c9a44b0777969c150f914e55c56735b19d777d93dd8a32542'
 MACROS={
 'LINK_STEXT':'ffffff8008081000',
 'LINK_SCHEDULE':'ffffff8009ea2ac8',
@@ -35,7 +35,7 @@ def patch(src,out):
     assert n==1
     mark='#define _GNU_SOURCE\n'
     assert text.count(mark)==1
-    text=text.replace(mark,mark+'#include <sys/utsname.h>\n#include <sys/system_properties.h>\n')
+    text=text.replace(mark,mark+'#include <sys/utsname.h>\n#include <sys/mount.h>\n#include <sys/system_properties.h>\n')
     guard=r'''
 static int tas_target_check(int verbose) {
     struct utsname u;
