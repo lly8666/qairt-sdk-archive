@@ -2,6 +2,25 @@
 Updated: 2026-11-12 (UTC) | Status: **TAS V2 dumpstate.rc confirms 4 init service modes across system/vendor; Mali 11.16 owned-page compatibility PASS; no elevated process observed; app perf EACCES; Root NOT obtained.**
 Branch: `emui11-firmware-offline-audit-20261112` | Draft PR: https://github.com/lly8666/qairt-sdk-archive/pull/124
 
+## LATEST engineering round: publicly available Root APK compatibility audit (2026-11-12)
+
+**User instruction remains:** continue TAS-AN00 GhostLock research, Android **10 API29** / EMUI11.0.0.185 / kernel 4.14.116, **Root first, APK only, no PC/ADB**. No need to repeat already completed Mali or service tests.
+
+**Substantial new discovery:** Open-source one-tap GhostLock APKs exist, but **none of the four checked projects is a ready-to-install, independently verified temporary Root APK for this exact TAS**. Source snapshot evidence and fail-closed matrix:
+[validation/TAS_PUBLIC_ROOT_APK_COMPATIBILITY_20261112.md](validation/TAS_PUBLIC_ROOT_APK_COMPATIBILITY_20261112.md).
+
+- [YuKongA/ghostlock-app](https://github.com/YuKongA/ghostlock-app): as of `5f6d604c` its actual `app/build.gradle.kts` has **`minSdk=31`**, so cannot install on TAS API29; its checked built-in `kernel_profiles/index.conf` also has **no `4.14.116`**.
+- [markyogi585-bot/ghostlock-app](https://github.com/markyogi585-bot/ghostlock-app) Android11-compatible fork as of `9da68bb9`: **`minSdk=30`**, still incompatible with TAS API29. Kernel profiles not checked; installation failure is already conclusive.
+- [Haoyu-UT/robust-ghostlock-app](https://github.com/Haoyu-UT/robust-ghostlock-app) as of `9cdc4acb`: README requires **Android12+** and supported kernel families **5.10/5.15/6.1/6.6/6.12**; 4.14 unsupported.
+- [BellezaEmporium/ghostlock-bkl-l09](https://github.com/BellezaEmporium/ghostlock-bkl-l09) as of `38147644`: `app/GhostLockManager.apk` has **minSdk26** and may be installable on Android10, **but is only a manager/control UI** that expects a separate privileged root service already running; it is **not a self-contained Root exploit APK**.
+- Crucial conceptual correction: Android version `10` on TAS is not altered by EMUI branding `11`. Profiles/import features do not override Android `minSdk`, missing exact kernel support, or the app sandbox.
+- Added Python stdlib-only, executable/no-network/no-device **read-only compatibility gate** [tools/tas_public_ghostlock_apk_gate.py](tools/tas_public_ghostlock_apk_gate.py), pinned upstream source SHAs, output labels, selftests and machine-readable JSON. [GitHub Actions run 43224682416](https://github.com/lly8666/qairt-sdk-archive/actions/runs/43224682416) **PASS**. Local owner-facing verified ZIP contains script, JSON, Chinese notes and SHA256SUMS.
+- No new Root APK was built or run; the TAS phone was not operated in this round. GPU memory / own-file canary still pass; pinned TAS `remove_waiter` still has stronger static vulnerable-code features; G3 privileged execution, G4 app perf access, G5 control and G6 Root still **unproved**.
+
+**Next research discipline:** only consider actual Android10/API29-compatible and 4.14.116-specific device-verified authorized solutions; screen APK manifests and true execution role before any proposal to install. Do not assume BKL's root manager alone is a Root tool, or that a general 6.x APK accepts a 4.14 profile. This negative result covers **only these four projects**, not every possible method. User's Root-first project stays open, but no verified one-click root path is known.
+
+
+
 ## LATEST: corrected GhostLock static patch checker v2 (2026-11-12)
 
 The most recent owner's instruction is **continue research** on the APK-only, Root-first TAS project with **NO desktop/ADB** and no repeated phone checks.
