@@ -2,6 +2,23 @@
 Updated: 2026-11-12 (UTC) | Status: **TAS V2 dumpstate.rc confirms 4 init service modes across system/vendor; Mali 11.16 owned-page compatibility PASS; no elevated process observed; app perf EACCES; Root NOT obtained.**
 Branch: `emui11-firmware-offline-audit-20261112` | Draft PR: https://github.com/lly8666/qairt-sdk-archive/pull/124
 
+## LATEST REAL DEVICE EVIDENCE: owner Windows ADB shell two ZIPs (2026-11-12 local 22:07)
+
+**The owner HAS NOW RUN both Windows scripts and supplied the actual archives. Do not request reruns.** Full source-linked, sanitized measurements: [validation/TAS_WINDOWS_ADB_SHELL_REAL_DEVICE_RESULTS_20261112.md](validation/TAS_WINDOWS_ADB_SHELL_REAL_DEVICE_RESULTS_20261112.md).
+
+- Original context ZIP SHA256 `d54ff48198efdb7949c639ab077606cb373619fc593c752ad56501ef66a0323f`; 33 context commands, 26 exit0/7 nonzero. Perf ZIP SHA256 `7abb0b83e8a7639b8917466f1975af52287ac81e94b020ed89fe7161bf39528b`; all **13** cases fully completed.
+- **Actual TAS:** `TAS-AN00 11.0.0.185(C00E180R7P11)`, API29, kernel4.14.116, bootloader locked/green, `ro.debuggable=0`. Authorized Windows ADB shell has **UID2000 / u:r:shell:s0 / CapEff=0 / Seccomp=0 / SELinux enforcing**. Previously, app had UID10161/untrusted_app_27/Seccomp2.
+- **Both original app AND new ADB shell**: four `perf_event_open` cases **ALL EACCES errno13**. Shell `perf_event_paranoid=3`, `kallsyms` EACCES, `kptr_restrict` EACCES. **No direct perf leak from shell baseline**. Note `CASE_EXIT=00:0…12:0` means the diagnostic function exited normally, **not** that perf opened successfully. A hypothetical post-privileged-process Perf context is **UNMEASURED**, not ruled out.
+- **New real access delta:** shell `service check bugreport` **found**, previous untrusted app `service check bugreport` **not found**; different Binder service visibility is now measured but does NOT prove a live privileged process. No `dumpstate` process/socket at survey time, and `init.svc.dumpstate*` properties blank (not proof of stopped).
+- **Surprising persistence of denial:** shell `ls -ldZ /system/bin/dumpstate` and `sha256sum /system/bin/dumpstate` both **Permission denied**. This is not ENOENT, and exact dumpstate ELF remains unknown. No elevated execution occurred.
+- SHA256 of real `/system/bin/bugreportz` and APEX `libc.so` precisely match the earlier owner-supplied ELF archive. This corroborates file identities; live kernel binary equality still unproved.
+- Source correction made in [ghostlock-root-test/native/tas_batch_probe.c](ghostlock-root-test/native/tas_batch_probe.c) changes misleading baked-in `scope=app_context_preconditions_only` text to `scope=actual_process_context_preconditions_only` **for FUTURE builds only**. Existing, pinned diagnostic binary and its run remain valid because actual UID/domain were explicitly logged.
+- Root remains **NOT achieved**, GhostLock exploit not triggered; the prior owner objective was verification of prerequisites without activating Root. There is no need to rerun the identical 33+13 tests. No operational exploit APK or host-side injection was developed.
+
+**Next safe investigation:** compare legitimate read-only Android shell / Binder service visibility with MRX published outcome claims and the owner’s exact firmware artifacts. If privileges are needed to read `dumpstate`, do not equate access denial with absence. Do not claim verified Root based on Binder discovery or the original Mali app-owned cache test.
+
+
+
 > **Windows ADB bundle upgraded to v2 (2026-11-12).** This supersedes the v1 ZIP recommendation below. The owner can now run TWO separate one-click Windows batch launchers:
 > - [`Run_TAS_ADB_Shell_Inventory.cmd`](windows-adb/Run_TAS_ADB_Shell_Inventory.cmd): 33 fixed read-only ADB shell context/service/file-metadata commands, zero on-device writes.
 > - [`Run_TAS_ADB_Shell_Perf13.cmd`](windows-adb/Run_TAS_ADB_Shell_Perf13.cmd): **OPTIONAL**, uses SHA256-pinned `tas_batchprobe_arm64` (`f6d1a7d2747b400994d1a54ef1659d6c3fe01e50fd433b652dd8ef4feff3c6d7`) from older verified build 43170972015; uploads only this benign read-only probe to `/data/local/tmp/tas_batchprobe_readonly`, runs 13 isolated diagnostics under `adb shell`, then deletes only that temporary file. Measures whether shell Perf differs from original app's four EACCES outcomes; prints no kernel addresses.
