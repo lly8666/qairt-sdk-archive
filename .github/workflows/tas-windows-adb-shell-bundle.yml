@@ -1,0 +1,55 @@
+name: TAS Windows ADB shell inventory - build and selftest
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/tas-windows-adb-shell-bundle.yml'
+      - 'emui11-tas/windows-adb/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-selftest:
+    runs-on: windows-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse PowerShell 5.1 script and validate read-only allowlist
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $src = 'emui11-tas/windows-adb/TAS_ADB_Shell_Inventory.ps1'
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $src).Path, [ref]$tokens, [ref]$errors) | Out-Null
+          if ($errors.Count -ne 0) {
+            $errors | ForEach-Object { Write-Error $_.Message }
+            throw 'PowerShell parser errors'
+          }
+          & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $src -SelfTest
+          if ($LASTEXITCODE -ne 0) { throw 'Windows shell inventory selftest failed' }
+          Write-Host 'POWER_SHELL_5_1_SYNTAX_AND_READONLY_GATES_PASS'
+      - name: Build offline Windows distribution bundle
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force -Path out/bundle | Out-Null
+          Copy-Item -LiteralPath 'emui11-tas/windows-adb/TAS_ADB_Shell_Inventory.ps1' -Destination 'out/bundle/'
+          Copy-Item -LiteralPath 'emui11-tas/windows-adb/双击运行_TAS_ADB_Shell_采集.cmd' -Destination 'out/bundle/'
+          Copy-Item -LiteralPath 'emui11-tas/windows-adb/README_CN.md' -Destination 'out/bundle/'
+          $hashes = Get-ChildItem -LiteralPath 'out/bundle' -File | ForEach-Object {
+            $h = Get-FileHash -Algorithm SHA256 -LiteralPath $_.FullName
+            '{0} *{1}' -f $h.Hash.ToLowerInvariant(),$_.Name
+          }
+          $hashes | Set-Content -LiteralPath 'out/bundle/SHA256SUMS.txt' -Encoding UTF8
+          if ((Get-ChildItem -LiteralPath out/bundle -File).Count -ne 4) { throw 'Missing bundle files' }
+          Write-Host 'TAS_WINDOWS_ADB_BUNDLE_CREATED'
+      - name: Publish Windows one-click batch shell inventory
+        uses: actions/upload-artifact@v4
+        with:
+          name: TAS-AN00-Windows-ADB-Shell-ReadOnly-v1
+          path: out/bundle/
+          if-no-files-found: error
+          retention-days: 14
