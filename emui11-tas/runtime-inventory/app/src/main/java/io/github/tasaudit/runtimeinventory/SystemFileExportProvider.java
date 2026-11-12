@@ -13,7 +13,7 @@ import java.io.FileNotFoundException;
 
 /** Read-only share of selected nonprivate OS ELF files, never private user data. */
 public final class SystemFileExportProvider extends ContentProvider {
-    public static final String AUTHORITY="io.github.tasaudit.runtimeinventory.v11.export";
+    public static final String AUTHORITY="io.github.tasaudit.runtimeinventory.v12.export";
     public static final String ZIP_NAME="TAS_AN00_System_ELF_Samples.zip";
     public static final Uri CONTENT_URI=Uri.parse("content://"+AUTHORITY+"/system-elfs.zip");
 
