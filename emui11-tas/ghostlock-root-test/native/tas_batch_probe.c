@@ -190,7 +190,7 @@ int main(int argc,char **argv) {
    fprintf(stderr,"usage: %s --batch\n",argv[0]);return 2;
  }
  puts("TAS_KASLR_BATCH_V1_BEGIN");
- puts("scope=app_context_preconditions_only");
+ puts("scope=actual_process_context_preconditions_only"); /* UID/SELinux in cases 0/1 determine the running domain; supports both app and authorized ADB shell. */
  puts("kernel_exploit_triggered=false");
  puts("kernel_memory_written=false");
  puts("kernel_addresses_reported=false");
