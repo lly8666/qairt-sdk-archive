@@ -38,7 +38,7 @@ All four ELF binaries are 64-bit little-endian AArch64. `bugreportz`, `toybox`, 
 
 ### Consequences of the actual files
 
-1. `bugreportz` is **11.6 KiB**, contains `dumpstatez` and `connect`-related strings. This is consistent with a socket-client-style binary instead of proving it runs as a uid0 dumpstate service. **Do not silently assume MRX-W09's original unified service binary/entrypoint.** Its exact Build ID above is now known.
+1. `bugreportz` is **11.6 KiB**. Exact ELF import table contains **`socket_local_client`**, and the binary embeds **`FAIL:Failed to connect to dumpstatez service: %s`** plus `usage: bugreportz [-h | -v]`. **It is conclusively a `dumpstatez` socket CLIENT, not the privileged `dumpstate` service process.** Do not apply an MRX-W09 unified-service binary assumption. Its exact Build ID above is now known.
 2. `/system/lib64/libc.so` is a symlink into APEX. The actual libc ELF is the 1,136,456B file in `/apex/com.android.runtime/lib64/bionic/libc.so`. No BKL/MRX static offset should be reused without validation.
 3. `vendor_sepolicy.cil` has `dumpstate_29_0` type/rules and `gpu_device_29_0` rules, but the complete effective SELinux policy also depends on platform/other policy files. Absence of a direct vendor-only `allow dumpstate_29_0 proc_perf` rule **does not** establish denial in the merged policy.
 4. `/system/bin/dumpstate` was `EACCES` in the ordinary app and **could not be included in the ZIP**. EACCES is not proof of a nonexistent executable; acquisition from a context with read permission remains a separate evidence task.
