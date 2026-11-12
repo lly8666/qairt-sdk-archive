@@ -17,6 +17,13 @@ Branch: `emui11-firmware-offline-audit-20261112` | Draft PR: https://github.com/
 - BKL reference uses `toybox` prologue candidate at file offset `0x29050` with original ARM64 word `0xd10203ff`; target TAS's **actual first four bytes exactly match**. ELF entry `0x29000`, executable LOAD from `0x29000` through `0x6b970`, following RW LOAD at `0x6c000`. Blank tail `0x6b970–0x6bfff` is 1680 zero bytes. Static layout compatibility ≠ runtime payload execution or privilege escalation.
 - New definitive detailed record: [validation/TAS_INITRC_TOYBOX_STATIC_20261112.md](validation/TAS_INITRC_TOYBOX_STATIC_20261112.md).
 
+**Verified downloadable delivery (compiled and packaged in current conversation):**
+- `TAS_AN00_Mali_Service_Survey_v1_2.apk`, **69,690 B**, SHA256 `548ce356f205fab041c52b1d4e62ba360a91f12e0f51cd9d558e4064d49ebf0d`.
+- `TAS_AN00_EMUI11_Dumpstate_Service_Batch_v1_2.zip`, **51,943 B**, SHA256 `529b11842ab5e42a8a13156dfb5407d28d02bba3daf692451e93bc6afdbe1536`. Contents: v1.2 APK, cross-platform ADB collector, deterministic decision script, the pinned 13-case ARM64 perf probe, vendor init service excerpts, static toybox layout JSON, usage README, APK/CI signature and selftest records, per-file SHA256 sums. ZIP CRC check passed.
+- Successful v1.2 CI workflow: https://github.com/lly8666/qairt-sdk-archive/actions/runs/43186655822. App is a **new v12 package**, so does not replace earlier independently signed v1.1 APK.
+- In the v1.2 APK, press button **4** only to capture `TAS_SERVICE_CONTEXT_V1_BEGIN ... END` and send text. If PC ADB is available use `python tas_service_context_collect.py --perf TAS_AN00_KASLR_BatchProbe_arm64`, then submit the resulting `tas_adb_context_v1.zip`.
+- ADB script deliberately does not launch dumpstate, trigger kernel UAF, read user data, or modify system files; app still carries the old optional GPU test but no need to rerun it.
+
 **New artifact (built, signed, host logic tests pass; NOT yet tested on handset):**
 - Android app `emui11-tas/runtime-inventory` v1.2, package `io.github.tasaudit.runtimeinventory.v12`, `versionCode 3`, Android 10 min SDK29/targetSDK27. APK size 69,690 bytes, SHA256 **`548ce356f205fab041c52b1d4e62ba360a91f12e0f51cd9d558e4064d49ebf0d`**. Built and v2-signed in successful Actions https://github.com/lly8666/qairt-sdk-archive/actions/runs/43186655822.
 - **Button 4** runs noninvasive `TAS_SERVICE_CONTEXT_V1` via `ServiceSurvey.java` and persistently saves logs: relevant init properties, SELinux file labels, socket stat, process visibility and Binder service manager. No `dumpstate` service start, no root or GPU ioctl. Existing button 2 remains an optional potentially crash-prone GPU test **already passed and does not need rerun**.
