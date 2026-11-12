@@ -142,7 +142,7 @@ jobs:
           "$aapt" dump badging "$apk" > out/ROOTLAB_BADGING.txt
           "$apksigner" verify --verbose "$apk" > out/ROOTLAB_SIGNATURE.txt
           unzip -l "$apk" > out/ROOTLAB_CONTENTS.txt
-          grep -q "package: name='io.github.tasaudit.ghostlockrootlab'" out/ROOTLAB_BADGING.txt
+          grep -q "package: name='io.github.tasaudit.ghostlockrootlab.v02'" out/ROOTLAB_BADGING.txt
           grep -q "sdkVersion:'29'" out/ROOTLAB_BADGING.txt
           grep -q "targetSdkVersion:'27'" out/ROOTLAB_BADGING.txt
           ! grep -q '^uses-permission' out/ROOTLAB_BADGING.txt
