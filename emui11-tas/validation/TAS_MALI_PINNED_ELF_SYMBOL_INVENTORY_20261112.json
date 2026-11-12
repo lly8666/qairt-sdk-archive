@@ -1,0 +1,40 @@
+{
+  "schema": "TAS_MALI_PINNED_ELF_SYMBOL_INVENTORY_V1",
+  "target": "TAS-AN00 / EMUI 11.0.0.185 / Android 10",
+  "input": {
+    "sha256": "b31c32928f2f095497825b28cc7c31a291ff649bfc4afe2a825bbda0b0ff3716",
+    "related_extracted_kernel_image_sha256": "d4b6f00aff4a4e05a3d5d794552165b0c950913aa841b356cae9bc69ae8ea2e5",
+    "kind": "KALLSYMS_RECOVERED_AARCH64_ELF",
+    "note": "Exact symbolized ELF is a recovered offline artifact; no live device read"
+  },
+  "counts_including_cfi": {
+    "kbase": 1065,
+    "kbase_mem": 108,
+    "kbase_mmu": 43,
+    "kbase_jd": 19,
+    "mali": 12
+  },
+  "kbase_cfi_symbols": 518,
+  "kbase_non_cfi_symbols": 547,
+  "selected_symbol_presence": {
+    "kbase_mem_alloc": true,
+    "kbase_mem_import": true,
+    "kbase_mem_copy_from_extres_page": true,
+    "kbase_jd_user_buf_pin_pages": true,
+    "kbase_vmap_prot": true,
+    "kbase_mmu_insert_pages": true,
+    "kbase_gpu_munmap": true,
+    "kbase_sync_single_for_device": true
+  },
+  "interpretation": {
+    "mali_code_present_in_recovered_elf": true,
+    "driver_version_provenance": "R18P0_CONFIRMED_SEPARATELY_FROM_PINNED_BOOT_IMAGE_STRINGS",
+    "cve_2021_44828_version_range_indicator": "BIFROST_R18P0_IN_PUBLIC_RANGE",
+    "cve_2021_44828_vendor_backport_status": "UNKNOWN",
+    "protected_memory_effect_on_TAS": "NOT_TESTED",
+    "tas_root_observed": false,
+    "binary_function_presence_is_patch_proof": false
+  },
+  "no_device_access": true,
+  "no_exploit_execution": true
+}
