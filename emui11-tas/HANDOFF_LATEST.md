@@ -1,6 +1,35 @@
 # TAS-AN00 GhostLock Research — Current State / Next-Agent Handoff
-Updated: 2026-11-12 (UTC) | Status: **Mali 11.16 six-case full runtime PASS; exact actual system ELF Build IDs established; app-context perf EACCES persists; root not achieved.**
+Updated: 2026-11-12 (UTC) | Status: **Mali 11.16 six-case real-device PASS; exact toybox/BKL static layout match and vendor init bugreport service verified; v1.2 service survey APK built; app-context perf EACCES persists; root not achieved.**
 Branch: `emui11-firmware-offline-audit-20261112` | Draft PR: https://github.com/lly8666/qairt-sdk-archive/pull/124
+
+## LATEST ROUND 2026-11-12: privilege-entry static preflight + v1.2 service collector
+
+**New major firmware evidence — real Vendor init.rc**:
+- 3 EROFS regions extracted from the user's `SUPER.img` in passing CI:
+  https://github.com/lly8666/qairt-sdk-archive/actions/runs/43186500899.
+- `region_1/etc/init/hw/init.kirin990.rc` and `init.kirin990E.rc`, lines 1238-1244:
+  `service bugreport /system/bin/dumpstate -d -p -B -z -o /data/user_de/0/com.android.shell/files/bugreports/bugreport`, `class main`, `disabled`, `oneshot`, `keycodes 114 115 116`. No explicit user => Android init generally runs as UID0 by default. **No direct on-device service UID, domain, or execution evidence yet.**
+- `region_1/ueventd.rc` has `/dev/mali0 0666 system system`, exactly matching runtime.
+- Real TAS `/system/bin/bugreportz` is a 11,632B `dumpstatez` socket client, not the privileged daemon.
+
+**Exact TAS toybox ELF: unusual static compatibility with BKL reference**:
+- Original user-supplied `toybox` SHA256 `549a1750493b7c2df15798a387ec61fdbed89bb8ee6f7123a9bf91371d3e167b`, BuildID `230b56fefa5048df13b5b128499c7087`.
+- BKL reference uses `toybox` prologue candidate at file offset `0x29050` with original ARM64 word `0xd10203ff`; target TAS's **actual first four bytes exactly match**. ELF entry `0x29000`, executable LOAD from `0x29000` through `0x6b970`, following RW LOAD at `0x6c000`. Blank tail `0x6b970–0x6bfff` is 1680 zero bytes. Static layout compatibility ≠ runtime payload execution or privilege escalation.
+- New definitive detailed record: [validation/TAS_INITRC_TOYBOX_STATIC_20261112.md](validation/TAS_INITRC_TOYBOX_STATIC_20261112.md).
+
+**New artifact (built, signed, host logic tests pass; NOT yet tested on handset):**
+- Android app `emui11-tas/runtime-inventory` v1.2, package `io.github.tasaudit.runtimeinventory.v12`, `versionCode 3`, Android 10 min SDK29/targetSDK27. APK size 69,690 bytes, SHA256 **`548ce356f205fab041c52b1d4e62ba360a91f12e0f51cd9d558e4064d49ebf0d`**. Built and v2-signed in successful Actions https://github.com/lly8666/qairt-sdk-archive/actions/runs/43186655822.
+- **Button 4** runs noninvasive `TAS_SERVICE_CONTEXT_V1` via `ServiceSurvey.java` and persistently saves logs: relevant init properties, SELinux file labels, socket stat, process visibility and Binder service manager. No `dumpstate` service start, no root or GPU ioctl. Existing button 2 remains an optional potentially crash-prone GPU test **already passed and does not need rerun**.
+- One-shot optional PC ADB script `emui11-tas/tools/tas_service_context_collect.py` gathers only relevant service state / metadata and attempts a read-only `adb pull /system/bin/dumpstate`. Optional `--perf TAS_AN00_KASLR_BatchProbe_arm64` compares ADB shell perf preconditions (without triggering an exploit). Tested with `--selftest`.
+- Classifier `emui11-tas/tools/tas_context_decision.py` combines app and ADB observations, labels no-root state, and avoids false conclusions; `--selftest` passed.
+- CI artifacts include v1.2 APK, native known 11.16 probe, read-only ADB collector and classifier; no raw proprietary system ELF committed.
+- **Next operator input**: request only 1) button-4's `TAS_SERVICE_CONTEXT_V1` full text, and 2) if PC ADB available, its `tas_adb_context_v1.zip`. Do **not** ask for the already provided v1.1 GPU log or system ELF ZIP again.
+
+**Residual blockers**:
+1. `dumpstate` actual executable unreadable in ordinary app; init definition alone does not prove live SELinux domain.
+2. Using GPU page-cache canary on an **app-owned** file does not establish system executable memory tampering or privileged execution.
+3. `perf_event_open` still EACCES in app; GhostLock root never advanced past KASLR leak.
+4. No Root on target was observed. Keep this explicit.
 
 ## Latest verified evidence: Mali v1.1 SIX-CASE PASS + system ELF ZIP (2026-11-12)
 
