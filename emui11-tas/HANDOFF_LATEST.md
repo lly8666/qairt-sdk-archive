@@ -2,6 +2,19 @@
 Updated: 2026-11-12 (UTC) | Status: **TAS V2 dumpstate.rc confirms 4 init service modes across system/vendor; Mali 11.16 owned-page compatibility PASS; no elevated process observed; app perf EACCES; Root NOT obtained.**
 Branch: `emui11-firmware-offline-audit-20261112` | Draft PR: https://github.com/lly8666/qairt-sdk-archive/pull/124
 
+## New owner direction: Kirin990 MRX verbatim reference port, APK-only (2026-11-12)
+
+The owner specifically requests **copy the Kirin990 MRX-W09 implementation onto TAS-AN00, adapt only verified differences and assume the rest**. We recorded a source-grounded compatibility and unknowns ledger in [validation/MRX_KIRIN990_TO_TAS_BLIND_PORT_FEASIBILITY_20261112.md](validation/MRX_KIRIN990_TO_TAS_BLIND_PORT_FEASIBILITY_20261112.md).
+
+- Shared Kirin990 + kernel 4.14.116 does not imply binary identity, addresses or policies.
+- **Already proven on TAS:** Mali 11.16 ioctl/memory import/job submit and *app-owned* 3-view cache experiment; `toybox` static ELF layout; four init `dumpstate` modes. **No need to rerun.**
+- **Hard reference divergence:** MRX discussion presupposes a combined privileged `bugreportz` service target. Actual TAS has `bugreportz` as an 11,632-byte socket client, while the privileged service executable named in init files is `/system/bin/dumpstate` (`EACCES` from this app). Copying the MRX target blindly is factually incompatible with real TAS evidence.
+- **Still unverified/blocked:** code in protected system binary executing with raised privileges, runtime `dumpstate` UID/domain/perf rights, app perf EACCES, kernel-address leak, kernel primitive, HKIP/SELinux outcomes, temporary Root.
+- No new Root APK was built this round. A blind copy of unverified kernel addresses/privileged hooks cannot count as a compatibility port. User does not want PC/ADB, and privacy app work is deferred.
+- Continue only with accurate reference audit/static patch checks or non-invasive functional diagnostics. Never misrepresent a compatibility APK as Root success.
+
+
+
 ## LATEST owner request: resolve privilege barrier — actual route triage (2026-11-12)
 
 The owner asks for **APK-only temporary Root** on their own TAS-AN00; **no PC/ADB**. Do not pivot to preinstalled-app cleanup. No Root APK produced in this round.
