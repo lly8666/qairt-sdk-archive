@@ -1,0 +1,42 @@
+name: TAS-AN00 evidence/proof gate (Python only)
+
+on:
+  pull_request:
+    paths:
+      - 'emui11-tas/tools/tas_repro_evidence_gate.py'
+      - '.github/workflows/tas-repro-evidence-gate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  proof-gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate all 6 GPU stages and check no false Root inference
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          python3 -m py_compile emui11-tas/tools/tas_repro_evidence_gate.py
+          python3 emui11-tas/tools/tas_repro_evidence_gate.py --selftest | tee out/SELFTEST.txt
+          python3 emui11-tas/tools/tas_repro_evidence_gate.py --output out/NO_EXTRA_LOGS.json
+          python3 - <<'PY'
+          import json
+          p='out/NO_EXTRA_LOGS.json'
+          data=json.load(open(p,encoding='utf8'))
+          assert data['root_status']=='NOT_VERIFIED'
+          assert data['root_claim_allowed'] is False
+          assert data['evidence']['mali_api']=='NOT_PROVIDED'
+          assert data['user_constraints']['request_adb'] is False
+          print('NO_INPUTS_AND_NO_FALSE_ROOT_ASSERTIONS_PASS')
+          PY
+      - name: Publish proof-gate self-test record
+        uses: actions/upload-artifact@v4
+        with:
+          name: TAS-GhostLock-Evidence-Gate-Only
+          path: out/
+          if-no-files-found: error
+          retention-days: 7
