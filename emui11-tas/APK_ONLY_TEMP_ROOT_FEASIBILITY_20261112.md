@@ -33,6 +33,28 @@ Requested final outcome: **temporary root** from an installable APK. **NOT ACHIE
 4. For legitimate temporary root, establish a **vendor-supported authorized elevated execution route** or authorized bootloader-unlock/engineering environment. Without one, say **not verified / not possible to promise**, not "root working".
 5. No code or instructions in this handoff should be interpreted as permission to patch privileged system executables, defeat SELinux/HKIP, or deploy a live kernel escalation chain. Future agents must distinguish legitimate research and compatibility measurements from a working privilege-escalation exploit.
 
+## 2026-11-12 verified public-source recheck and route triage
+
+### Source-backed facts
+
+- Huawei Cloud published an alert on 2026-07-09 for **CVE-2026-43499 (GhostLock)**, a real local privilege-escalation vulnerability in the Linux kernel FUTEX / rtmutex path. Source: https://www.huaweicloud.com/notice/20260709180448216.html . This confirms a public vulnerability class, **not** that the precise TAS firmware is exposed in an exploitably reproducible form.
+- Huawei's own community support states official bootloader unlock-code requests ceased **2018-07-25** and codes are no longer provided. Source: https://consumer.huawei.com/en/community/details/topicId-183915/ . A normal legitimate end-user unlocked-bootloader / custom boot Root route is therefore not currently available through this OEM service.
+- Owner's BOOT/RECOVERY kernel Image extracted from exact release `emui11_t` reports **Linux 4.14.116, compiled 2021-07-21**, SHA256 `d4b6f00aff4a4e05a3d5d794552165b0c950913aa841b356cae9bc69ae8ea2e5`. Extracted kernel config has `CONFIG_FUTEX_PI=y`, `CONFIG_CFI_CLANG=y`, `CONFIG_HISI_HHEE=y`, `CONFIG_RANDOMIZE_BASE=y`. A pre-disclosure build and enabled futex PI make affected-code presence plausible, but **a binary patch-status review is still needed** before calling the device definitely vulnerable.
+- Public BKL reference is for Kirin970 EMUI10 and MRX note is for Kirin990 EMUI11.0.0.235, not TAS EMUI11.0.0.185. Source: https://github.com/BellezaEmporium/ghostlock-bkl-l09 . Current published material checked on 2026-11-12 has **not** supplied a device/build-specific independently verified install-and-run TAS-AN00 Root APK. This is a scope-limited search result, not proof that none exists anywhere.
+
+### Practical feasibility outcomes
+
+| Candidate | Result on owner's TAS-AN00 |
+|---|---|
+| Built-in ordinary APK Root API | Not available on locked production Android |
+| Huawei official unlocked bootloader | Unlock-code service ended; handset reports `locked`, `green` |
+| Reference Mali 11.16 buffer operations | **Proven** by six-case on-device test |
+| Protected service code execution / kernel perf access | **Unproven**; app perf calls EACCES |
+| CVE-2026-43499 kernel UAF patch state on exact TAS image | **Not independently determined from disassembly**; 2021 build date alone is insufficient |
+| Complete phone-only temporary Root | **NOT ACHIEVED**; no published exact-firmware APK verified |
+
+**Next high-value non-invasive analysis (no owner interaction):** perform a read-only, source-to-exact-kernel firmware review to classify `remove_waiter` fix status without creating or executing a kernel exploit. Record uncertainty faithfully. Do **not** keep asking user to rerun GPU canaries or app init surveys; their evidence is complete. A weaponized system-executable tamper, SELinux bypass, or credential UAF payload is outside this audit.
+
 ## Progress ledger and source of truth
 
 - On-device ABI / GPU canary: [validation/TAS_DEVICE_MALI_V2_ELF_20261112.md](validation/TAS_DEVICE_MALI_V2_ELF_20261112.md)
