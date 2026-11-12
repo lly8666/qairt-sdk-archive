@@ -2,6 +2,22 @@
 Updated: 2026-11-12 (UTC) | Status: **TAS V2 dumpstate.rc confirms 4 init service modes across system/vendor; Mali 11.16 owned-page compatibility PASS; no elevated process observed; app perf EACCES; Root NOT obtained.**
 Branch: `emui11-firmware-offline-audit-20261112` | Draft PR: https://github.com/lly8666/qairt-sdk-archive/pull/124
 
+## LATEST: MRX 235's TWO-CVE prerequisite and TAS 185 partial system image (2026-11-12)
+
+Owner requests continued **MRX-W09 Kirin990 Linux4.14.116 EMUI11.0.0.235 successful Root** comparison against **TAS-AN00 EMUI11.0.0.185**, using the already completed Windows ADB shell tests rather than rerunning them.
+
+**Significant deeper original-log discovery:** The MRX result is NOT only `CVE-2026-43499 / GhostLock`. Its **prerequisite** used an independently documented **Mali GPU `CVE-2021-44828` page-cache / read-only-memory weakness**, involving `/system/lib64/libc.so` and a privileged system process; then the later stage unlocked perf sampling / GhostLock. Source: pinned [MRX FACTS lines 997–1009 and 1903–1906](https://github.com/BellezaEmporium/ghostlock-bkl-l09/blob/381476444fbbbcf0c5e8e3c2e2166647e9134ab5/docs/FACTS.md#L997-L1009). Official CVE affects Bifrost **r0p0–r34p0**. TAS's original firmware source references **r18p0**, inside that nominal range — **BUT exact patch/backport state and protected-memory effects are UNPROVEN**. Existing six-case real-phone Mali API/APP-OWNED page cache success DOES NOT prove CVE-2021-44828 on system files.
+
+**Another concrete source/identity difference:** MRX's public record names `/system/lib64/libc.so`; TAS's actually obtained Bionic ELF lives in **`/apex/com.android.runtime/lib64/bionic/libc.so`**, with SHA256 `ecdaf9a20bafd6659649d755023c34137a2788d6fdedb543c10dd20ad2b77ecd` confirmed by original user ELF snapshot and new ADB shell. Do NOT copy MRX binary assumptions to that distinct TAS APEX ELF.
+
+**New investigation of why exact `dumpstate` wasn't recoverable:** Original `SUPER.img` 1,435,996,536B is Android sparse and explicitly has a **leading DONTCARE span of 5,093,982,208B**. The previously extracted three EROFS vendor-like regions thus do not cover a complete `/system` image. The owner's `UPDATE.APP.zip` contains 49 images but lacks a full `SYSTEM.img`. Therefore the missing `/system/bin/dumpstate` ELF is **a missing source coverage issue**, not evidence of absent device binary. Actual app and ADB-shell `dumpstate` EACCES remain genuine.
+
+**Work delivered:** [Detailed two-CVE + missing-system-image report](validation/TAS_MRX235_TO_TAS185_TWO_CVE_GAP_AUDIT_20261112.md); [SHA256-pinned offline source-scope gate](tools/tas_mrx235_to_tas185_static_gate.py) which independently read the owner's `system-elfs.zip` and the previously downloaded EROFS report, verified actual ELF bytes and sparse layout, refused unpinned input, and emitted fail-closed JSON. This was actually run locally against real old inputs, not merely CI mocks. [Evidence CI run 43237785490](https://github.com/lly8666/qairt-sdk-archive/actions/runs/43237785490) **SUCCESS** for syntax, selftests and wrong-hash rejection.
+
+**Current highest-value unresolved issue:** The target-specific GPU CVE-2021-44828 patch state and **the actual protected shared-library process mapping**. This is logically earlier than GhostLock's address-leak step. Neither a static version-range match nor app-owned canary proves this prerequisite. Actual protected-system page modification or high-privilege process hijack was **not attempted**. The project has NOT demonstrated a running pre-Root chain or delivered a Root APK. No additional phone / ADB repetition requested.
+
+
+
 ## LATEST REAL DEVICE EVIDENCE: owner Windows ADB shell two ZIPs (2026-11-12 local 22:07)
 
 **The owner HAS NOW RUN both Windows scripts and supplied the actual archives. Do not request reruns.** Full source-linked, sanitized measurements: [validation/TAS_WINDOWS_ADB_SHELL_REAL_DEVICE_RESULTS_20261112.md](validation/TAS_WINDOWS_ADB_SHELL_REAL_DEVICE_RESULTS_20261112.md).
