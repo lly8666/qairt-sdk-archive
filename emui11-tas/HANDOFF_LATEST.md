@@ -2,6 +2,16 @@
 Updated: 2026-11-12 (UTC) | Status: **TAS V2 dumpstate.rc confirms 4 init service modes across system/vendor; Mali 11.16 owned-page compatibility PASS; no elevated process observed; app perf EACCES; Root NOT obtained.**
 Branch: `emui11-firmware-offline-audit-20261112` | Draft PR: https://github.com/lly8666/qairt-sdk-archive/pull/124
 
+## Latest owner priority (2026-11-12): reproduce published TEMP ROOT FIRST
+
+The owner explicitly says: **first reproduce the published GhostLock temporary-root chain on TAS-AN00 using only an APK**, and *only afterwards* consider removing privacy-invasive preinstalled apps. Stop suggesting privacy-package enumeration as the immediate next task, and do not ask for PC/ADB.
+
+New source-grounded audit: [validation/TAS_PUBLIC_REFERENCE_REPRODUCTION_MATRIX_20261112.md](validation/TAS_PUBLIC_REFERENCE_REPRODUCTION_MATRIX_20261112.md). Public mirror BKL targets Kirin970/EMUI10; its MRX research notes target Kirin990/EMUI11.0.0.235; actual TAS is Kirin990/EMUI11.0.0.185. Do not mix offsets, runtime privileges, or device-specific chain claims.
+
+**Root remains not achieved.** Current real-device proof covers Mali API 11.16, buffer import/soft job, and *app-owned* cache behavior. Exact TAS ELF and init service modes are known. **Not demonstrated:** app-to-privileged execution, kernel address leak (app perf EACCES), reliable kernel UAF operation, kernel credentials change, UID0. No new temporary-root APK was produced in the current reference comparison round.
+
+Continue to report measured results with a clear separation of source-code static compatibility and actual privileged execution. Don't turn a diagnostic app or successful ABI result into a false Root claim.
+
 ## Owner clarification — authorized reproduction and privacy cleanup (2026-11-12)
 
 The owner clarifies the goal is **reproduce a published GhostLock solution on their own spare Huawei TAS-AN00** and, if legitimate temporary root can be established, clean up operator/preinstalled apps suspected of collecting personal data. This is an owner-authorized privacy-maintenance use case; **do not characterize the owner's intent or the entire project as malicious or as an "attack APK".**
