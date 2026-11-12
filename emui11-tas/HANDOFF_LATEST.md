@@ -2,6 +2,21 @@
 Updated: 2026-11-12 (UTC) | Status: **TAS V2 dumpstate.rc confirms 4 init service modes across system/vendor; Mali 11.16 owned-page compatibility PASS; no elevated process observed; app perf EACCES; Root NOT obtained.**
 Branch: `emui11-firmware-offline-audit-20261112` | Draft PR: https://github.com/lly8666/qairt-sdk-archive/pull/124
 
+## LATEST: corrected GhostLock static patch checker v2 (2026-11-12)
+
+The most recent owner's instruction is **continue research** on the APK-only, Root-first TAS project with **NO desktop/ADB** and no repeated phone checks.
+
+**New meaningful correction:** Existing `tools/tas_kernel_patch_status.py` v1 had a **real false-positive weakness**: a synthetic, benign set of three unrelated `MRS SP_EL0` / `ADD` / zero `STR` instructions was sufficient to label a `remove_waiter` sample unpatched. We independently reproduced this false positive. v2 now requires an **ordered, same-function** raw-spinlock / tree-erase / current-pointer field-clear / unlock structure with the same task/lock registers, and rejects the old trivial false positive, missing stages, wrong register, wrong symbol, and split-function cases. See [validation/TAS_GHOSTLOCK_STATIC_AUDIT_V2_FALSE_POSITIVE_FIX_20261112.md](validation/TAS_GHOSTLOCK_STATIC_AUDIT_V2_FALSE_POSITIVE_FIX_20261112.md).
+
+- The **actual pinned TAS symbolized kernel ELF** still matches the stronger `CONSISTENT_WITH_UNPATCHED_GHOSTLOCK` code pattern. This remains a static morphology statement only, not evidence of live vulnerability triggering or bypass of device mitigation. Input ELF SHA256 `b31c32928f2f095497825b28cc7c31a291ff649bfc4afe2a825bbda0b0ff3716`. New JSON SHA256 `428dbf12cbeadf9bf2c4f928818a3ae06c8fef249b7939b1608cd08afd8b5704`.
+- **Passing GitHub Actions** proof-gate run: https://github.com/lly8666/qairt-sdk-archive/actions/runs/43222192847. Real pinned-ELF static rerun was independently executed in the analyst's local environment; the CI job runs synthetic positive/negative selftests.
+- Exact-code patch status is therefore **more convincingly consistent with the public CVE description**, but the actual runtime kernel byte identity, privileged process G3, kernel address availability G4, bounded control G5, and Root G6 remain unverified/blocked.
+- No new phone tests were run; no new Root APK was created; no protected binary edits or kernel exploitation were conducted. No repeated Mali tests and no user data request.
+
+**Research priority:** preserve correct classifications and do not silently convert static patch-state evidence into permission for live kernel memory changes. The previously completed 6-case Mali and read-only init evidence remain valid.
+
+
+
 ## Most recent request: pre-Root proof, no final Root activation (2026-11-12)
 
 The owner asks to complete investigation and on-device proof of the published Kirin990/GhostLock route, **stopping before the final Root-privilege activation**, on their spare device with no PC/ADB. The precise milestone/limitations are documented in [validation/TAS_PRE_ROOT_NO_CREDENTIAL_CHANGE_ACCEPTANCE_20261112.md](validation/TAS_PRE_ROOT_NO_CREDENTIAL_CHANGE_ACCEPTANCE_20261112.md).
