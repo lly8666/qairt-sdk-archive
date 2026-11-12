@@ -22,7 +22,7 @@ import java.nio.charset.StandardCharsets;
 /** TAS firmware reader + isolated reference Mali API compatibility research launcher. */
 public final class MainActivity extends Activity {
     private TextView report;
-    private Button inventory,gpuTest,exportButton,serviceSurvey;
+    private Button inventory,gpuTest,exportButton,serviceSurvey,stageOne;
     private volatile boolean running=false;
     private final StringBuilder live=new StringBuilder();
     private static final String LAST="tas_runtime_last.txt";
@@ -33,14 +33,14 @@ public final class MainActivity extends Activity {
         int d=(int)(10*getResources().getDisplayMetrics().density);
         layout.setPadding(d,d,d,d);
         TextView title=new TextView(this);
-        title.setText("TAS-AN00 · Mali 11.16 / 配置核对 v1.3");
+        title.setText("TAS-AN00 · 第一阶段只读验证 v1.4");
         title.setTextSize(18);title.setTypeface(Typeface.DEFAULT_BOLD);
         layout.addView(title);
         TextView subtitle=new TextView(this);
-        subtitle.setText("1. 固件读取不改系统文件。\n2. GPU 实验按参考工程调用 SET_FLAGS、MEM_ALLOC、MEM_IMPORT、JOB_SUBMIT，在应用自有测试文件验证页缓存效果；可能引发系统崩溃。\n3. 导出真实 ELF 供离线适配。\n4. 一次读取真实 dumpstate.rc、Binder bugreport 状态、SELinux、进程和启动属性；不启动服务。");
+        subtitle.setText("新增：一键核对本机 TAS/Android/EMUI 与 Mali 11.16 只读 ABI；生成不会误判漏洞或 Root 的阶段一报告。\n其他历史诊断功能保留；高风险 GPU 自有文件测试需要单独确认。\n不修改系统文件、不启动特权服务。");
         subtitle.setTextSize(12);
         layout.addView(subtitle);
-        inventory=button(layout,"1. 一键读取固件 / Mali 基本 ABI（只读）");
+        stageOne=button(layout,"0. 生成第一阶段只读可行性报告（建议）");\n        inventory=button(layout,"1. 一键读取固件 / Mali 基本 ABI（只读）");
         gpuTest=button(layout,"2. 批量 GPU 内存接口及自有文件缓存测试（高风险）");
         exportButton=button(layout,"3. 导出 toybox / bugreportz / libc 原始文件 ZIP");
         serviceSurvey=button(layout,"4. 一键提取 dumpstate.rc + 服务上下文（只读）");
@@ -57,7 +57,7 @@ public final class MainActivity extends Activity {
         scroller.addView(report);
         layout.addView(scroller,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,0,1));
         setContentView(layout);
-        inventory.setOnClickListener(v->runReadOnly());
+        stageOne.setOnClickListener(v->runStageOneReadOnly());\n        inventory.setOnClickListener(v->runReadOnly());
         gpuTest.setOnClickListener(v->new AlertDialog.Builder(this)
             .setTitle("确认运行 Mali 11.16 原生实验？")
             .setMessage("将测试 GPU 内存分配、用户缓冲区导入、任务提交，并尝试修改应用自己创建的临时文件页缓存。不修改系统分区，但 GPU 漏洞行为可能导致手机崩溃或重启。")
@@ -78,8 +78,31 @@ public final class MainActivity extends Activity {
         Button b=new Button(this);b.setText(label);parent.addView(b);return b;
     }
     private void busy(boolean state){
-        running=state;inventory.setEnabled(!state);gpuTest.setEnabled(!state);
+        running=state;stageOne.setEnabled(!state);inventory.setEnabled(!state);gpuTest.setEnabled(!state);
         exportButton.setEnabled(!state);serviceSurvey.setEnabled(!state);
+    }
+    private void runStageOneReadOnly(){
+        if(running)return;
+        busy(true);
+        report.setText("正在只读核对设备、Mali ABI 与当前进程权限……\\n");
+        new Thread(()->{
+            String result;
+            try {
+                String raw=ProbeCollector.run(getApplicationContext());
+                result=StageOneReadiness.evaluate(raw);
+            }catch(Throwable error){
+                result="TAS_STAGE1_READONLY_ERROR="+error.getClass().getSimpleName()
+                    +"\\nverdict=INCONCLUSIVE_OR_TARGET_MISMATCH\\n"
+                    +"protected_page_cache_modification=NOT_TESTED\\n"
+                    +"root_status=NOT_VERIFIED\\n";
+            }
+            try(FileOutputStream out=openFileOutput("TAS_STAGE1_READONLY_last.txt",MODE_PRIVATE)){
+                out.write(result.getBytes(StandardCharsets.UTF_8));
+                out.getFD().sync();
+            }catch(Exception ignored){}
+            final String finalReport=result;
+            runOnUiThread(()->{report.setText(finalReport);busy(false);});
+        },"TAS-Stage1-ReadOnly").start();
     }
     private void runReadOnly(){
         if(running)return;
