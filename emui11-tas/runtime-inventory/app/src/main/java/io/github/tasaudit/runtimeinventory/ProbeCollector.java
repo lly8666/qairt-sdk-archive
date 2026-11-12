@@ -65,7 +65,7 @@ public final class ProbeCollector {
         b.append(k).append('=').append(v==null?"":v.replace("\n"," ").replace("\r"," ")).append('\n');
     }
     private static String cmd(String... args) {
-        Process p=null;
+        java.lang.Process p=null;
         try{
             p=new ProcessBuilder(args).redirectErrorStream(true).start();
             boolean done=p.waitFor(1800,TimeUnit.MILLISECONDS);
