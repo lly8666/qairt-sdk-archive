@@ -16,6 +16,12 @@ LIBC_SHA256 = "ecdaf9a20bafd6659649d755023c34137a2788d6fdedb543c10dd20ad2b77ecd"
 BUGREPORTZ_SHA256 = "b85051d0eb7717ed2509c76440f48ec16608b83af3e79efb29d7662f40aee47d"
 SUPER_INPUT_BYTES = 1435996536
 MISSING_LEADING_BYTES = 5093982208
+KERNEL_IMAGE_SHA256 = "d4b6f00aff4a4e05a3d5d794552165b0c950913aa841b356cae9bc69ae8ea2e5"
+KERNEL_GPU_SIGS = (
+    b"K:r18p0-01bet0(GPL)",
+    b"r18p0-01bet0 (UK version ((__u16)11).((__u16)16))",
+    b"bifrost-r18p0-01rel0/mali_kbase_mem.c",
+)
 
 def digest_file(path):
     h = hashlib.sha256()
@@ -30,7 +36,7 @@ def require_pinned(path, expected, label):
         raise ValueError(label + ": input SHA256 mismatch, got " + actual)
     return actual
 
-def analyze(system_zip, erofs_report):
+def analyze(system_zip, erofs_report, kernel_image=None):
     sha1 = require_pinned(system_zip, SYSTEM_ZIP_SHA256, "system files")
     sha2 = require_pinned(erofs_report, EROFS_REPORT_SHA256, "EROFS report")
     with zipfile.ZipFile(system_zip) as z:
@@ -55,7 +61,14 @@ def analyze(system_zip, erofs_report):
         if layout["input_bytes"] != SUPER_INPUT_BYTES or first_hole != MISSING_LEADING_BYTES:
             raise ValueError("sparse SUPER input does not match previously pinned image")
         paths = [x["path"] for x in inventory["matched_files"]]
-    return {
+    if kernel_image is not None:
+        kernel_sha = require_pinned(kernel_image, KERNEL_IMAGE_SHA256, "actual TAS BOOT Image")
+        binary = kernel_image.read_bytes()
+        if not all(binary.count(signature) == 1 for signature in KERNEL_GPU_SIGS):
+            raise ValueError("Mali kernel provenance strings missing/ambiguous")
+    else:
+        kernel_sha = None
+    result = {
         "schema": "TAS_MRX235_TAS185_READONLY_GAP_AUDIT_V1",
         "reference": {
             "model": "MRX-W09", "soc": "Kirin990", "kernel": "4.14.116",
@@ -107,6 +120,11 @@ def analyze(system_zip, erofs_report):
         "no_live_device_test": True,
         "no_exploit_operations": True,
     }
+    if kernel_sha:
+        result["firmware_sources"]["kernel_image_sha256"] = kernel_sha
+        result["target"]["mali_driver_family"] = "BIFROST_R18P0_DIRECT_KERNEL_STRINGS_CONFIRMED"
+        result["target"]["mali_build_label"] = "r18p0-01bet0 / UK 11.16"
+    return result
 
 def selftest():
     assert len(LIBC_SHA256) == 64
@@ -119,6 +137,7 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--system-zip", type=Path)
     p.add_argument("--erofs-report-zip", type=Path)
+    p.add_argument("--kernel-image", type=Path, help="optional pinned BOOT extracted Linux Image")
     p.add_argument("--out", type=Path)
     p.add_argument("--selftest", action="store_true")
     args = p.parse_args()
@@ -126,7 +145,7 @@ def main():
         return selftest()
     if not args.system_zip or not args.erofs_report_zip:
         p.error("--system-zip and --erofs-report-zip required")
-    output = json.dumps(analyze(args.system_zip, args.erofs_report_zip),
+    output = json.dumps(analyze(args.system_zip, args.erofs_report_zip, args.kernel_image),
                         indent=2, ensure_ascii=False) + "\n"
     if args.out:
         args.out.write_text(output, encoding="utf-8")
