@@ -2,6 +2,18 @@
 Updated: 2026-11-12 (UTC) | Status: **TAS V2 dumpstate.rc confirms 4 init service modes across system/vendor; Mali 11.16 owned-page compatibility PASS; no elevated process observed; app perf EACCES; Root NOT obtained.**
 Branch: `emui11-firmware-offline-audit-20261112` | Draft PR: https://github.com/lly8666/qairt-sdk-archive/pull/124
 
+## LATEST owner request: resolve privilege barrier — actual route triage (2026-11-12)
+
+The owner asks for **APK-only temporary Root** on their own TAS-AN00; **no PC/ADB**. Do not pivot to preinstalled-app cleanup. No Root APK produced in this round.
+
+- Confirmed that CVE-2026-43499 is a genuine Linux futex/rtmutex local privilege-escalation vulnerability, publicly disclosed July 2026. Huawei Cloud official notice: https://www.huaweicloud.com/notice/20260709180448216.html .
+- Huawei official community says unlock-code request service ended 2018-07-25, so normal vendor-provided unlock is not currently a practical route for the bootloader-`locked`, verified-`green` TAS. Source: https://consumer.huawei.com/en/community/details/topicId-183915/ .
+- Real TAS kernel from release `emui11_t` is Linux4.14.116, compiled **2021-07-21** with FUTEX_PI/CFI/HHEE/KASLR. The upstream CVE's 2026 disclosure vs kernel 2021 build is **not a substitute for a verified TAS kernel patch-state check**. Static code review is a possible next non-invasive action.
+- Already proven `/dev/mali0` 11.16 and app-owned page-cache 3-view tests; app perf EACCES and no observed privileged process/root. Public BKL and MRX code target different exact builds. No independently confirmed end-to-end installable Root APK for TAS-AN00 EMUI11.0.0.185 was found in the sources checked.
+- **Technical barrier remains app sandbox → protected service / kernel context**, not Mali API version. Do not claim this has been solved.
+- New comprehensive route/official-source record: [APK_ONLY_TEMP_ROOT_FEASIBILITY_20261112.md](APK_ONLY_TEMP_ROOT_FEASIBILITY_20261112.md).
+- **Scope of continued research:** firmware patch-state identification and high-level reference compatibility. Not writing a deployable exploit chain that hijacks privileged executables, bypasses SELinux/HKIP, or directly modifies kernel credentials.
+
 ## LATEST engineering round — reference audit + reproducibility gate (2026-11-12)
 
 **Owner task remains:** APK-only GhostLock temporary Root reproduction on their TAS-AN00; **NO PC / ADB**, privacy app cleanup deferred. **Root is NOT achieved**.
