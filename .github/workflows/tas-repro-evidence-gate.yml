@@ -5,6 +5,7 @@ on:
     paths:
       - 'emui11-tas/tools/tas_repro_evidence_gate.py'
       - 'emui11-tas/tools/tas_kernel_patch_status.py'
+      - 'emui11-tas/tools/tas_public_ghostlock_apk_gate.py'
       - '.github/workflows/tas-repro-evidence-gate.yml'
   workflow_dispatch:
 
@@ -23,6 +24,9 @@ jobs:
           mkdir -p out
           python3 -m py_compile emui11-tas/tools/tas_repro_evidence_gate.py
           python3 -m py_compile emui11-tas/tools/tas_kernel_patch_status.py
+          python3 -m py_compile emui11-tas/tools/tas_public_ghostlock_apk_gate.py
+          python3 emui11-tas/tools/tas_public_ghostlock_apk_gate.py --selftest | tee out/PUBLIC_APK_GATE_SELFTEST.txt
+          python3 emui11-tas/tools/tas_public_ghostlock_apk_gate.py --out out/PUBLIC_APK_COMPAT.json
           python3 emui11-tas/tools/tas_kernel_patch_status.py --selftest | tee out/PINNED_KERNEL_PATCH_AUDIT_SELFTEST.txt
           python3 emui11-tas/tools/tas_repro_evidence_gate.py --selftest | tee out/SELFTEST.txt
           python3 emui11-tas/tools/tas_repro_evidence_gate.py --output out/NO_EXTRA_LOGS.json
@@ -30,6 +34,15 @@ jobs:
           import json
           p='out/NO_EXTRA_LOGS.json'
           data=json.load(open(p,encoding='utf8'))
+          report=json.load(open('out/PUBLIC_APK_COMPAT.json',encoding='utf8'))
+          assert report['target']['android_sdk']==29
+          assert len(report['checks'])==4
+          assert report['checks'][0]['installer']=='BLOCKED_MIN_SDK'
+          assert report['checks'][1]['installer']=='BLOCKED_MIN_SDK'
+          assert report['checks'][2]['installer']=='BLOCKED_ANDROID_REQUIREMENT'
+          assert report['checks'][3]['capability']=='NEEDS_ALREADY_RUNNING_PRIVILEGED_SERVICE'
+          assert all(not p['root_verified_on_TAS'] for p in report['checks'])
+          print('PUBLIC_GHOSTLOCK_APK_GATE_PASS')
           assert data['root_status']=='NOT_VERIFIED'
           assert data['root_claim_allowed'] is False
           assert data['evidence']['mali_api']=='NOT_PROVIDED'
