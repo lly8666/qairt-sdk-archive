@@ -1,6 +1,21 @@
 # TAS-AN00 GhostLock Research — Current State / Next-Agent Handoff
-Updated: 2026-11-12 (UTC) | Status: **Device verified; Mali 11.16 ABI confirmed on-device; v1.1 memory import/own-file canary compiled; physical v1.1 result pending; root not achieved.**
+Updated: 2026-11-12 (UTC) | Status: **Mali 11.16 six-case full runtime PASS; exact actual system ELF Build IDs established; app-context perf EACCES persists; root not achieved.**
 Branch: `emui11-firmware-offline-audit-20261112` | Draft PR: https://github.com/lly8666/qairt-sdk-archive/pull/124
+
+## Latest verified evidence: Mali v1.1 SIX-CASE PASS + system ELF ZIP (2026-11-12)
+
+**Authoritative new report:** [validation/TAS_DEVICE_MALI_V2_ELF_20261112.md](validation/TAS_DEVICE_MALI_V2_ELF_20261112.md).
+
+- Real TAS handset returned `native_exit_code=0`, `CASE_EXIT=00:0` ... `CASE_EXIT=05:0` for six Bifrost 11.16 reference API cases. `SET_FLAGS`, tracking map, `MEM_ALLOC` + one-page CPU roundtrip, `MEM_IMPORT` + CPU map, `JOB_SUBMIT` all **PASS**.
+- App-owned private file cache canary **PASS in three independent observations**: `canary_same_fd_modified=1`, `canary_second_fd_modified=1`, `canary_private_map_modified=1`; `canary_cleanup=PASS`. This is not evidence of privileged executable tampering, kernel addresses, or Root.
+- User provided original system-ELF archive: `system-elfs.zip`, 769,979 bytes, SHA256 `1e92d7a89d33063b4040beb25b774472c81c821ef12aaa59990eb9ff6ded19e0`. All 6 included files validated against earlier runtime inventory.
+- 4 pinned Build IDs:
+  - `bugreportz`: `d64becc0edbe4144757a73be2b322d6a` (11,632-byte client-like binary; contains `dumpstatez` string)
+  - `toybox`: `230b56fefa5048df13b5b128499c7087`
+  - `app_process64`: `3dc4e1c3832386d747cee6ace24f22b9`
+  - APEX `libc.so`: `0f53a45090c371e49b6824269190f1fa`.
+- `/system/bin/dumpstate` denied to ordinary app; **do not conclude it is absent**. Vendor-only CIL cannot independently prove effective merged SELinux policy.
+- **NEXT:** Avoid more GPU ABI/canary re-testing. Ground any code compatibility work in the actual ELF Build IDs. Remaining failure is `perf_event_open EACCES` from the app; no elevated context/root has yet been observed. If necessary, acquire only `dumpstate` read-only metadata from an authorized context. Do not commit the user's proprietary system binaries to the public repo.
 
 ## Target (actual user-provided on-device logs)
 Huawei Mate 30 `TAS-AN00` / `HWTAS` / board `TAS` / `kirin990`
