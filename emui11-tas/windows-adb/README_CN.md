@@ -11,8 +11,8 @@
 
 ## Windows 使用方法
 
-1. 解压整个包。把 `adb.exe` 的 `platform-tools` 文件夹放在解压目录内，或把 `platform-tools` 加入 Windows PATH。必须保留 `TAS_ADB_Shell_Inventory.ps1` 和 `双击运行_TAS_ADB_Shell_采集.cmd` 在同一个目录。
-2. USB 连接 TAS-AN00，打开调试授权，双击 **`双击运行_TAS_ADB_Shell_采集.cmd`**。
+1. 解压整个包。把 `adb.exe` 的 `platform-tools` 文件夹放在解压目录内，或把 `platform-tools` 加入 Windows PATH。必须保留 `TAS_ADB_Shell_Inventory.ps1` 和 `Run_TAS_ADB_Shell_Inventory.cmd` 在同一个目录。
+2. USB 连接 TAS-AN00，打开调试授权，双击 **`Run_TAS_ADB_Shell_Inventory.cmd`**。
 3. 脚本检查设备是否为 `TAS-AN00`、Android SDK 29；检查不通过将中止，不对其他机型批量执行。
 4. 在本目录的 `TAS_ADB_Results\日期时间\` 中找到每一项命令的原始输出、`SUMMARY.txt`、`RESULTS.json`，同级还有自动压缩的 `TAS_ADB_Shell_Context_日期时间.zip`。
 5. **只需要向我提供 ZIP（先检查里面是否有不愿分享的信息）**，我会据此对比此前 APK 阶段的结果。
