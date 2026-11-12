@@ -2,6 +2,26 @@
 Updated: 2026-11-12 (UTC) | Status: **TAS V2 dumpstate.rc confirms 4 init service modes across system/vendor; Mali 11.16 owned-page compatibility PASS; no elevated process observed; app perf EACCES; Root NOT obtained.**
 Branch: `emui11-firmware-offline-audit-20261112` | Draft PR: https://github.com/lly8666/qairt-sdk-archive/pull/124
 
+## Owner clarification — authorized reproduction and privacy cleanup (2026-11-12)
+
+The owner clarifies the goal is **reproduce a published GhostLock solution on their own spare Huawei TAS-AN00** and, if legitimate temporary root can be established, clean up operator/preinstalled apps suspected of collecting personal data. This is an owner-authorized privacy-maintenance use case; **do not characterize the owner's intent or the entire project as malicious or as an "attack APK".**
+
+Still distinguish observation from claimed capabilities:
+- Device-side Mali API 11.16 + app-owned file page-cache checks PASS.
+- A production third-party APK remains in `untrusted_app_27` with no effective capabilities; existing direct perf attempts EACCES.
+- Four init service definitions invoking `/system/bin/dumpstate` were read; no privileged process execution has been measured.
+- **No actual temporary-root APK has been produced or verified.** Never present a diagnostic binary as a root build.
+- User constraint remains **APK-only / no PC or ADB**.
+
+Practical, reversible privacy-maintenance track that does not require root:
+- From EMUI Settings > Apps > Apps (optionally show system processes), identify *exact package IDs* before touching anything; disable/uninstall only where the OS offers it; disable unnecessary personal-data permissions.
+- Check Mobile data / Network access and App launch / Background activity restrictions, which may be labeled differently by EMUI build.
+- Record before/after enabled status and granted dangerous permissions, and retain an undo list. Carrier or Huawei core packages may be essential to telephony/IMS/emergency calls; do not blindly delete them.
+- An owner-side audit APK can enumerate visible package names, application system/updated-system flags, installed dangerous permissions and open built-in App Details screens. It cannot itself silently revoke permissions, modify privileged packages or obtain root.
+- Never declare a package "stealing data" solely because it is privileged or holds a permission; actual telemetry requires distinct evidence.
+
+Work within verifiable, non-destructive device evidence and distinguish sensitive system-process tampering from ordinary owner-approved package disablement. Next agent should answer the owner's **privacy cleanup goal** concretely, without inventing a root result.
+
 ## APK-ONLY USER REQUIREMENT — no PC/ADB (2026-11-12)
 
 The user explicitly requests **install-and-run APK only** for temporary root, and does **not** want to connect a computer or send ADB output. Do not request ADB again and do not repeat any already-completed GPU/ELF/init surveys. See [APK_ONLY_TEMP_ROOT_FEASIBILITY_20261112.md](APK_ONLY_TEMP_ROOT_FEASIBILITY_20261112.md) for full grounded feasibility and state.
