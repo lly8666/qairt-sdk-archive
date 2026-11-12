@@ -200,7 +200,8 @@ static int run_test(int id,const char*private_dir){
     memset(original,0x41,sizeof(original));memcpy(desired,original,sizeof(desired));
     memcpy(desired,"TAS_MALI_11_16_PAGE_CACHE_TEST",29);
     int wrote=write(wfd,original,4096)==4096;
-    if(wrote)fsync(wfd);close(wfd);
+    if(wrote)fsync(wfd);
+    close(wfd);
     if(!wrote){stamp("canary_init=FAIL\n");unlink(filename);close_device(&g);return 10;}
     stamp("canary_create=PASS\ncanary_path_scope=app_private_only\n");
     int f=open(filename,O_RDONLY|O_CLOEXEC|O_NOFOLLOW);
