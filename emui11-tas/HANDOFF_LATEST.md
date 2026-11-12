@@ -2,6 +2,23 @@
 Updated: 2026-11-12 (UTC) | Status: **TAS V2 dumpstate.rc confirms 4 init service modes across system/vendor; Mali 11.16 owned-page compatibility PASS; no elevated process observed; app perf EACCES; Root NOT obtained.**
 Branch: `emui11-firmware-offline-audit-20261112` | Draft PR: https://github.com/lly8666/qairt-sdk-archive/pull/124
 
+## LATEST OWNER METHOD CHANGE: Windows authorized ADB shell batch (2026-11-12)
+
+**The owner explicitly changed the previous method constraints**: Windows PC environment, batch execution in an authorized `adb shell` context. **This supersedes earlier "phone-only / APK-only / no PC / no ADB" instructions across historical reports and code.** Root remains the research priority; the owner previously asked to validate pre-Root evidence without finally activating Root. Don't request the old Android app ABI/service surveys again.
+
+**Delivered Windows-native, no-Python, no-WSL, no-Android-Studio batch survey:**
+- [PowerShell 5.1 source](windows-adb/TAS_ADB_Shell_Inventory.ps1) — 33 fixed read-only commands; target identity gates `TAS-AN00`, API29; checks authorized `adb devices`, supports `-Serial`; saves per-command exit status and outputs, JSON/summary, ZIP and SHA256 on Windows. Hard read-only command allowlist; no root requests, device file writes, dumpstate service starts, or kernel exploit.
+- [ASCII Windows double-click launcher](windows-adb/Run_TAS_ADB_Shell_Inventory.cmd). **Use the ASCII filename**, not the old Chinese launcher prototype, to avoid Windows PowerShell 5.1 runner encoding issues.
+- [Chinese README / Windows setup](windows-adb/README_CN.md); requires official Platform-Tools `adb.exe` in PATH or `platform-tools\adb.exe` next to script.
+- [Windows CI v1 PASS](https://github.com/lly8666/qairt-sdk-archive/actions/runs/43230293883): PowerShell 5.1 parse, read-only allowlist selftests and verified ZIP artifact `TAS-AN00-Windows-ADB-Shell-ReadOnly-v1`; GitHub Action workflow [.github/workflows/tas-windows-adb-shell-bundle.yml](../.github/workflows/tas-windows-adb-shell-bundle.yml). Verified distributed ZIP SHA256 `33bda86c99a0279e29df4bdf1ff1f196525044f4dbcf9251a26ea633d065dc73` with all embedded SHA256 entries checked.
+- Updated [tools/tas_repro_evidence_gate.py](tools/tas_repro_evidence_gate.py) constraints `phone_only=false`, `request_adb=true`, `preferred_host=WINDOWS_ADB_SHELL_READ_ONLY`. Updated [tools/tas_context_decision.py](tools/tas_context_decision.py) text to recommend authorized Windows ADB comparison, rather than erroneously asserting no PC.
+
+**What this will and won't show:** ADB shell usually runs as UID 2000 `u:r:shell:s0`, different from prior app `untrusted_app_27`; shell file metadata, `perf_event_paranoid`, service visibility may differ. Reading a sysctl or making metadata queries does NOT prove `perf_event_open` succeeds, does not demonstrate a privileged dumpstate executable actually ran, and does not mean Root. **No phone was actually connected or measured in this development round**; the owner has the Windows bundle to run manually. The original 13-case read-only perf probe and host collector remain in the repo separately if the owner's next result warrants it.
+
+**Privacy handling:** survey does not collect private app data and does not upload automatically; owner must review log ZIP before sharing. No new Android APK, no exploit, no UID0 was produced.
+
+
+
 ## LATEST DEEP RE-AUDIT: earlier MRX→TAS privilege blockers overstated (2026-11-12)
 
 Owner's latest message challenges the earlier inference that MRX EMUI11.0.0.235 success does not transfer to TAS EMUI11.0.0.185, and requests a **deeper investigation of our missed work**. We independently identified **two overly strong negatives** (not a Root success); see the [primary-source corrective audit](validation/TAS_MRX_PRESTAGE_ASSUMPTION_REAUDIT_20261112.md).
