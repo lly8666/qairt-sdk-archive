@@ -2,6 +2,23 @@
 Updated: 2026-11-12 (UTC) | Status: **TAS V2 dumpstate.rc confirms 4 init service modes across system/vendor; Mali 11.16 owned-page compatibility PASS; no elevated process observed; app perf EACCES; Root NOT obtained.**
 Branch: `emui11-firmware-offline-audit-20261112` | Draft PR: https://github.com/lly8666/qairt-sdk-archive/pull/124
 
+## LATEST engineering round — reference audit + reproducibility gate (2026-11-12)
+
+**Owner task remains:** APK-only GhostLock temporary Root reproduction on their TAS-AN00; **NO PC / ADB**, privacy app cleanup deferred. **Root is NOT achieved**.
+
+**Work actually completed:**
+1. Rechecked published `BellezaEmporium/ghostlock-bkl-l09` README and its `docs/FACTS.md`. BKL source is Kirin970/EMUI10, while the MRX research notes are Kirin990/EMUI11.0.0.235; owner TAS is Kirin990/EMUI11.0.0.185. The BKL README's banner remains ambiguous (`working and verified / root to be achieved`). The original `0ch4/ghostlock-mrx-w09` GitHub repo returned 404. **No identical, independently confirmed full TAS Root reference was identified.**
+2. Corrected the **out-of-date** [TAS_AN00_MRX_PRESTAGE_COMPATIBILITY.md](TAS_AN00_MRX_PRESTAGE_COMPATIBILITY.md), which still described Mali ABI/MEM_IMPORT as unverified and system ELF as unavailable despite subsequent *real handset* results. It now lists exact verified vs unverified facts.
+3. Added a non-invasive reproducibility gate: [tools/tas_repro_evidence_gate.py](tools/tas_repro_evidence_gate.py), Python 3.8+ standard library, no ADB/device/network, input options `--gpu-log`, `--service-log`, optional `--perf-log`. Parses complete previous case markers and exact statuses (6-case pass, own-file 3-view canary) and exact four init-service declarations. Missing or incomplete input is explicitly `NOT_PROVIDED`/`INCOMPLETE_LOG` rather than automatically PASS.
+4. Added GitHub Actions CI [tas-repro-evidence-gate.yml](../.github/workflows/tas-repro-evidence-gate.yml), running both positive and negative gate selftests (missing case, canary failure, incomplete log, binder list vs check discrepancy, all-four perf errno13, no-input no-false-root). **CI passed:** https://github.com/lly8666/qairt-sdk-archive/actions/runs/43212482300. The emitted evidence remains `root_status=NOT_VERIFIED`, `root_claim_allowed=false` until actual independent privileged-execution proof exists.
+5. **No new Root APK was created**, no privileged service or kernel code modified, and no new handset tests were requested this round. Existing signed diagnostic APKs remain separate from any claimed exploit.
+
+**Remaining gap:** GPU app-owned page-cache test is not permission to write/prove execution of protected binaries. High-privilege transition has never been observed, and app `perf_event_open` remains EACCES; no proven TAS kernel-address leak, privilege transfer, or uid0. Do not confuse positive regression tests with exploitation success.
+
+**Next-agent operating discipline:** Root-first and phone-only, no repetitive Mali/ELF/init surveys or privacy-app pivots. Use current original artifacts and real device logs. Maintain a tight evidence ledger and avoid inventing offsets or a Root success claim. No support for developing a deployable privilege-escalation payload.
+
+
+
 ## Latest owner priority (2026-11-12): reproduce published TEMP ROOT FIRST
 
 The owner explicitly says: **first reproduce the published GhostLock temporary-root chain on TAS-AN00 using only an APK**, and *only afterwards* consider removing privacy-invasive preinstalled apps. Stop suggesting privacy-package enumeration as the immediate next task, and do not ask for PC/ADB.
