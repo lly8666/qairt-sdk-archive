@@ -1,0 +1,78 @@
+name: Build TAS-AN00 GhostLock native ARM64 experimental core
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/emui11-tas-native-port.yml'
+      - 'emui11-tas/native-port/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch exact MIT-licensed 4.14 reference
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth=1 --branch main https://github.com/BellezaEmporium/ghostlock-bkl-l09.git "$RUNNER_TEMP/ghostlock-ref"
+          test "$(git -C "$RUNNER_TEMP/ghostlock-ref" rev-parse HEAD)" = '381476444fbbbcf0c5e8e3c2e2166647e9134ab5'
+          mkdir -p out
+          cp "$RUNNER_TEMP/ghostlock-ref/LICENSE" out/UPSTREAM_LICENSE.txt
+          python3 emui11-tas/native-port/build_tas_source.py \
+            "$RUNNER_TEMP/ghostlock-ref/exploit/ghostlock_mrx_e.c" out/ghostlock_tas_port.c
+          sha256sum out/ghostlock_tas_port.c | tee out/PORT_SOURCE_SHA256.txt
+      - name: Obtain verified Android NDK r27c
+        shell: bash
+        run: |
+          set -euo pipefail
+          dir="$RUNNER_TEMP/android-ndk-r27c"
+          if test ! -x "$dir/toolchains/llvm/prebuilt/linux-x86_64/bin/clang"; then
+            curl -fLsS --retry 3 'https://dl.google.com/android/repository/android-ndk-r27c-linux.zip' \
+              -o "$RUNNER_TEMP/android-ndk-r27c-linux.zip"
+            printf '%s  %s\n' '090e8083a715fdb1a3e402d0763c388abb03fb4e' "$RUNNER_TEMP/android-ndk-r27c-linux.zip" | sha1sum -c
+            unzip -q "$RUNNER_TEMP/android-ndk-r27c-linux.zip" \
+              'android-ndk-r27c/toolchains/llvm/prebuilt/linux-x86_64/*' -d "$RUNNER_TEMP"
+          fi
+          echo "NDK=$dir" >> "$GITHUB_ENV"
+      - name: Compile experimental ARM64 binary
+        shell: bash
+        run: |
+          set +e
+          root="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          "$root/aarch64-linux-android29-clang" -std=gnu11 -O2 -g0 -pthread \
+            -fPIE -pie -fstack-protector-strong -Wno-unused-function \
+            -Wl,-z,relro,-z,now -o out/ghostlock_tas_an00_arm64 out/ghostlock_tas_port.c \
+            >out/compile-stdout.log 2>out/compile-stderr.log
+          status=$?
+          printf 'compile_status=%s\n' "$status" | tee out/COMPILE_STATUS.txt
+          if test "$status" -ne 0; then cat out/compile-stderr.log | tail -80; exit 1; fi
+          file out/ghostlock_tas_an00_arm64 > out/EXECUTABLE_FILE.txt
+          readelf -h out/ghostlock_tas_an00_arm64 > out/EXECUTABLE_ELF_HEADER.txt
+          readelf -l out/ghostlock_tas_an00_arm64 > out/EXECUTABLE_ELF_PROGRAMS.txt
+          readelf -d out/ghostlock_tas_an00_arm64 > out/EXECUTABLE_DYNAMIC.txt
+          grep -q AArch64 out/EXECUTABLE_ELF_HEADER.txt
+          grep -q 'DYN (Position-Independent Executable file)' out/EXECUTABLE_ELF_HEADER.txt
+          sha256sum out/ghostlock_tas_an00_arm64 > out/EXECUTABLE_SHA256.txt
+          printf '%s\n' \
+            'TAS-AN00 11.0.0.185 (4.14.116) experimental binary' \
+            'Reference: BellezaEmporium/ghostlock-bkl-l09@381476444fbbbcf0c5e8e3c2e2166647e9134ab5' \
+            'Android API29 / arm64-v8a' \
+            'Root ability not tested, app domain may deny perf/mount' \
+            'This code may crash or panic the kernel; use only on disposable device.' \
+            > out/BUILD_NOTES.txt
+          cat out/EXECUTABLE_FILE.txt
+          cat out/EXECUTABLE_SHA256.txt
+      - name: Upload code, ARM64 executable, and build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tas-an00-ghostlock-native-core-experimental
+          path: out/
+          retention-days: 7
+          if-no-files-found: error
