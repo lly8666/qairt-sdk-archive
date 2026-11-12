@@ -1,0 +1,103 @@
+name: Build TAS EMUI11 Android 10 diagnostic APK
+
+on:
+  pull_request:
+    paths:
+      - 'emui11-tas/android-diag/**'
+      - '.github/workflows/emui11-tas-diagnostic-apk.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Configure Gradle 8.7
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+      - name: Install Android SDK tools
+        uses: android-actions/setup-android@v3
+      - name: Install Android 35 build platform
+        shell: bash
+        run: |
+          set -euo pipefail
+          yes | sdkmanager --licenses > /dev/null || true
+          sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Run pure-Java fail-closed matching regression tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          app=emui11-tas/android-diag
+          mkdir -p /tmp/tasdiag-classes
+          javac -d /tmp/tasdiag-classes \
+            "$app/app/src/main/java/io/github/tasaudit/diag/TargetMatcher.java" \
+            "$app/tools/TargetMatcherTest.java"
+          java -cp /tmp/tasdiag-classes TargetMatcherTest | tee /tmp/tasdiag-unit-tests.txt
+          grep -q 'TEST_COUNT=10' /tmp/tasdiag-unit-tests.txt
+      - name: Check APK manifest capability constraints
+        shell: bash
+        run: |
+          set -euo pipefail
+          manifest=emui11-tas/android-diag/app/src/main/AndroidManifest.xml
+          ! grep -q '<uses-permission' "$manifest"
+          ! grep -qi 'android.permission.INTERNET' "$manifest"
+          ! grep -qi 'android.permission.WRITE_EXTERNAL_STORAGE' "$manifest"
+          grep -q 'android:allowBackup="false"' "$manifest"
+          grep -q 'android:usesCleartextTraffic="false"' "$manifest"
+      - name: Build Android 10 APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd emui11-tas/android-diag
+          gradle --no-daemon --max-workers=2 :app:assembleDebug
+      - name: Verify APK installability, signing, SDK, permissions and SHA256
+        shell: bash
+        run: |
+          set -euo pipefail
+          app=emui11-tas/android-diag
+          apk="$app/app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$apk"
+          mkdir -p /tmp/tasdiag-out
+          aapt="$ANDROID_HOME/build-tools/35.0.0/aapt"
+          apksigner="$ANDROID_HOME/build-tools/35.0.0/apksigner"
+          "$aapt" dump badging "$apk" > /tmp/tasdiag-out/apk-badging.txt
+          grep -q "package: name='io.github.tasaudit.diag'" /tmp/tasdiag-out/apk-badging.txt
+          grep -q "sdkVersion:'29'" /tmp/tasdiag-out/apk-badging.txt
+          grep -q "targetSdkVersion:'29'" /tmp/tasdiag-out/apk-badging.txt
+          ! grep -q '^uses-permission' /tmp/tasdiag-out/apk-badging.txt
+          "$apksigner" verify --verbose "$apk" > /tmp/tasdiag-out/apk-signature.txt
+          grep -q 'Verified using v2 scheme' /tmp/tasdiag-out/apk-signature.txt
+          cp "$apk" /tmp/tasdiag-out/TAS_EMUI11_Diagnostic_v1-debug.apk
+          cp /tmp/tasdiag-unit-tests.txt /tmp/tasdiag-out/host-tests.txt
+          sha256sum /tmp/tasdiag-out/TAS_EMUI11_Diagnostic_v1-debug.apk > /tmp/tasdiag-out/SHA256SUMS
+          cat > /tmp/tasdiag-out/BUILD_PROVENANCE.txt <<EOF
+          Target firmware: TAS-LGRP3-CHN 11.0.0.185
+          Target Android: 10 / API 29
+          Target Linux: 4.14.116
+          Scope: device identity audit, no kernel exploit, no root
+          Source ref: ${GITHUB_SHA}
+          Build workflow: ${GITHUB_RUN_ID}
+          Gradle 8.7 / Android Gradle Plugin 8.5.2 / Android platform 35
+          No Android permissions, no network calls, no automatic report upload
+          EOF
+          cat /tmp/tasdiag-out/apk-badging.txt | head -30
+          cat /tmp/tasdiag-out/apk-signature.txt
+          cat /tmp/tasdiag-out/SHA256SUMS
+      - name: Publish installable diagnostic APK and test evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: TAS-EMUI11-Diagnostic-Android10-v1
+          path: /tmp/tasdiag-out/
+          compression-level: 0
+          retention-days: 14
+          if-no-files-found: error
