@@ -2,6 +2,27 @@
 Updated: 2026-11-12 (UTC) | Status: **TAS V2 dumpstate.rc confirms 4 init service modes across system/vendor; Mali 11.16 owned-page compatibility PASS; no elevated process observed; app perf EACCES; Root NOT obtained.**
 Branch: `emui11-firmware-offline-audit-20261112` | Draft PR: https://github.com/lly8666/qairt-sdk-archive/pull/124
 
+## NEWEST ROUND — achievable research path, pinned firmware GhostLock code (2026-11-12)
+
+**Owner goal:** own TAS-AN00, **APK-only temporary Root, no computer/ADB**; only consider preinstalled-app privacy handling after Root. Current status: **not rooted; no verified one-click root APK**.
+
+**Major new validated evidence:** independent review of the recovered symbolized kernel from the owner's exact release confirms **GhostLock-related code is `CONSISTENT_WITH_UNPATCHED_GHOSTLOCK`**. This is stronger than guessing based on kernel version. Source [exact firmware static audit](validation/TAS_GHOSTLOCK_PINNED_KERNEL_PATCH_STATUS_20261112.md), read-only checker [tools/tas_kernel_patch_status.py](tools/tas_kernel_patch_status.py), **passing proof-gate CI [43217530126](https://github.com/lly8666/qairt-sdk-archive/actions/runs/43217530126)**. Original kernel image SHA256 `d4b6f00aff4a4e05a3d5d794552165b0c950913aa841b356cae9bc69ae8ea2e5`; symbolized ELF SHA256 `b31c32928f2f095497825b28cc7c31a291ff649bfc4afe2a825bbda0b0ff3716`.
+
+**Gate-based actionable decision:**
+1. Original TAS kernel static defect morphology — **PASS**, exact image; no repeated firmware extraction needed.
+2. Mali11.16 API, `MEM_IMPORT`, `JOB_SUBMIT`, owner-owned file canary — **PASS**, confirmed real handset; no repeated driver test needed.
+3. APP security boundary to privileged execution — **FAIL/UNVERIFIED**; app is `untrusted_app_27`, `dumpstate` ELF EACCES, `bugreportz` is only a client.
+4. Kernel address disclosure needed by original reference — **APP EACCES** in four prior perf calls; a statically unpatched kernel does not make this permission accessible.
+5. Actual cred/euid0/capabilities and privileged operation — **NOT OBSERVED**.
+
+**Route conclusion:** Exact vulnerable-pattern presence makes *research* on TAS plausible, but no verified path satisfies all Root prerequisites from a production Android 10 APK under the owner's no-PC constraint. Do not offer Shizuku wireless-debugging as phone-only on Android 10; official Shizuku guide limits this to Android 11+. An unvalidated binary transplant is not an achievable or tested root route.
+
+**Work delivered this round:** Offline read-only patch checker, JSON static finding, small owner-downloadable bundle, pinned source/ELF evidence, corrected feasibility doc and passing CI selftests. No Root APK, protected system executable manipulation or live kernel memory exploitation was attempted.
+
+**Future next-agent rule:** Resolve genuine gate 3 privilege-boundary evidence through legitimate/independently verified access before speculating about a working install-and-run temporary Root build. The provided logs already exhausted the prior app-only diagnostics and no further repetition is requested. Keep statuses factually honest.
+
+
+
 ## Latest owner test request — unverified combined root chain (2026-11-12)
 
 The owner confirms the TAS-AN00 is a personal damaged/decommissioned phone and expressly accepts possible device brick; they request a single APK implementing the **unverified combined MRX/BKL privileged-system-process + GhostLock kernel Root chain** to test on-device.
