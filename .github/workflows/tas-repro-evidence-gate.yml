@@ -57,7 +57,9 @@ jobs:
           assert data['root_status']=='NOT_VERIFIED'
           assert data['root_claim_allowed'] is False
           assert data['evidence']['mali_api']=='NOT_PROVIDED'
-          assert data['user_constraints']['request_adb'] is False
+          assert data['user_constraints']['request_adb'] is True
+          assert data['user_constraints']['phone_only'] is False
+          assert data['user_constraints']['preferred_host']=='WINDOWS_ADB_SHELL_READ_ONLY'
           print('NO_INPUTS_AND_NO_FALSE_ROOT_ASSERTIONS_PASS')
           PY
       - name: Publish proof-gate self-test record
