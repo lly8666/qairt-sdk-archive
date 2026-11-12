@@ -1,6 +1,22 @@
 # TAS-AN00 GhostLock Research — Current State / Next-Agent Handoff
-Updated: 2026-11-12 (UTC) | Status: **Mali 11.16 on-device six-case PASS; V1 service report confirms Binder bugreport + readable system dumpstate.rc; v1.3 exact config collector built/signed; Root not achieved.**
+Updated: 2026-11-12 (UTC) | Status: **TAS V2 dumpstate.rc confirms 4 init service modes across system/vendor; Mali 11.16 owned-page compatibility PASS; no elevated process observed; app perf EACCES; Root NOT obtained.**
 Branch: `emui11-firmware-offline-audit-20261112` | Draft PR: https://github.com/lly8666/qairt-sdk-archive/pull/124
+
+## LATEST CONFIRMED V2 SERVICE-CONFIG RESULT (2026-11-12)
+
+**Read-only v1.3 APK ran on actual TAS handset** in `u:r:untrusted_app_27:s0:c512,c768` UID 10161. Full authoritative record: [validation/TAS_SERVICE_CONTEXT_V2_DUMPSTATE_RC_20261112.md](validation/TAS_SERVICE_CONTEXT_V2_DUMPSTATE_RC_20261112.md).
+
+- **/system/etc/init/dumpstate.rc, 799 B, is fully readable** in APK and defines:
+  - `service dumpstate /system/bin/dumpstate -s` with `socket dumpstate stream 0660 shell log`, `disabled`, `oneshot`.
+  - `service dumpstatez /system/bin/dumpstate -S -d -z -o .../bugreport` with same socket, `disabled`, `oneshot`.
+  - `service bugreportd /system/bin/dumpstate -w`, `disabled`, `oneshot`.
+- The actual vendor `init.kirin990{,E}.rc` **also** declares `service bugreport /system/bin/dumpstate -d -p -B -z ...`. This is **four init service names but ONE system binary, distinct command-line modes**.
+- No explicit `user` option in these blocks, so Android init default is root at service start; however **this says nothing about actual SELinux domain, dropped privileges, Perf access or service observed executing**. `socket ... shell log` sets **socket owner/group**, not process UID.
+- Binder `service list` includes `bugreport`, yet `service check bugreport` says not found in this app. Do not equate Binder registration with init service name or live root process. `init.svc.*` empty, `ps` sees app only; **process visibility is limited**.
+- Proprietary vendor policy already checked statically offline: `dumpstate_29_0` appears with 27 explicit vendor-side `allow` statements; no direct `allow dumpstate_29_0 proc_perf` in **vendor CIL alone**, not proof of denial by merged policy. Vendor HAL `android.hardware.dumpstate@1.0-service` is a separate component from `/system/bin/dumpstate`.
+- Root still **NOT obtained**. App perf event attempts still `EACCES`; successful Mali 11.16 owned-page test is a separate verified fact and must not be repeated.
+
+**Highest priority next input, if PC/ADB available:** existing read-only one-shot `python tas_service_context_collect.py` (inside prior v1.3 bundle / tracked in `emui11-tas/tools`); it gathers ADB shell domain, `getenforce`, `ls -lZ /system/bin/dumpstate`, effective init states, plus optional read-only ELF `adb pull`. This may succeed or return EACCES, both useful. No additional APK or repeated v1.3 scan is needed at present.
 
 ## NEWEST on-device V1 service evidence (2026-11-12; full scan done)
 
