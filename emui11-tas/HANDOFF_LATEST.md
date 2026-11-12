@@ -10,7 +10,7 @@ Branch: `emui11-firmware-offline-audit-20261112` | Draft PR: https://github.com/
 - App-owned private file cache canary **PASS in three independent observations**: `canary_same_fd_modified=1`, `canary_second_fd_modified=1`, `canary_private_map_modified=1`; `canary_cleanup=PASS`. This is not evidence of privileged executable tampering, kernel addresses, or Root.
 - User provided original system-ELF archive: `system-elfs.zip`, 769,979 bytes, SHA256 `1e92d7a89d33063b4040beb25b774472c81c821ef12aaa59990eb9ff6ded19e0`. All 6 included files validated against earlier runtime inventory.
 - 4 pinned Build IDs:
-  - `bugreportz`: `d64becc0edbe4144757a73be2b322d6a` (11,632-byte client-like binary; contains `dumpstatez` string)
+  - `bugreportz`: `d64becc0edbe4144757a73be2b322d6a` (11,632-byte CONFIRMED `dumpstatez` socket CLIENT: imports `socket_local_client` and contains `FAIL:Failed to connect to dumpstatez service`; it is not the privileged service)
   - `toybox`: `230b56fefa5048df13b5b128499c7087`
   - `app_process64`: `3dc4e1c3832386d747cee6ace24f22b9`
   - APEX `libc.so`: `0f53a45090c371e49b6824269190f1fa`.
