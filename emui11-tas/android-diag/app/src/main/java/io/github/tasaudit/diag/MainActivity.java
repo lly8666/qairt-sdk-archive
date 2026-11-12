@@ -29,7 +29,7 @@ public final class MainActivity extends Activity {
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(padding, padding, padding, padding);
         TextView title = new TextView(this);
-        title.setText("Mate 30 / TAS · EMUI 11 诊断\n固件基准：TAS-LGRP3-CHN 11.0.0.185\n内核基准：Linux 4.14.116");
+        title.setText("Mate 30 TAS-AN00 · EMUI 11 诊断\n固件基准：TAS-LGRP3-CHN 11.0.0.185\n内核基准：Linux 4.14.116");
         title.setTextSize(17);
         title.setTypeface(Typeface.DEFAULT_BOLD);
         root.addView(title);
@@ -100,7 +100,7 @@ public final class MainActivity extends Activity {
         StringBuilder b=new StringBuilder(4000);
         b.append("TAS_EMUI11_DIAG_V1_BEGIN\n");
         line(b,"schema","TAS_EMUI11_DIAG_V1");
-        line(b,"tool_version","1.1.0-tas185");
+        line(b,"tool_version","1.2.0-tas-an00");
         line(b,"captured_utc",Instant.now().toString());
         line(b,"expected_firmware",TargetMatcher.FIRMWARE);
         line(b,"expected_archive_sha256",TargetMatcher.ZIP_SHA256);
@@ -110,6 +110,10 @@ public final class MainActivity extends Activity {
         line(b,"network_permission","false");
         line(b,"cve_triggered","false");
         line(b,"identity_verdict",TargetMatcher.verdict(checks));
+        line(b,"firmware_profile","TAS-AN00 / HWTAS / TAS / 11.0.0.185 / 4.14.116");
+        line(b,"kernel_runtime_image_digest_verified","false");
+        line(b,"root_state_current_process",readOnlyRootState(observed));
+        line(b,"exploit_implemented","false");
         for (Map.Entry<String,TargetMatcher.Status> e : checks.entrySet())
             line(b,"check_"+e.getKey().toLowerCase(java.util.Locale.ROOT).replace(' ','_'),e.getValue().name());
         b.append("[observed]\n");
@@ -117,6 +121,14 @@ public final class MainActivity extends Activity {
         b.append("[/observed]\nTAS_EMUI11_DIAG_V1_END\n");
         b.append("此报告仅证明设备信息的读取结果，不能验证漏洞利用或 Root。\n");
         return b.toString();
+    }
+    private static String readOnlyRootState(Map<String,String> p) {
+        String uid=p.get("proc_self_uid"),cap=p.get("proc_self_cap_eff");
+        if(uid==null || uid.equals("UNREADABLE")) return "UNKNOWN";
+        String[] ids=uid.trim().split("\\s+");
+        if(ids.length<2) return "UNKNOWN";
+        if(!ids[1].equals("0")) return "NOT_ROOT_CURRENT_APP_PROCESS";
+        return "UID_ZERO_CAPS_"+(cap==null?"UNKNOWN":cap);
     }
     private static void line(StringBuilder b,String key,String value) {
         String safe=value==null?"":value.replace('\r',' ').replace('\n',' ');
