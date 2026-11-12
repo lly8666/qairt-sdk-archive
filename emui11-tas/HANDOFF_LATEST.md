@@ -1,5 +1,5 @@
 # TAS-AN00 GhostLock Research — Current State / Next-Agent Handoff
-Updated: 2026-11-12 (UTC) | Status: **Mali 11.16 on-device six-case PASS; V1 service report confirms Binder bugreport + readable system dumpstate.rc; v1.3 exact config collector in build; Root not achieved.**
+Updated: 2026-11-12 (UTC) | Status: **Mali 11.16 on-device six-case PASS; V1 service report confirms Binder bugreport + readable system dumpstate.rc; v1.3 exact config collector built/signed; Root not achieved.**
 Branch: `emui11-firmware-offline-audit-20261112` | Draft PR: https://github.com/lly8666/qairt-sdk-archive/pull/124
 
 ## NEWEST on-device V1 service evidence (2026-11-12; full scan done)
@@ -17,7 +17,14 @@ Device V1 report from user: `TAS_SERVICE_CONTEXT_V1_BEGIN ... END`, application 
 
 **New code already added to branch:** same Android app now v1.3 (`io.github.tasaudit.runtimeinventory.v13`, versionCode 4, min29/target27), button 4 captures `TAS_SERVICE_CONTEXT_V2` with actual `dumpstate.rc` content in `[init_rc_content]` plus `service check bugreport`. All service checks are read-only. Updated `emui11-tas/tools/tas_service_context_collect.py` does the equivalent ADB collection with hash and tries to pull `dumpstate` ELF if readable. The existing 6-case GPU test was already confirmed; DO NOT request another run.
 
-**Status:** V1.3 APK CI build underway, verify signed final artifact before reporting link or SHA. v1.2 logs and all firmware/system ELF evidence have already been received. Remaining question: contents of the 799B system `dumpstate.rc`, actual service runtime UID/domain, then whether any previously postulated elevated context is even observable. Root not achieved; app `perf_event_open` still EACCES.
+**V1.3 actual delivery and build VERIFIED**:
+- Successful GitHub Actions run: https://github.com/lly8666/qairt-sdk-archive/actions/runs/43191406529. Java/NDK builds, Android APK signing, zero-permission validation, ADB collector selftests all passed.
+- `TAS_AN00_Dumpstate_Config_Survey_v1_3.apk`: **69,682 bytes**; SHA256 `a53378dae7fe1982a09000537497bc58fa08cbd18b1d90b623330e15d640d75b`; v2 APK signature verified; minSDK29/targetSDK27, package `io.github.tasaudit.runtimeinventory.v13`.
+- One-shot deliverable `TAS_AN00_Dumpstate_Config_v1_3_One_Shot.zip`: **44,139 bytes**, SHA256 `cf6cb22a46ff00d171aefe460726e57bb1a681e09463ccb7ce90e98065df4a86`, ZIP CRC verified. Contains APK, cross-platform ADB collector, decision script, short Chinese operating guide, APK signature/badging, selftest logs, SHA256SUMS. No proprietary user files.
+- v1.3 button 4 now outputs `TAS_SERVICE_CONTEXT_V2` with `[init_rc_content]`; it reads exact 799B `/system/etc/init/dumpstate.rc` and related fixed path service config/labels, adds Binder `service check bugreport`. **Does NOT launch dumpstate, modify system binaries, invoke Mali, or attempt Root.**
+- ADB script `tas_service_context_collect.py` now also reads + hashes `dumpstate.rc` and checks `bugreport`; optional `adb pull /system/bin/dumpstate` only if ADB shell permitted.
+- No need to repeat GPU 11.16 v1.1 or old V1 service scan. Await **only v1.3 button-4 `[init_rc_content]`** (or PC ADB output) to distinguish TAS system `dumpstate.rc` service modes and the pending privileged context hypothesis.
+- Remaining question: contents of the 799B system `dumpstate.rc`, actual service runtime UID/domain, then whether any previously postulated elevated context is even observable. Root not achieved; app `perf_event_open` still EACCES.
 
 ## LATEST ROUND 2026-11-12: privilege-entry static preflight + v1.2 service collector
 
