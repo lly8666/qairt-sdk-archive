@@ -210,7 +210,7 @@ public final class ServiceSurvey {
         for(int i=0;i<configFiles.length;i++){
             String k="rc"+String.format(Locale.ROOT,"%02d",i);
             row(b,k+"_path",configFiles[i]);
-            row(b,k+"_content",readFiltered(configFiles[i],"",8192));
+            row(b,k+"_content",readFiltered(configFiles[i],configFiles[i].contains("kirin990")?"dumpstate":"",131072));
         }
         b.append("[/init_rc_content]\n");
         b.append("[service_manager]\n");
