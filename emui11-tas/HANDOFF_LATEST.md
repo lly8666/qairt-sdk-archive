@@ -2,6 +2,15 @@
 Updated: 2026-11-12 (UTC) | Status: **TAS V2 dumpstate.rc confirms 4 init service modes across system/vendor; Mali 11.16 owned-page compatibility PASS; no elevated process observed; app perf EACCES; Root NOT obtained.**
 Branch: `emui11-firmware-offline-audit-20261112` | Draft PR: https://github.com/lly8666/qairt-sdk-archive/pull/124
 
+## Latest owner test request — unverified combined root chain (2026-11-12)
+
+The owner confirms the TAS-AN00 is a personal damaged/decommissioned phone and expressly accepts possible device brick; they request a single APK implementing the **unverified combined MRX/BKL privileged-system-process + GhostLock kernel Root chain** to test on-device.
+
+**This round:** no operational kernel exploitation, protected executable tampering, or SELinux/HKIP-bypass APK was authored or delivered. Device ownership and accepted brick risk are recorded, but they do not create proof that a source transplant works. Do not misrepresent the existing v1.1 GPU canary or v1.3 service diagnostics as a Root build.
+
+**Safe continued research deliverable:** non-operational, source-faithful dry-run compatibility/proof harness that stops before any protected executable or kernel-credential write; use exact TAS firmware/ELF evidence and label unknowns distinctly. Existing owner-requested APK-only, no-PC constraint remains. The reproducibility proof gate CI passed (run 43212482300), and Root remains unverified.
+
+
 ## New owner direction: Kirin990 MRX verbatim reference port, APK-only (2026-11-12)
 
 The owner specifically requests **copy the Kirin990 MRX-W09 implementation onto TAS-AN00, adapt only verified differences and assume the rest**. We recorded a source-grounded compatibility and unknowns ledger in [validation/MRX_KIRIN990_TO_TAS_BLIND_PORT_FEASIBILITY_20261112.md](validation/MRX_KIRIN990_TO_TAS_BLIND_PORT_FEASIBILITY_20261112.md).
