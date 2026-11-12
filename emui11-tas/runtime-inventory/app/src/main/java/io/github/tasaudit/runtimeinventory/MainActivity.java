@@ -22,7 +22,7 @@ import java.nio.charset.StandardCharsets;
 /** TAS firmware reader + isolated reference Mali API compatibility research launcher. */
 public final class MainActivity extends Activity {
     private TextView report;
-    private Button inventory,gpuTest,exportButton;
+    private Button inventory,gpuTest,exportButton,serviceSurvey;
     private volatile boolean running=false;
     private final StringBuilder live=new StringBuilder();
     private static final String LAST="tas_runtime_last.txt";
@@ -33,16 +33,18 @@ public final class MainActivity extends Activity {
         int d=(int)(10*getResources().getDisplayMetrics().density);
         layout.setPadding(d,d,d,d);
         TextView title=new TextView(this);
-        title.setText("TAS-AN00 · Mali 11.16 / 固件实测 v1.1");
+        title.setText("TAS-AN00 · Mali 11.16 / 服务对照 v1.2");
         title.setTextSize(18);title.setTypeface(Typeface.DEFAULT_BOLD);
         layout.addView(title);
         TextView subtitle=new TextView(this);
-        subtitle.setText("1. 固件读取不改系统文件。\n2. GPU 实验按参考工程调用 SET_FLAGS、MEM_ALLOC、MEM_IMPORT、JOB_SUBMIT，在应用自有测试文件验证页缓存效果；可能引发系统崩溃。\n3. 导出 toybox/bugreportz/libc ELF 后可继续离线适配。");
+        subtitle.setText("1. 固件读取不改系统文件。\n2. GPU 实验按参考工程调用 SET_FLAGS、MEM_ALLOC、MEM_IMPORT、JOB_SUBMIT，在应用自有测试文件验证页缓存效果；可能引发系统崩溃。\n3. 导出真实 ELF 供离线适配。\n4. 一键读取 dumpstate 服务、SELinux、进程和系统属性，所有读取均不启动服务。");
         subtitle.setTextSize(12);
         layout.addView(subtitle);
         inventory=button(layout,"1. 一键读取固件 / Mali 基本 ABI（只读）");
         gpuTest=button(layout,"2. 批量 GPU 内存接口及自有文件缓存测试（高风险）");
         exportButton=button(layout,"3. 导出 toybox / bugreportz / libc 原始文件 ZIP");
+        serviceSurvey=button(layout,"4. 批量采集 dumpstate 服务 / SELinux / 启动状态（只读）");
+        Button previousSurvey=button(layout,"查看最近一次服务环境日志");
         Button previousGpu=button(layout,"查看最近一次 GPU 批量测试日志");
         Button previousInventory=button(layout,"查看最近一次只读固件报告");
         Button copy=button(layout,"复制屏幕日志");
@@ -62,6 +64,8 @@ public final class MainActivity extends Activity {
             .setNegativeButton("取消",null)
             .setPositiveButton("执行批量实验",(dialog,which)->runGpu()).show());
         exportButton.setOnClickListener(v->exportSystemFiles());
+        serviceSurvey.setOnClickListener(v->runServiceSurvey());
+        previousSurvey.setOnClickListener(v->report.setText(ServiceSurvey.last(this)));
         previousGpu.setOnClickListener(v->report.setText(MaliBatchRunner.readLast(this)));
         previousInventory.setOnClickListener(v->report.setText(loadLast()));
         copy.setOnClickListener(v->{
@@ -75,7 +79,7 @@ public final class MainActivity extends Activity {
     }
     private void busy(boolean state){
         running=state;inventory.setEnabled(!state);gpuTest.setEnabled(!state);
-        exportButton.setEnabled(!state);
+        exportButton.setEnabled(!state);serviceSurvey.setEnabled(!state);
     }
     private void runReadOnly(){
         if(running)return;
@@ -133,6 +137,20 @@ public final class MainActivity extends Activity {
                 startActivity(Intent.createChooser(share,"分享 TAS-AN00 系统 ELF ZIP"));
             });
         },"TAS-ELF-Export").start();
+    }
+    private void runServiceSurvey(){
+        if(running)return;
+        busy(true);
+        report.setText("批量读取服务、进程及 SELinux 元数据中……\n");
+        new Thread(()->{
+            String result;
+            try{
+                result=ServiceSurvey.collect(getApplicationContext());
+                ServiceSurvey.persist(getApplicationContext(),result);
+            }catch(Throwable t){result="TAS_SERVICE_CONTEXT_V1_ERROR="+t.toString()+"\n";}
+            final String completed=result;
+            runOnUiThread(()->{report.setText(completed);busy(false);});
+        },"TAS-Service-Survey").start();
     }
     private String loadLast(){
         File f=new File(getFilesDir(),LAST);
