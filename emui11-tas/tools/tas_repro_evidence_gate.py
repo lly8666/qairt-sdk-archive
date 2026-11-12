@@ -132,7 +132,8 @@ def report(gpu="",service="",perf=""):
           "Static init service definitions do not prove live elevated execution.",
           "No independent evidence of privileged euid/capabilities/SELinux or Root action.",
         ],
-        "user_constraints":{"phone_only":True,"request_adb":False,
+        "user_constraints":{"phone_only":False,"request_adb":True,
+                            "preferred_host":"WINDOWS_ADB_SHELL_READ_ONLY",
                             "repeat_gpu_tests":False,"privacy_cleanup":"DEFERRED"},
     }
 
