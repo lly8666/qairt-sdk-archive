@@ -1,0 +1,86 @@
+name: EMUI11 TAS-11.0.0.185 offline kallsyms recovery
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/emui11-tas-kallsyms.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  recover:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - name: Checkout analysis workflow
+        uses: actions/checkout@v4
+      - name: Prepare Python symbol recovery environment
+        run: |
+          python3 -m venv /tmp/vmlinux-env
+          /tmp/vmlinux-env/bin/pip install vmlinux-to-elf
+          /tmp/vmlinux-env/bin/pip freeze > /tmp/vmlinux-dependencies.txt
+      - name: Acquire original firmware and extract only kernel
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/tas-audit
+          gh release download emui11_t --repo "$GITHUB_REPOSITORY" --pattern UPDATE.APP.zip --dir /tmp/tas-audit
+          printf '%s  %s\n' 'fb4cec6aa905416ede031cca602783bc1e59fdd89ee96ba1aaa54dbdaf351b0f' '/tmp/tas-audit/UPDATE.APP.zip' | sha256sum -c
+          python3 - <<'PY'
+          import gzip, hashlib, pathlib, struct, zipfile
+          root=pathlib.Path('/tmp/tas-audit')
+          with zipfile.ZipFile(root/'UPDATE.APP.zip') as z:
+              b=z.read('BOOT.img')
+          if not b.startswith(b'ANDROID!'): raise SystemExit('invalid Android boot magic')
+          size=struct.unpack_from('<I',b,8)[0]
+          page=struct.unpack_from('<I',b,36)[0]
+          version=struct.unpack_from('<I',b,40)[0]
+          if version!=2 or page not in (2048,4096) or size>64*1024*1024: raise SystemExit('unexpected TAS boot header')
+          blob=b[page:page+size]
+          if not blob.startswith(b'\x1f\x8b'): raise SystemExit('unexpected kernel compression')
+          kernel=gzip.decompress(blob)
+          assert kernel.startswith(b'\x4d\x5a') or kernel[0x38:0x3c] == b'ARM\x64', 'not an ARM64 image'
+          (root/'TAS-4.14.116-Image.bin').write_bytes(kernel)
+          (root/'image-meta.txt').write_text(f'boot_header_v={version}\nlinux_Image_bytes={len(kernel)}\nlinux_Image_sha256={hashlib.sha256(kernel).hexdigest()}\n')
+          print((root/'image-meta.txt').read_text())
+          PY
+      - name: Recover kallsyms and symbolized ELF (read-only)
+        shell: bash
+        run: |
+          set +e
+          TOOL=/tmp/vmlinux-env/bin
+          ROOT=/tmp/tas-audit
+          cp /tmp/vmlinux-dependencies.txt "$ROOT/tool-versions.txt"
+          "$TOOL/vmlinux-to-elf" "$ROOT/TAS-4.14.116-Image.bin" "$ROOT/TAS-4.14.116-symbolized.elf" >"$ROOT/recover-stdout.log" 2>"$ROOT/recover-stderr.log"
+          status=$?
+          echo "vmlinux_to_elf_exit_status=$status" | tee "$ROOT/recover-result.txt"
+          if test -s "$ROOT/TAS-4.14.116-symbolized.elf"; then
+              readelf -h "$ROOT/TAS-4.14.116-symbolized.elf" >"$ROOT/elf-header.txt" 2>&1
+              readelf -Ws "$ROOT/TAS-4.14.116-symbolized.elf" >"$ROOT/elf-symbols-full.txt" 2>&1
+              grep -E ' (remove_waiter|rt_mutex_start_proxy_lock|futex_requeue|do_futex|init_task|init_cred|policydb|commit_creds|cap_capable|avc_denied|__arm64_sys_futex|SyS_futex)(\\.|$)' "$ROOT/elf-symbols-full.txt" > "$ROOT/target-symbols.txt"
+              sha256sum "$ROOT/TAS-4.14.116-symbolized.elf" > "$ROOT/symbolized-elf.sha256"
+          fi
+          cat "$ROOT/recover-stderr.log" | tail -30
+          exit 0
+      - name: Upload analysis evidence (excludes original proprietary firmware)
+        uses: actions/upload-artifact@v4
+        with:
+          name: emui11-tas-kallsyms-report
+          path: |
+            /tmp/tas-audit/*.txt
+            /tmp/tas-audit/*.log
+            /tmp/tas-audit/*.sha256
+          if-no-files-found: error
+          retention-days: 3
+      - name: Upload recovered ELF if successful
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: emui11-tas-symbolized-elf
+          path: /tmp/tas-audit/TAS-4.14.116-symbolized.elf
+          if-no-files-found: ignore
+          retention-days: 1
