@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'emui11-tas/tools/tas_repro_evidence_gate.py'
+      - 'emui11-tas/tools/tas_context_decision.py'
       - 'emui11-tas/tools/tas_kernel_patch_status.py'
       - 'emui11-tas/tools/tas_public_ghostlock_apk_gate.py'
       - '.github/workflows/tas-repro-evidence-gate.yml'
@@ -23,6 +24,9 @@ jobs:
           set -euo pipefail
           mkdir -p out
           python3 -m py_compile emui11-tas/tools/tas_repro_evidence_gate.py
+          python3 -m py_compile emui11-tas/tools/tas_context_decision.py
+          python3 emui11-tas/tools/tas_context_decision.py --selftest | tee out/CONTEXT_SCOPE_SELFTEST.txt
+          python3 emui11-tas/tools/tas_context_decision.py --out out/CONTEXT_SCOPE_NO_EXTRA_LOGS.json
           python3 -m py_compile emui11-tas/tools/tas_kernel_patch_status.py
           python3 -m py_compile emui11-tas/tools/tas_public_ghostlock_apk_gate.py
           python3 emui11-tas/tools/tas_public_ghostlock_apk_gate.py --selftest | tee out/PUBLIC_APK_GATE_SELFTEST.txt
@@ -43,6 +47,13 @@ jobs:
           assert report['checks'][3]['capability']=='NEEDS_ALREADY_RUNNING_PRIVILEGED_SERVICE'
           assert all(not p['root_verified_on_TAS'] for p in report['checks'])
           print('PUBLIC_GHOSTLOCK_APK_GATE_PASS')
+          scope=json.load(open('out/CONTEXT_SCOPE_NO_EXTRA_LOGS.json',encoding='utf8'))
+          assert scope['schema']=='TAS_CONTEXT_DECISION_V2'
+          assert scope['evidence']['app_perf_scope']=='ONLY_PRESTAGE_UNTRUSTED_APP_CONTEXT'
+          assert scope['evidence']['post_privileged_stage_perf']=='UNMEASURED'
+          assert scope['evidence']['tas_bugreportz_client']=='NOT_A_PROOF_OF_PRESTAGE_IMPOSSIBILITY'
+          assert not any('optional read-only shell comparison remains useful' in x for x in scope['recommendations'])
+          print('APP_BASELINE_NOT_POST_STAGE_EVIDENCE_PASS')
           assert data['root_status']=='NOT_VERIFIED'
           assert data['root_claim_allowed'] is False
           assert data['evidence']['mali_api']=='NOT_PROVIDED'
