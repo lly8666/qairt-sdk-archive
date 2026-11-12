@@ -2,6 +2,22 @@
 Updated: 2026-11-12 (UTC) | Status: **TAS V2 dumpstate.rc confirms 4 init service modes across system/vendor; Mali 11.16 owned-page compatibility PASS; no elevated process observed; app perf EACCES; Root NOT obtained.**
 Branch: `emui11-firmware-offline-audit-20261112` | Draft PR: https://github.com/lly8666/qairt-sdk-archive/pull/124
 
+## LATEST SOURCE CORRECTION: MRX Kirin990 4.14.116 ROOT REALLY REPORTED (2026-11-12)
+
+**User direction:** Stop comparing modern 5.x/6.x generic Root APKs. Continue using **MRX-W09 Kirin990 / Linux4.14.116 / EMUI11.0.0.235**, the reference most relevant to owner TAS-AN00 Kirin990 / Linux4.14.116 / EMUI11.0.0.185. Owner priority: **APK only / no PC/ADB**, validate pre-root readiness without activating final Root; privacy cleanup comes later.
+
+**Material correction from full published primary research log:**
+- The [public pinned `docs/FACTS.md`](https://github.com/BellezaEmporium/ghostlock-bkl-l09/blob/381476444fbbbcf0c5e8e3c2e2166647e9134ab5/docs/FACTS.md#L3866-L3920) for **MRX-W09** explicitly records 2026-09-26 real-device **UID0**, then `rsh -c id` showing `uid=0(root)` / `gid=0(root)`, SELinux `u:r:shell:s0`, and an on-device proof file. Section (137) separately records recovery of root outcome after a regression. **Therefore MRX's root success is SOURCE-REPORTED and should NOT be characterized as merely theoretical.**
+- The same reference repo's **top-level README is about a different phone BKL-L09 Kirin970**, and its banner says `root to be achieved`. Confusing this unfinished BKL port with MRX incorrectly diminished the Kirin990 reference evidence. Keep statuses separated.
+- Full evidence crosswalk: [validation/MRX_KIRIN990_REAL_ROOT_PROOF_VS_TAS_20261112.md](validation/MRX_KIRIN990_REAL_ROOT_PROOF_VS_TAS_20261112.md). Pinned reference commit `381476444fbbbcf0c5e8e3c2e2166647e9134ab5`, pinned FACTS blob SHA `5ac3f4259e3e6173355bcaec24b6297542c33ac1`.
+- Added no-exploit provenance checker [tools/tas_mrx_reference_status_gate.py](tools/tas_mrx_reference_status_gate.py) and [GitHub Actions run 43226225755](https://github.com/lly8666/qairt-sdk-archive/actions/runs/43226225755) **PASS** on the pinned upstream source. It asserts MRX root outcome is source-reported, BKL remains distinct, and **TAS Root not yet verified**.
+
+**Still physically different on TAS:** its real `bugreportz` is an 11KB socket client, whereas the MRX reference describes a privileged-combined executable; the TAS protected service entry `/system/bin/dumpstate` returned EACCES from the app, and the app's perf leak attempts returned EACCES. Though Kirin990/kernel4.14.116 are shared and TAS's exact static `remove_waiter` shape and Mali11.16 own-file cache test matched, **nothing has demonstrated actual TAS app→privileged execution, kernel address disclosure or UID0**. This successful MRX precedent alone does **not** establish a runnable TAS APK.
+
+**Next research priority:** compare existing TAS binary/init/policy observations against the **verified MRX reference *outcomes*** and resolve feasibility evidence at the **device-specific privilege boundary G3** without guessing offsets, asserting untested claims, asking for repeated Mali logs/ADB, or shifting to unrelated root apps. No operational kernel UAF, protected-system-file hook, or credential-altering APK was built in this round.
+
+
+
 ## LATEST engineering round: publicly available Root APK compatibility audit (2026-11-12)
 
 **User instruction remains:** continue TAS-AN00 GhostLock research, Android **10 API29** / EMUI11.0.0.185 / kernel 4.14.116, **Root first, APK only, no PC/ADB**. No need to repeat already completed Mali or service tests.
