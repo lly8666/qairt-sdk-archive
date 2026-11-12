@@ -40,7 +40,8 @@ public final class MainActivity extends Activity {
         subtitle.setText("新增：一键核对本机 TAS/Android/EMUI 与 Mali 11.16 只读 ABI；生成不会误判漏洞或 Root 的阶段一报告。\n其他历史诊断功能保留；高风险 GPU 自有文件测试需要单独确认。\n不修改系统文件、不启动特权服务。");
         subtitle.setTextSize(12);
         layout.addView(subtitle);
-        stageOne=button(layout,"0. 生成第一阶段只读可行性报告（建议）");\n        inventory=button(layout,"1. 一键读取固件 / Mali 基本 ABI（只读）");
+        stageOne=button(layout,"0. 生成第一阶段只读可行性报告（建议）");
+        inventory=button(layout,"1. 一键读取固件 / Mali 基本 ABI（只读）");
         gpuTest=button(layout,"2. 批量 GPU 内存接口及自有文件缓存测试（高风险）");
         exportButton=button(layout,"3. 导出 toybox / bugreportz / libc 原始文件 ZIP");
         serviceSurvey=button(layout,"4. 一键提取 dumpstate.rc + 服务上下文（只读）");
@@ -57,7 +58,8 @@ public final class MainActivity extends Activity {
         scroller.addView(report);
         layout.addView(scroller,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,0,1));
         setContentView(layout);
-        stageOne.setOnClickListener(v->runStageOneReadOnly());\n        inventory.setOnClickListener(v->runReadOnly());
+        stageOne.setOnClickListener(v->runStageOneReadOnly());
+        inventory.setOnClickListener(v->runReadOnly());
         gpuTest.setOnClickListener(v->new AlertDialog.Builder(this)
             .setTitle("确认运行 Mali 11.16 原生实验？")
             .setMessage("将测试 GPU 内存分配、用户缓冲区导入、任务提交，并尝试修改应用自己创建的临时文件页缓存。不修改系统分区，但 GPU 漏洞行为可能导致手机崩溃或重启。")
