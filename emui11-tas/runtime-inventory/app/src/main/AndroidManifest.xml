@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application android:allowBackup="false" android:usesCleartextTraffic="false"
-        android:label="TAS-AN00 Mali 11.16 实验">
+        android:label="TAS-AN00 Dumpstate 配置检查">
         <activity android:name=".MainActivity" android:exported="true"
             android:label="TAS-AN00 Runtime Inventory">
             <intent-filter>
@@ -10,7 +10,7 @@
             </intent-filter>
         </activity>
         <provider android:name=".SystemFileExportProvider"
-            android:authorities="io.github.tasaudit.runtimeinventory.v12.export"
+            android:authorities="io.github.tasaudit.runtimeinventory.v13.export"
             android:exported="false"
             android:grantUriPermissions="true"/>
     </application>
