@@ -2,6 +2,14 @@
 Updated: 2026-11-12 (UTC) | Status: **TAS V2 dumpstate.rc confirms 4 init service modes across system/vendor; Mali 11.16 owned-page compatibility PASS; no elevated process observed; app perf EACCES; Root NOT obtained.**
 Branch: `emui11-firmware-offline-audit-20261112` | Draft PR: https://github.com/lly8666/qairt-sdk-archive/pull/124
 
+> **Windows ADB bundle upgraded to v2 (2026-11-12).** This supersedes the v1 ZIP recommendation below. The owner can now run TWO separate one-click Windows batch launchers:
+> - [`Run_TAS_ADB_Shell_Inventory.cmd`](windows-adb/Run_TAS_ADB_Shell_Inventory.cmd): 33 fixed read-only ADB shell context/service/file-metadata commands, zero on-device writes.
+> - [`Run_TAS_ADB_Shell_Perf13.cmd`](windows-adb/Run_TAS_ADB_Shell_Perf13.cmd): **OPTIONAL**, uses SHA256-pinned `tas_batchprobe_arm64` (`f6d1a7d2747b400994d1a54ef1659d6c3fe01e50fd433b652dd8ef4feff3c6d7`) from older verified build 43170972015; uploads only this benign read-only probe to `/data/local/tmp/tas_batchprobe_readonly`, runs 13 isolated diagnostics under `adb shell`, then deletes only that temporary file. Measures whether shell Perf differs from original app's four EACCES outcomes; prints no kernel addresses.
+> - Windows workflow [43231631065](https://github.com/lly8666/qairt-sdk-archive/actions/runs/43231631065) **SUCCESS** (PowerShell5.1 parse and dual selftests, exact old diagnostic ELF hash pin, v2 distribution). Verified final ZIP SHA256 `c65d0103918a795e2583b1321965cf1434bee2b36871438f25163d7047620a2a`, all six included SHA256 checks pass. Artifact `TAS-AN00-Windows-ADB-Shell-Batch-v2`.
+> - Full two-test walkthrough: [windows-adb/README_CN.md](windows-adb/README_CN.md). Use either `adb.exe` on PATH or put official Windows `platform-tools` directory alongside the scripts. The owner has NOT yet run either batch on the TAS; no live shell result/Root is claimed.
+> - This method change also supersedes prior code assumptions: [tools/tas_repro_evidence_gate.py](tools/tas_repro_evidence_gate.py) now has `phone_only=false`, `request_adb=true`, `preferred_host=WINDOWS_ADB_SHELL_READ_ONLY`; [context decision](tools/tas_context_decision.py) no longer advises against ADB. Evidence gate Actions [43230496688](https://github.com/lly8666/qairt-sdk-archive/actions/runs/43230496688) **SUCCESS**.
+
+
 ## LATEST OWNER METHOD CHANGE: Windows authorized ADB shell batch (2026-11-12)
 
 **The owner explicitly changed the previous method constraints**: Windows PC environment, batch execution in an authorized `adb shell` context. **This supersedes earlier "phone-only / APK-only / no PC / no ADB" instructions across historical reports and code.** Root remains the research priority; the owner previously asked to validate pre-Root evidence without finally activating Root. Don't request the old Android app ABI/service surveys again.
