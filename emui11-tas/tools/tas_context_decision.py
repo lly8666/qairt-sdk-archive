@@ -31,7 +31,13 @@ def decide(app_context=None,adb=None,perf_shell=None):
               "root":"NOT_OBSERVED",
               "bugreportz_kind":"dumpstatez socket client (actual ELF)",
               "dumpstate_process":"UNKNOWN",
-              "dumpstate_elf":"NOT_READABLE_FROM_APP"}
+              "dumpstate_elf":"NOT_READABLE_FROM_APP",
+              "app_perf_scope":"ONLY_PRESTAGE_UNTRUSTED_APP_CONTEXT",
+              "post_privileged_stage_perf":"UNMEASURED",
+              "reference_mrx_starting_context":"ADB_SHELL_NOT_THIRD_PARTY_APP",
+              "reference_mrx_prestage_carrier":"SOURCE_REPORTS_LIBC_PAGE_CACHE",
+              "reference_bugreportz_role":"SERVICE_TRIGGER_NOT_PROVEN_PATCH_TARGET",
+              "tas_bugreportz_client":"NOT_A_PROOF_OF_PRESTAGE_IMPOSSIBILITY"}
     if app_context:
         p=parse_kv(app_context)
         evidence["app_service_props"]={
@@ -59,19 +65,19 @@ def decide(app_context=None,adb=None,perf_shell=None):
         evidence["shell_perf_diagnostic"]=perf_result(perf_shell)
     recommendation=[]
     if evidence.get("shell_perf_diagnostic")=="EACCES":
-        recommendation.append("APP_AND_SHELL_PERF_DENIED: do not repeat GhostLock perf-based leak in either sandbox.")
+        recommendation.append("PRESTAGE_APP_AND_SHELL_PERF_DENIED: privileged post-stage perf access remains UNMEASURED, not permanently blocked.")
     elif evidence.get("shell_perf_diagnostic")=="POSSIBLE_SUCCESS":
         recommendation.append("SHELL_PERF_MAY_WORK: independently validate perf sample count and kernel-IP availability; no Root conclusion.")
     else:
-        recommendation.append("SHELL_PERF_UNVERIFIED: optional read-only shell comparison remains useful.")
+        recommendation.append("SHELL_PERF_UNVERIFIED: owner requires APK-only; do not request ADB or infer privileged-stage failure.")
     elf=evidence.get("adb_dumpstate_elf",{})
     if elf.get("sha256"):
         recommendation.append("DUMPSTATE_ELF_EXACT_HASH_AVAILABLE: compare service executable identity to actual firmware and process label.")
     else:
-        recommendation.append("DUMPSTATE_BINARY_NOT_ACQUIRED: inspect init service and SELinux metadata; EACCES is not evidence of absence.")
+        recommendation.append("DUMPSTATE_BINARY_UNREADABLE_FROM_APP: app lstat EACCES does not prove privileged service absent or rule out a distinct libc carrier.")
     recommendation.append("DO_NOT_REPEAT_MALI_V1_1: real-device MEM_IMPORT, JOB_SUBMIT and app-private 3-view canary already passed.")
-    recommendation.append("ROOT_NOT_ESTABLISHED: high-privilege service execution remains unverified; report only observed operations.")
-    return {"schema":"TAS_CONTEXT_DECISION_V1","evidence":evidence,"recommendations":recommendation}
+    recommendation.append("ROOT_NOT_ESTABLISHED: MRX source-reported UID0 success does not prove TAS app-to-privileged execution; report only observed operations.")
+    return {"schema":"TAS_CONTEXT_DECISION_V2","evidence":evidence,"recommendations":recommendation}
 
 def main():
     ap=argparse.ArgumentParser()
@@ -87,6 +93,15 @@ def main():
         d=decide(app_context="init.svc.dumpstate=EXIT_0:stopped\n")
         assert d["evidence"]["mali_six_cases"]=="PASSED on device"
         assert len(d["recommendations"])==4
+        assert d["evidence"]["app_perf_scope"]=="ONLY_PRESTAGE_UNTRUSTED_APP_CONTEXT"
+        assert d["evidence"]["post_privileged_stage_perf"]=="UNMEASURED"
+        assert d["evidence"]["tas_bugreportz_client"]=="NOT_A_PROOF_OF_PRESTAGE_IMPOSSIBILITY"
+        assert not any("optional read-only shell comparison remains useful" in x for x in d["recommendations"])
+        assert not any("APP_AND_SHELL_PERF_DENIED: do not repeat" in x for x in d["recommendations"])
+        ds=decide(perf_shell="perf_exact_result=error\\nperf_exact_errno=13")
+        assert ds["evidence"]["shell_perf_diagnostic"]=="EACCES"
+        assert ds["evidence"]["post_privileged_stage_perf"]=="UNMEASURED"
+        assert ds["recommendations"][0].startswith("PRESTAGE_APP_AND_SHELL_PERF_DENIED")
         print("TAS_CONTEXT_DECISION_SELFTEST_PASS")
         return 0
     app=ns.app.read_text(encoding="utf-8",errors="replace") if ns.app else None
