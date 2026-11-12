@@ -1,5 +1,8 @@
 # TAS-AN00 — pre-Root validation without activating Root: acceptance boundary
 
+> **2026-11-12 scope correction:** G3 `bugreportz` being a client means the **exact MRX binary hypothesis does not transfer unchanged**, not that any conceivable privileged shared-library stage is impossible. The detailed MRX log describes a separate **libc page-cache** dimension. G4 Perf EACCES applies only to the observed **pre-stage untrusted APK**, not to an unmeasured privileged process. In no case does this promote G3/G4 to PASS. See [primary-source stage re-audit](TAS_MRX_PRESTAGE_ASSUMPTION_REAUDIT_20261112.md).
+
+
 Date: 2026-11-12. Owner request: research and validate the entire published GhostLock route in an APK, on the owner's spare/damaged TAS-AN00, but do **not** finally grant UID0/root capabilities. No PC/ADB.
 
 ## Fundamental distinction: confidence versus an actual end-to-end proof
