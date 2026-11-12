@@ -1,5 +1,8 @@
 # TAS-AN00 / EMUI 11.0.0.185 vs. published MRX/BKL — evidence-led compatibility audit
 
+> **2026-11-12 deeper source correction:** This report's binary/client finding remains true, but earlier reasoning incorrectly promoted it to a *categorical MRX prestage blocker*. MRX's detailed `FACTS.md` describes a **dumpstate libc-page-cache stage** involving a `bugreportz` trigger, while BKL's top-level README simplifies the MRX service role. A TAS `bugreportz` socket client does **not alone** exclude the separate shared-library hypothesis. Likewise, ordinary-app `perf_event_open EACCES` only establishes an **untrusted-app pre-stage baseline**; post-privileged-stage Perf has **not been measured**. See [new primary-source re-audit](validation/TAS_MRX_PRESTAGE_ASSUMPTION_REAUDIT_20261112.md). This does NOT prove a TAS exploit is possible, and Android shell-based MRX starting privileges differ from the owner's APK-only requirement.
+
+
 Updated: 2026-11-12. This document replaces the **stale** first-pass claims that `Mali 11.16`, `MEM_IMPORT`, and actual system ELF identities were unknown. Subsequent device logs proved those capabilities.
 
 **Target:** user-owned Huawei Mate 30 `TAS-AN00`, Kirin990, Android10, EMUI `11.0.0.185(C00E180R7P11)`, Linux4.14.116; bootloader locked/verified boot green. Owner requires installable APK-only workflow, no PC/ADB. Temporary Root **not achieved**.
