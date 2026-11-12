@@ -5,6 +5,7 @@ on:
     paths:
       - '.github/workflows/emui11-tas-super-audit.yml'
       - 'emui11-tas/tools/super_inventory.py'
+      - 'emui11-tas/tools/sparse_layout.py'
   workflow_dispatch:
 
 permissions:
@@ -31,6 +32,8 @@ jobs:
           sha256sum work/super/SUPER.img | tee work/report/SUPER_SHA256.txt
           file work/super/SUPER.img | tee work/report/SUPER_FILE_TYPE.txt
           xxd -l 256 work/super/SUPER.img > work/report/SUPER_HEADER.txt
+          python3 emui11-tas/tools/sparse_layout.py work/super/SUPER.img work/report/SPARSE_LAYOUT.json \
+            | tee work/report/SPARSE_LAYOUT.txt
           df -h . | tee work/report/DISK_BEFORE.txt
       - name: Build pinned lpunpack for LP metadata and extraction
         shell: bash
@@ -52,7 +55,38 @@ jobs:
             simg2img "$src" work/super/SUPER.raw.img
             src=work/super/SUPER.raw.img
           fi
-          work/lpunpack -v "$src" work/partitions 2>&1 | tee work/report/LPPARTITIONS_LOG.txt
+          file -s "$src" | tee work/report/RAW_IMAGE_FILE_TYPE.txt
+          xxd -l 16384 "$src" > work/report/RAW_IMAGE_HEADER.txt
+          python3 - "$src" <<'PY' | tee work/report/RAW_MAGIC_OFFSETS.txt
+          import json,sys,struct
+          p=sys.argv[1]
+          layout=json.load(open("work/report/SPARSE_LAYOUT.json"))
+          with open(p,"rb") as f:
+            for c in layout["chunks"]:
+              if c["type"]!="RAW":continue
+              f.seek(c["output_offset"])
+              b=f.read(4096)
+              sample=b[:64].hex()
+              print("CHUNK",c["index"],"OFF",hex(c["output_offset"]),"HEADER",sample,
+                    "ext4_magic_at_1080",b[1080:1082].hex(),
+                    "erofs_magic_at_1024",b[1024:1028].hex())
+          PY
+          if work/lpunpack -v "$src" work/partitions 2>&1 | tee work/report/LPPARTITIONS_LOG.txt; then
+            echo 'LP_EXTRACTION_SUCCESS=1' | tee work/report/EXTRACTION_STATUS.txt
+          else
+            echo 'LP_EXTRACTION_SUCCESS=0' | tee work/report/EXTRACTION_STATUS.txt
+            python3 - "$src" <<'PY'
+          import sys,os
+          p=sys.argv[1]
+          with open(p,'rb') as f:
+            f.seek(1080);magic=f.read(2)
+          if magic==b'\x53\xef':
+            os.link(p,'work/partitions/system.img')
+            print('Detected direct ext4 system image; using read-only ext4 inventory.')
+          else:
+            print('No standard LP metadata or ext4 superblock at file start; recording sparse chunk structure for inspection.')
+          PY
+          fi
           ls -lah work/partitions | tee work/report/PARTITIONS_LS.txt
           for img in work/partitions/*.img; do
             file "$img" || true
