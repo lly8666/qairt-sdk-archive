@@ -1,0 +1,65 @@
+name: TAS/MRX Kirin990 public-reference proof reconciliation (read-only)
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/tas-mrx-kirin990-reference-proof.yml'
+      - 'emui11-tas/tools/tas_mrx_reference_status_gate.py'
+      - 'emui11-tas/validation/MRX_KIRIN990_REAL_ROOT_PROOF_VS_TAS_20261112.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-source-record:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout TAS audit source
+        uses: actions/checkout@v4
+      - name: Run negative and positive selftests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile emui11-tas/tools/tas_mrx_reference_status_gate.py
+          python3 emui11-tas/tools/tas_mrx_reference_status_gate.py --selftest
+      - name: Fetch strictly pinned public documentation only
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone -q --depth=1 --filter=blob:none --sparse --branch main \
+            https://github.com/BellezaEmporium/ghostlock-bkl-l09.git "$RUNNER_TEMP/reference"
+          git -C "$RUNNER_TEMP/reference" sparse-checkout set --no-cone README.md docs/FACTS.md
+          sha="$(git -C "$RUNNER_TEMP/reference" rev-parse HEAD)"
+          printf 'public_reference_commit=%s\n' "$sha"
+          test "$sha" = '381476444fbbbcf0c5e8e3c2e2166647e9134ab5'
+          test -s "$RUNNER_TEMP/reference/docs/FACTS.md"
+          test -s "$RUNNER_TEMP/reference/README.md"
+      - name: Source-provenance outcome gate (does not build/run exploits)
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          python3 emui11-tas/tools/tas_mrx_reference_status_gate.py \
+            --mrx-facts "$RUNNER_TEMP/reference/docs/FACTS.md" \
+            --bkl-readme "$RUNNER_TEMP/reference/README.md" \
+            --out out/MRX_REFERENCE_STATUS.json
+          python3 - <<'PY'
+          import json
+          data=json.load(open('out/MRX_REFERENCE_STATUS.json',encoding='utf-8'))
+          assert data['mrx_identity_in_record'] is True
+          assert data['mrx_source_reported_root_status']=='UID0_AND_ROOT_COMMAND_RECORDED'
+          assert data['bkl_comparison']=='KIRIN970_ROOT_INCOMPLETE_BANNER'
+          assert data['tas_root_proof']=='NOT_OBSERVED'
+          print('MRX_VERIFIED_IN_PUBLIC_RECORD_ONLY_TAS_NOT_ROOTED_PASS')
+          PY
+          sha256sum "$RUNNER_TEMP/reference/README.md" "$RUNNER_TEMP/reference/docs/FACTS.md" > out/PUBLIC_SOURCE_SHA256.txt
+          printf '%s\n' 'This is public documentation source verification, not Root execution.' > out/READ_ME.txt
+      - name: Save read-only outcome evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: TAS-MRX-414-Public-Root-Proof-Only
+          path: out/
+          if-no-files-found: error
+          retention-days: 7
