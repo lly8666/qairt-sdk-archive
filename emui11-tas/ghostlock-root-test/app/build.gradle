@@ -3,7 +3,7 @@ android {
     namespace 'io.github.tasaudit.ghostlockrootlab'
     compileSdk 35
     defaultConfig {
-        applicationId 'io.github.tasaudit.ghostlockrootlab'
+        applicationId 'io.github.tasaudit.ghostlockrootlab.v02'
         minSdk 29
         targetSdk 27
         versionCode 2
