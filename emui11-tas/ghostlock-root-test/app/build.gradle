@@ -1,0 +1,16 @@
+plugins { id 'com.android.application' }
+android {
+    namespace 'io.github.tasaudit.ghostlockrootlab'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'io.github.tasaudit.ghostlockrootlab'
+        minSdk 29
+        targetSdk 27
+        versionCode 1
+        versionName '0.1-tas-an00-native-port'
+    }
+    buildTypes {
+        debug { minifyEnabled false }
+    }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}
