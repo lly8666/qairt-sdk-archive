@@ -1,5 +1,7 @@
 # TAS-AN00: Published GhostLock reference vs. measured APK-only results
 
+> **MRX success status correction (2026-11-12):** The **MRX-W09 / Kirin990 / 4.14.116 / EMUI11.0.0.235** source record *does* report completed **UID0/root-command execution on its own device**, as documented in `docs/FACTS.md` sections (131), (133), and (137), including a successful `rsh -c id` result. This is separate from the **BKL-L09 / Kirin970** top-level README, whose port remained incomplete. The successful MRX reference outcome is relevant prior art but **not a Root result on TAS-AN00**. See [MRX_KIRIN990_REAL_ROOT_PROOF_VS_TAS_20261112.md](MRX_KIRIN990_REAL_ROOT_PROOF_VS_TAS_20261112.md) for pinned public evidence, firmware differences, and exact links.\n
+
 Date: 2026-11-12. Purpose: **faithfully account for reproduction progress** using publicly available research, without claiming a completed root chain.
 
 **Owner's explicit priority:** reproduce the published GhostLock approach and obtain temporary root, from a user-installed APK only, **no PC/ADB**. Privacy app clean-up comes after that. This is owner's own device; do not misrepresent intent as malicious.
