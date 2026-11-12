@@ -1,5 +1,5 @@
 # TAS-AN00 GhostLock Research — Current State / Next-Agent Handoff
-Updated: 2026-11-12 (UTC) | Status: **Device verified; KASLR leak blocked in app; Mali ABI confirmed; root not achieved.**
+Updated: 2026-11-12 (UTC) | Status: **Device verified; Mali 11.16 ABI confirmed on-device; v1.1 memory import/own-file canary compiled; physical v1.1 result pending; root not achieved.**
 Branch: `emui11-firmware-offline-audit-20261112` | Draft PR: https://github.com/lly8666/qairt-sdk-archive/pull/124
 
 ## Target (actual user-provided on-device logs)
@@ -41,8 +41,22 @@ Other device results:
 - Reference MRX 990 EMUI11 used a separate **privileged pre-stage** before perf-based KASLR leak; cannot obtain kernel address by simply calling `leak_text()` from an untrusted Android app.
 - Native core source port: `emui11-tas/native-port/build_tas_source.py` and CI `.github/workflows/emui11-tas-native-port.yml` (compiled). Do not treat a successful build as proof of root.
 
+## 2026-11-12 next step DELIVERED: GPU memory import test APK v1.1
+
+**Success in Actions:** https://github.com/lly8666/qairt-sdk-archive/actions/runs/43182369524 (all steps passed, APK v2 signature and no permissions verified).
+
+- Android package: `io.github.tasaudit.runtimeinventory.v11` (separate from earlier v1.0 so side-by-side), version `1.1.0-tas-mali-full-batch`, minSdk29 / targetSdk27 to permit native child process execution on Android 10.
+- APK SHA256: `c0beec93e877fdcec4b0af6d2e3fb65ab09341216528be0092ef38cb6f73ac23`, length 69,678 bytes.
+- Native binary `tas_mali_batch_arm64` SHA256 `7f0377eb81f1a9eb20cacb913743912e0244f23d0b7e3b33ff7a0a4c9dcf49b6`, 15,944 bytes, PIE, interpreter `/system/bin/linker64`.
+- Code paths: `emui11-tas/runtime-inventory/native/tas_mali_batch.c`, `app/src/main/java/io/github/tasaudit/runtimeinventory/MaliBatchRunner.java`, `SystemFileExporter.java`, `SystemFileExportProvider.java`.
+- Reuses the exact **BKL 11.16** GPU ABI structure/interface and request codes for VERSION_CHECK, SET_FLAGS, MEM_ALLOC, MEM_IMPORT and JOB_SUBMIT.
+- App button **2** runs six fork-isolated GPU stages with per-case 6s watchdog. Last case tests the *reference's page-cache mechanism against a newly created app-private single-page test file only*. Does not patch system files or Root; note that the driver test can crash/kernel panic. Logs are line-by-line fsync'd to `TAS_MALI_COMPAT_V2_last.txt` in app private data, viewable after reboot.
+- App button **3** packages exact readable OS ELF bytes (`bugreportz`, `toybox`, `app_process64`, `libc.so` and vendor SELinux CIL/context) into a shared ZIP; encrypted/user-private files are excluded by fixed allowlist. `dumpstate` may be unreadable and is then listed as skipped. No automatic uploads, contents supplied by the user only if they share the ZIP.
+- Host C compile with `-Werror` and arm64 clang compile both PASS; APK signature and zip contents inspected. **ON-DEVICE memory import & canary have NOT yet been run.**
+- **Next operator input:** request only **button 2's full TAS_MALI_BATCH_RUNNER_BEGIN...END log**, and if possible **button 3's OS ELF ZIP**. Device already proved VERSION_CHECK11.16; do NOT request it again. Mark each case's `rc/errno`, `CASE_EXIT`, `CASE_SIGNAL`, `CASE_TIMEOUT`; use the two canary readbacks to assess the self-file page-cache primitive. DO NOT assume success from compile alone.
+
 ## Immediately next — short, prioritized engineering route
-1. **Code and test Bifrost API compatibility probe** in existing `emui11-tas/runtime-inventory`: after version 11.16 success, test `SET_FLAGS`, small GPU `MEM_ALLOC`, `MEM_IMPORT`, CPU map and cleanup as independent isolated diagnostics. Prefer first a sacrificial user-owned buffer rather than system executable page; report exact errno/return, guard threads/timeouts. Do not claim page-cache exploit works on the basis of ABI version alone.
+1. **Collect and analyze now-implemented Bifrost API compatibility probe** in existing `emui11-tas/runtime-inventory`: after version 11.16 success, test `SET_FLAGS`, small GPU `MEM_ALLOC`, `MEM_IMPORT`, CPU map and cleanup as independent isolated diagnostics. Prefer first a sacrificial user-owned buffer rather than system executable page; report exact errno/return, guard threads/timeouts. Do not claim page-cache exploit works on the basis of ABI version alone.
 2. Extract exact `toybox`, `bugreportz`, `libc.so` bytes from device (readable by app) in a shareable ZIP using a minimal Android `ContentProvider` or ADB pull. Use their actual ELF Build IDs and offsets, not BKL's baked offsets.
 3. Correlate vendor SELinux source and actual device `/dev/mali0` labels/permissions. App has confirmed version ioctl; note elevated policy restrictions.
 4. Port/validate the existing pre-stage only after dynamic compatibility evidence. Re-run `perf_event_open` in the correct context rather than repeating blocked app-mode calls. Full Root remains UNVERIFIED.
