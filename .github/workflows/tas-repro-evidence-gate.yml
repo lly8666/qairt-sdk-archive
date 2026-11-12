@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'emui11-tas/tools/tas_repro_evidence_gate.py'
+      - 'emui11-tas/tools/tas_kernel_patch_status.py'
       - '.github/workflows/tas-repro-evidence-gate.yml'
   workflow_dispatch:
 
@@ -21,6 +22,8 @@ jobs:
           set -euo pipefail
           mkdir -p out
           python3 -m py_compile emui11-tas/tools/tas_repro_evidence_gate.py
+          python3 -m py_compile emui11-tas/tools/tas_kernel_patch_status.py
+          python3 emui11-tas/tools/tas_kernel_patch_status.py --selftest | tee out/PINNED_KERNEL_PATCH_AUDIT_SELFTEST.txt
           python3 emui11-tas/tools/tas_repro_evidence_gate.py --selftest | tee out/SELFTEST.txt
           python3 emui11-tas/tools/tas_repro_evidence_gate.py --output out/NO_EXTRA_LOGS.json
           python3 - <<'PY'
