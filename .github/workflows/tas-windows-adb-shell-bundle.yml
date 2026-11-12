@@ -37,7 +37,7 @@ jobs:
           $ErrorActionPreference = 'Stop'
           New-Item -ItemType Directory -Force -Path out/bundle | Out-Null
           Copy-Item -LiteralPath 'emui11-tas/windows-adb/TAS_ADB_Shell_Inventory.ps1' -Destination 'out/bundle/'
-          Copy-Item -LiteralPath 'emui11-tas/windows-adb/双击运行_TAS_ADB_Shell_采集.cmd' -Destination 'out/bundle/'
+          Copy-Item -LiteralPath 'emui11-tas/windows-adb/Run_TAS_ADB_Shell_Inventory.cmd' -Destination 'out/bundle/'
           Copy-Item -LiteralPath 'emui11-tas/windows-adb/README_CN.md' -Destination 'out/bundle/'
           $hashes = Get-ChildItem -LiteralPath 'out/bundle' -File | ForEach-Object {
             $h = Get-FileHash -Algorithm SHA256 -LiteralPath $_.FullName
