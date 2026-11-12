@@ -117,7 +117,7 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$apk" > out/APK_BADGING.txt
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "$apk" > out/APK_SIGNATURE.txt
           unzip -l "$apk" > out/APK_CONTENTS.txt
-          grep -q "package: name='io.github.tasaudit.runtimeinventory.v12'" out/APK_BADGING.txt
+          grep -q "package: name='io.github.tasaudit.runtimeinventory.v13'" out/APK_BADGING.txt
           grep -q "sdkVersion:'29'" out/APK_BADGING.txt
           grep -q "targetSdkVersion:'27'" out/APK_BADGING.txt
           ! grep -q '^uses-permission' out/APK_BADGING.txt
@@ -125,7 +125,7 @@ jobs:
           grep -q 'assets/tas_mali_batch_arm64' out/APK_CONTENTS.txt
           grep -q 'assets/tas_mali_batch.sha256' out/APK_CONTENTS.txt
           grep -q 'Verified using v2 scheme' out/APK_SIGNATURE.txt
-          cp "$apk" out/TAS_AN00_Mali_Service_Survey_v1_2-debug.apk
+          cp "$apk" out/TAS_AN00_Dumpstate_Config_Survey_v1_3-debug.apk
           sha256sum out/TAS_AN00_Mali_Service_Survey_v1_2-debug.apk > out/APK_SHA256.txt
           echo "v1.2 includes one-tap read-only dumpstate/SELinux service survey, exact ELF ZIP export, and optional previously verified 6-case Mali batch; no system executable patching." > out/SECURITY_SCOPE.txt
           cat out/APK_SHA256.txt
@@ -133,7 +133,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: TAS-AN00-Mali-Service-Survey-v1_2
+          name: TAS-AN00-Dumpstate-Config-Survey-v1_3
           path: out/
           retention-days: 7
           if-no-files-found: error
