@@ -33,6 +33,20 @@ Requested final outcome: **temporary root** from an installable APK. **NOT ACHIE
 4. For legitimate temporary root, establish a **vendor-supported authorized elevated execution route** or authorized bootloader-unlock/engineering environment. Without one, say **not verified / not possible to promise**, not "root working".
 5. No code or instructions in this handoff should be interpreted as permission to patch privileged system executables, defeat SELinux/HKIP, or deploy a live kernel escalation chain. Future agents must distinguish legitimate research and compatibility measurements from a working privilege-escalation exploit.
 
+## NEW — exact TAS kernel patch-state rechecked (2026-11-12)
+
+The previous tentative statement in this document — "TAS kernel CVE patch state not independently determined" — **has been superseded**.
+
+- Downloaded the original kernel-recovery artifacts from **successful Actions run [43215710221](https://github.com/lly8666/qairt-sdk-archive/actions/runs/43215710221)**, recovered from owner's exact release `emui11_t`.
+- Original Linux Image pinned SHA256: `d4b6f00aff4a4e05a3d5d794552165b0c950913aa841b356cae9bc69ae8ea2e5`.
+- Symbolized ELF pinned SHA256: `b31c32928f2f095497825b28cc7c31a291ff649bfc4afe2a825bbda0b0ff3716`.
+- Independently examined `remove_waiter` with `llvm-objdump`: the early bookkeeping still uses the current task derived from `SP_EL0` and clears PI state through that pointer, matching the kernel.org CVE-2026-43499 **unpatched pattern**. Static classification **`CONSISTENT_WITH_UNPATCHED_GHOSTLOCK`**, not definitive live exploitability.
+- Added tracked read-only script [tools/tas_kernel_patch_status.py](tools/tas_kernel_patch_status.py), with pinned ELF hash guard, synthetic negative tests and no runtime kernel operations. Proof gate [CI run 43217530126](https://github.com/lly8666/qairt-sdk-archive/actions/runs/43217530126) passed.
+- Full measured evidence: [validation/TAS_GHOSTLOCK_PINNED_KERNEL_PATCH_STATUS_20261112.md](validation/TAS_GHOSTLOCK_PINNED_KERNEL_PATCH_STATUS_20261112.md).
+- **CVE release date correction:** kernel CVE announcement dated **2026-05-21**, while some vendor advisories were posted in July 2026. The kernel report says the bug can lead to UAF; the specific TAS operational Root chain is **still unproven**.
+
+**Honest decision:** GhostLock is a plausible research target for this firmware due to real static evidence, but owner requires APK-only with no ADB, and the **app-to-privileged process barrier + app perf EACCES** remain. No confirmed root-capable APK was produced. Do not treat this report as device exploitation or a working Root path. Android 10 also lacks Shizuku's phone-only Android 11+ wireless-debugging setup.
+
 ## 2026-11-12 verified public-source recheck and route triage
 
 ### Source-backed facts
@@ -50,7 +64,7 @@ Requested final outcome: **temporary root** from an installable APK. **NOT ACHIE
 | Huawei official unlocked bootloader | Unlock-code service ended; handset reports `locked`, `green` |
 | Reference Mali 11.16 buffer operations | **Proven** by six-case on-device test |
 | Protected service code execution / kernel perf access | **Unproven**; app perf calls EACCES |
-| CVE-2026-43499 kernel UAF patch state on exact TAS image | **Not independently determined from disassembly**; 2021 build date alone is insufficient |
+| CVE-2026-43499 kernel UAF patch state on exact TAS image | **Static pattern now confirmed consistent with unpatched; live exploitation still unverified**; 2021 build date alone is insufficient |
 | Complete phone-only temporary Root | **NOT ACHIEVED**; no published exact-firmware APK verified |
 
 **Next high-value non-invasive analysis (no owner interaction):** perform a read-only, source-to-exact-kernel firmware review to classify `remove_waiter` fix status without creating or executing a kernel exploit. Record uncertainty faithfully. Do **not** keep asking user to rerun GPU canaries or app init surveys; their evidence is complete. A weaponized system-executable tamper, SELinux bypass, or credential UAF payload is outside this audit.
