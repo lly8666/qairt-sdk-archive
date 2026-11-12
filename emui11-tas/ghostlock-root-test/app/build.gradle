@@ -1,0 +1,16 @@
+plugins { id 'com.android.application' }
+android {
+    namespace 'io.github.tasaudit.ghostlockrootlab'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'io.github.tasaudit.ghostlockrootlab.v02'
+        minSdk 29
+        targetSdk 27
+        versionCode 2
+        versionName '0.2-tas-an00-batch-leak-diagnostics'
+    }
+    buildTypes {
+        debug { minifyEnabled false }
+    }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}

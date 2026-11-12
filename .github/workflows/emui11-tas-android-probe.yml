@@ -1,0 +1,71 @@
+name: EMUI11 TAS read-only Android 10 probe build
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/emui11-tas-android-probe.yml'
+      - 'emui11-tas/tas_device_probe.c'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - name: Native host safety and format smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          cc -std=c11 -O2 -Wall -Wextra -Werror emui11-tas/tas_device_probe.c -o /tmp/tas_device_probe_host
+          /tmp/tas_device_probe_host > /tmp/tas_device_probe_host_output.txt
+          grep -q '^probe_behavior=read_only_no_root_no_exploit$' /tmp/tas_device_probe_host_output.txt
+          grep -q '^uname_release=' /tmp/tas_device_probe_host_output.txt
+      - name: Provision Android NDK r27c only if not cached
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdk="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          ndk="$sdk/ndk/27.2.12479018"
+          if test ! -x "$ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/clang"; then
+            echo "No cached r27c. Download official NDK r27c from dl.google.com"
+            curl --fail --location --retry 2 --silent --show-error \
+              'https://dl.google.com/android/repository/android-ndk-r27c-linux.zip' \
+              --output "$RUNNER_TEMP/android-ndk-r27c-linux.zip"
+            printf '090e8083a715fdb1a3e402d0763c388abb03fb4e  %s\n' \
+              "$RUNNER_TEMP/android-ndk-r27c-linux.zip" | sha1sum --check
+            unzip -q "$RUNNER_TEMP/android-ndk-r27c-linux.zip" \
+              'android-ndk-r27c/toolchains/llvm/prebuilt/linux-x86_64/*' \
+              -d "$RUNNER_TEMP"
+            ndk="$RUNNER_TEMP/android-ndk-r27c"
+          fi
+          test -x "$ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/clang"
+          echo "NDK_ROOT=$ndk" >> "$GITHUB_ENV"
+      - name: Cross-build Android 10 ARM64 executable
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          "$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android29-clang" \
+              -std=c11 -O2 -g0 -Wall -Wextra -Werror -fstack-protector-strong \
+              -fPIE -pie -o out/tas_device_probe_android10_arm64 \
+              emui11-tas/tas_device_probe.c
+          file out/tas_device_probe_android10_arm64 | tee out/file-report.txt
+          readelf -h out/tas_device_probe_android10_arm64 > out/elf-header.txt
+          readelf -l out/tas_device_probe_android10_arm64 > out/elf-program-headers.txt
+          grep -q 'AArch64' out/elf-header.txt
+          sha256sum out/tas_device_probe_android10_arm64 > out/SHA256SUMS
+          printf '%s\n' \
+            'Target: Huawei TAS EMUI11, Android10/API29' \
+            'Toolchain: Google Android NDK 27.2.12479018 (r27c)' \
+            'Behavior: read-only; no kernel exploit; no root; no flash' > out/BUILD_NOTES.txt
+      - name: Upload tiny ARM64 probe binary and build evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: tas-emui11-android10-arm64-probe
+          path: out/
+          if-no-files-found: error
+          retention-days: 3

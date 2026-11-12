@@ -1,0 +1,96 @@
+name: TAS-AN00 evidence/proof gate (Python only)
+
+on:
+  pull_request:
+    paths:
+      - 'emui11-tas/tools/tas_repro_evidence_gate.py'
+      - 'emui11-tas/tools/tas_context_decision.py'
+      - 'emui11-tas/tools/tas_mrx235_to_tas185_static_gate.py'
+      - 'emui11-tas/tools/tas_mali_elf_inventory.py'
+      - 'emui11-tas/validation/TAS_MALI_PINNED_ELF_SYMBOL_INVENTORY_20261112.json'
+      - 'emui11-tas/tools/tas_kernel_patch_status.py'
+      - 'emui11-tas/tools/tas_public_ghostlock_apk_gate.py'
+      - '.github/workflows/tas-repro-evidence-gate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  proof-gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate all 6 GPU stages and check no false Root inference
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          python3 -m py_compile emui11-tas/tools/tas_repro_evidence_gate.py
+          python3 -m py_compile emui11-tas/tools/tas_context_decision.py
+          python3 -m py_compile emui11-tas/tools/tas_mrx235_to_tas185_static_gate.py
+          python3 emui11-tas/tools/tas_mrx235_to_tas185_static_gate.py --selftest | tee out/MRX235_TAS185_STATIC_GATE_SELFTEST.txt
+          python3 -m py_compile emui11-tas/tools/tas_mali_elf_inventory.py
+          python3 emui11-tas/tools/tas_mali_elf_inventory.py --selftest | tee out/MALI_PINNED_ELF_SELFTEST.txt
+          python3 emui11-tas/tools/tas_context_decision.py --selftest | tee out/CONTEXT_SCOPE_SELFTEST.txt
+          python3 emui11-tas/tools/tas_context_decision.py --out out/CONTEXT_SCOPE_NO_EXTRA_LOGS.json
+          python3 -m py_compile emui11-tas/tools/tas_kernel_patch_status.py
+          python3 -m py_compile emui11-tas/tools/tas_public_ghostlock_apk_gate.py
+          python3 emui11-tas/tools/tas_public_ghostlock_apk_gate.py --selftest | tee out/PUBLIC_APK_GATE_SELFTEST.txt
+          python3 emui11-tas/tools/tas_public_ghostlock_apk_gate.py --out out/PUBLIC_APK_COMPAT.json
+          python3 emui11-tas/tools/tas_kernel_patch_status.py --selftest | tee out/PINNED_KERNEL_PATCH_AUDIT_SELFTEST.txt
+          python3 emui11-tas/tools/tas_repro_evidence_gate.py --selftest | tee out/SELFTEST.txt
+          python3 emui11-tas/tools/tas_repro_evidence_gate.py --output out/NO_EXTRA_LOGS.json
+          python3 - <<'PY'
+          import json
+          p='out/NO_EXTRA_LOGS.json'
+          data=json.load(open(p,encoding='utf8'))
+          report=json.load(open('out/PUBLIC_APK_COMPAT.json',encoding='utf8'))
+          assert report['target']['android_sdk']==29
+          assert len(report['checks'])==4
+          assert report['checks'][0]['installer']=='BLOCKED_MIN_SDK'
+          assert report['checks'][1]['installer']=='BLOCKED_MIN_SDK'
+          assert report['checks'][2]['installer']=='BLOCKED_ANDROID_REQUIREMENT'
+          assert report['checks'][3]['capability']=='NEEDS_ALREADY_RUNNING_PRIVILEGED_SERVICE'
+          assert all(not p['root_verified_on_TAS'] for p in report['checks'])
+          print('PUBLIC_GHOSTLOCK_APK_GATE_PASS')
+          scope=json.load(open('out/CONTEXT_SCOPE_NO_EXTRA_LOGS.json',encoding='utf8'))
+          assert scope['schema']=='TAS_CONTEXT_DECISION_V2'
+          assert scope['evidence']['app_perf_scope']=='ONLY_PRESTAGE_UNTRUSTED_APP_CONTEXT'
+          assert scope['evidence']['post_privileged_stage_perf']=='UNMEASURED'
+          assert scope['evidence']['tas_bugreportz_client']=='NOT_A_PROOF_OF_PRESTAGE_IMPOSSIBILITY'
+          assert not any('optional read-only shell comparison remains useful' in x for x in scope['recommendations'])
+          print('APP_BASELINE_NOT_POST_STAGE_EVIDENCE_PASS')
+          from pathlib import Path
+          import sys
+          sys.path.insert(0,'emui11-tas/tools')
+          import tas_mrx235_to_tas185_static_gate as gate
+          try:
+              gate.require_pinned(Path('emui11-tas/tools/tas_mrx235_to_tas185_static_gate.py'), '0'*64,'negative_fixture')
+          except ValueError:
+              print('MRX235_TAS185_REJECT_WRONG_INPUT_PASS')
+          else:
+              raise AssertionError('Wrong hash accepted')
+          mali=json.load(open('emui11-tas/validation/TAS_MALI_PINNED_ELF_SYMBOL_INVENTORY_20261112.json',encoding='utf-8'))
+          assert mali['input']['sha256']=='b31c32928f2f095497825b28cc7c31a291ff649bfc4afe2a825bbda0b0ff3716'
+          assert mali['counts_including_cfi']['kbase']==1065
+          assert mali['kbase_cfi_symbols']+mali['kbase_non_cfi_symbols']==1065
+          assert mali['interpretation']['cve_2021_44828_vendor_backport_status']=='UNKNOWN'
+          assert mali['interpretation']['binary_function_presence_is_patch_proof'] is False
+          assert mali['interpretation']['tas_root_observed'] is False
+          print('EXACT_MALI_SYMBOL_RECORD_NO_FALSE_PATCH_OR_ROOT_CLAIMS_PASS')
+          assert data['root_status']=='NOT_VERIFIED'
+          assert data['root_claim_allowed'] is False
+          assert data['evidence']['mali_api']=='NOT_PROVIDED'
+          assert data['user_constraints']['request_adb'] is True
+          assert data['user_constraints']['phone_only'] is False
+          assert data['user_constraints']['preferred_host']=='WINDOWS_ADB_SHELL_READ_ONLY'
+          print('NO_INPUTS_AND_NO_FALSE_ROOT_ASSERTIONS_PASS')
+          PY
+      - name: Publish proof-gate self-test record
+        uses: actions/upload-artifact@v4
+        with:
+          name: TAS-GhostLock-Evidence-Gate-Only
+          path: out/
+          if-no-files-found: error
+          retention-days: 7

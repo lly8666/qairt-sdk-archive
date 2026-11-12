@@ -1,0 +1,171 @@
+name: TAS-AN00 SUPER.img EROFS direct segment extraction
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/emui11-tas-super-erofs-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  extract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch verified SUPER.img and convert Android sparse image
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p work/input work/parts work/extracted work/report
+          gh release download emui11_t --repo "$GITHUB_REPOSITORY" --pattern 'SUPER.img' --dir work/input
+          test "$(stat -c %s work/input/SUPER.img)" -eq 1435996536
+          sha256sum work/input/SUPER.img | tee work/report/SUPER_SHA256.txt
+          python3 emui11-tas/tools/sparse_layout.py work/input/SUPER.img work/report/SPARSE_LAYOUT.json \
+            > work/report/SPARSE_LAYOUT.txt
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq android-sdk-libsparse-utils erofs-utils >/dev/null
+          simg2img work/input/SUPER.img work/input/SUPER.raw.img
+          file -s work/input/SUPER.raw.img > work/report/SUPER_RAW_FILE_TYPE.txt
+          df -h . > work/report/DISK.txt
+      - name: Carve three proven EROFS filesystem regions
+        shell: bash
+        run: |
+          set -euo pipefail
+          src=work/input/SUPER.raw.img
+          dd if="$src" of=work/parts/erofs_0.img bs=1M skip=5186 count=88 conv=sparse status=none
+          dd if="$src" of=work/parts/erofs_1.img bs=1M skip=5274 count=1098 conv=sparse status=none
+          dd if="$src" of=work/parts/erofs_2.img bs=1M skip=6372 count=420 conv=sparse status=none
+          for x in work/parts/*.img; do
+            file -s "$x" || true
+            dump.erofs -s "$x" || true
+            echo "---- $x"
+          done 2>&1 | tee work/report/EROFS_SUPERBLOCKS.txt
+          python3 - <<'PY'
+          import pathlib
+          for f in sorted(pathlib.Path("work/parts").glob("*.img")):
+            with f.open("rb") as s:
+              s.seek(1024); magic=s.read(4)
+            print(f.name,f.stat().st_size,magic.hex())
+            assert magic==b'\xe2\xe1\xf5\xe0',f"missing EROFS signature: {f.name}"
+          PY
+      - name: Extract files read-only from each EROFS region
+        shell: bash
+        run: |
+          set -euo pipefail
+          for i in 0 1 2; do
+            mkdir -p "work/extracted/region_$i"
+            echo "--- Extracting EROFS region $i ---"
+            if fsck.erofs --extract="work/extracted/region_$i" "work/parts/erofs_$i.img" \
+              >"work/report/EROFS_$i.stdout" 2>"work/report/EROFS_$i.stderr"; then
+              echo "region_$i=EXTRACTED" | tee -a work/report/EROFS_STATUS.txt
+            else
+              echo "region_$i=FAILED" | tee -a work/report/EROFS_STATUS.txt
+              tail -40 "work/report/EROFS_$i.stderr"
+            fi
+          done
+          du -sh work/extracted/* | tee work/report/EXTRACTED_DISK_USAGE.txt
+      - name: Inventory actual system-service init rc references from carved filesystems
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          root=Path("work/extracted")
+          out=Path("work/report/TAS_INIT_RC_DUMPSTATE_FINDINGS.txt")
+          patterns=re.compile(r"(?i)dumpstate|bugreport|incidentd|proc_perf|perf_event_paranoid|/dev/mali|/dev/socket/dumpstate")
+          matched_files=0
+          candidate_files=0
+          with out.open("w") as report:
+            report.write("TAS INIT.RC STATIC DUMPSTATE REFERENCES\n")
+            report.write("Source: EROFS regions extracted from exact release SUPER.img; no runtime inference\n")
+            for p in sorted(root.rglob("*.rc")):
+              if not p.is_file() or p.stat().st_size>2*1024*1024:continue
+              candidate_files+=1
+              text=p.read_text(errors="replace")
+              lines=text.splitlines()
+              marks=[i for i,line in enumerate(lines) if patterns.search(line)]
+              if not marks:continue
+              matched_files+=1
+              report.write("\n===== "+str(p.relative_to(root))+" =====\n")
+              seen=set()
+              for i in marks:
+                for j in range(max(0,i-6),min(len(lines),i+8)):
+                  if j in seen:continue
+                  seen.add(j)
+                  line=lines[j][:500]
+                  report.write(f"{j+1:04d}: {line}\n")
+            report.write(f"\nSCANNED_RC_COUNT={candidate_files}\nMATCHED_RC_COUNT={matched_files}\n")
+          print(out.read_text()[:14000])
+          PY
+      - name: Inventory build props, ELF build-id, SELinux files and Mali library
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib,json,os,pathlib,re,subprocess,shutil
+          root=pathlib.Path("work/extracted")
+          out=pathlib.Path("work/report")
+          wanted={"bugreportz","dumpstate","dumpstatez","toybox","libc.so","libmali.so",
+                  "libGLES_mali.so","plat_sepolicy.cil","vendor_sepolicy.cil",
+                  "sepolicy","build.prop","plat_file_contexts","vendor_file_contexts",
+                  "plat_pub_versioned.cil","vendor_sepolicy_and_mapping.sha256"}
+          items=[]
+          for here,dirs,files in os.walk(root):
+            for filename in files:
+              if filename not in wanted:continue
+              p=pathlib.Path(here)/filename
+              item={"path":str(p.relative_to(root)),"name":filename}
+              if p.is_symlink():
+                item["symlink"]=os.readlink(p);items.append(item);continue
+              if not p.is_file():continue
+              size=p.stat().st_size
+              item["bytes"]=size
+              h=hashlib.sha256()
+              with open(p,"rb") as f:
+                for d in iter(lambda:f.read(1048576),b""):h.update(d)
+              item["sha256"]=h.hexdigest()
+              item["file"]=subprocess.run(["file","-b",str(p)],capture_output=True,text=True).stdout.strip()
+              if "ELF" in item["file"]:
+                n=subprocess.run(["readelf","-n",str(p)],capture_output=True,text=True)
+                item["build_ids"]=re.findall(r"Build ID:\s*([0-9a-f]+)",n.stdout)
+              if filename=="build.prop":
+                text=p.read_text(errors="replace")
+                item["selected_properties"]=[x for x in text.splitlines()
+                  if re.search(r"(?i)(ro\.(product|vendor|build|system)|emui|huawei|security_patch|version)",x)][:180]
+              if filename.endswith(".cil"):
+                text=p.read_text(errors="replace")
+                item["selinux_related_excerpts"]=[x[:350] for x in text.splitlines()
+                  if re.search(r"dumpstate|proc_perf|gpu_device|mali_device|shell_data_file",x,re.I)][:100]
+              if size<=24000000 and filename in {
+                    "bugreportz","dumpstate","dumpstatez","toybox","libc.so",
+                    "plat_sepolicy.cil","vendor_sepolicy.cil","build.prop"}:
+                target=out/("extract_"+re.sub(r"[^A-Za-z0-9_.-]","_",str(p.relative_to(root))))
+                shutil.copyfile(p,target)
+                item["included_file"]=target.name
+              items.append(item)
+          data={"schema":"TAS_EROF_SEGMENT_INVENTORY_V1","input":"SUPER.img",
+                "source_image_sha256":"b8534ed40278ccbec58ae2ee759b54a5a81842e8dd762f0f9d152767a571a998",
+                "read_only":True,"matched_files":items}
+          (out/"TAS_EROF_TARGET_INVENTORY.json").write_text(json.dumps(data,indent=2,ensure_ascii=False))
+          with (out/"TAS_EROF_TARGET_INVENTORY.txt").open("w") as f:
+            for item in items:
+              f.write(f"{item['path']} size={item.get('bytes')} sha256={item.get('sha256')} "
+                      f"buildids={item.get('build_ids')} included={item.get('included_file')}\n")
+          print("matched",len(items))
+          print((out/"TAS_EROF_TARGET_INVENTORY.txt").read_text()[:16000])
+          PY
+      - name: Deliver source-image evidence and selected files
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TAS-AN00-SUPER-EROFS-system-vendor-inspection
+          path: work/report/
+          retention-days: 7
+          compression-level: 6
+          if-no-files-found: error

@@ -1,0 +1,47 @@
+name: TAS GhostLock 4.14 reference source intake
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/emui11-tas-reference-source.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fetch:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Freeze and inspect published reference source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/tas-src
+          git clone --depth=1 --branch main https://github.com/BellezaEmporium/ghostlock-bkl-l09.git /tmp/tas-src/bkl-l09
+          cd /tmp/tas-src/bkl-l09
+          sha="$(git rev-parse HEAD)"
+          echo "Reference SHA=$sha"
+          test "$sha" = "381476444fbbbcf0c5e8e3c2e2166647e9134ab5"
+          cp exploit/ghostlock_mrx_e.c ../ghostlock_mrx_reference.c
+          cp exploit/offset_mrx.h ../offset_mrx_reference.h
+          cp LICENSE ../REFERENCE_LICENSE.txt
+          git status --porcelain > ../reference-git-status.txt
+          git rev-parse HEAD > ../REFERENCE_COMMIT.txt
+          grep -nE '^#define (LINK_|SCRATCH_LINK|WAITER_|TASK_|STAMP_)' ../ghostlock_mrx_reference.c > ../REFERENCE_CONSTANTS.txt
+          grep -n -E 'strcmp\(argv\[1\]|^int main\(' ../ghostlock_mrx_reference.c > ../REFERENCE_CLI_MODES.txt
+          wc -cl ../ghostlock_mrx_reference.c ../offset_mrx_reference.h
+      - name: Publish research source for isolated local static analysis
+        uses: actions/upload-artifact@v4
+        with:
+          name: tas-ghostlock-414-reference-source-pinned
+          path: |
+            /tmp/tas-src/ghostlock_mrx_reference.c
+            /tmp/tas-src/offset_mrx_reference.h
+            /tmp/tas-src/REFERENCE_LICENSE.txt
+            /tmp/tas-src/REFERENCE_COMMIT.txt
+            /tmp/tas-src/REFERENCE_CONSTANTS.txt
+            /tmp/tas-src/REFERENCE_CLI_MODES.txt
+          retention-days: 3
+          if-no-files-found: error

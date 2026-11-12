@@ -1,0 +1,81 @@
+name: TAS Windows ADB shell inventory - build and selftest
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/tas-windows-adb-shell-bundle.yml'
+      - 'emui11-tas/windows-adb/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  windows-selftest:
+    runs-on: windows-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse PowerShell 5.1 scripts and validate read-only boundaries
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($src in @('emui11-tas/windows-adb/TAS_ADB_Shell_Inventory.ps1', 'emui11-tas/windows-adb/TAS_ADB_Shell_Perf_13Case.ps1')) {
+            $tokens = $null
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $src).Path, [ref]$tokens, [ref]$errors) | Out-Null
+            if ($errors.Count -ne 0) {
+              $errors | ForEach-Object { Write-Error $_.Message }
+              throw 'PowerShell parser errors'
+            }
+            & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $src -SelfTest
+            if ($LASTEXITCODE -ne 0) { throw ('Selftest failed: ' + $src) }
+          }
+          Write-Host 'POWER_SHELL_5_1_SYNTAX_AND_SAFETY_GATES_PASS'
+      - name: Obtain and SHA-pin prior approved diagnostic ELF only
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $source = Join-Path $env:RUNNER_TEMP 'tas-prior-perf'
+          New-Item -ItemType Directory -Force -Path $source | Out-Null
+          & gh run download 43170972015 --repo $env:GITHUB_REPOSITORY --name 'tas-an00-ghostlock-rootlab-batch-v0_2' --dir $source
+          if ($LASTEXITCODE -ne 0) { throw 'Pinned artifact download failed' }
+          $probe = Join-Path $source 'tas_batchprobe_arm64'
+          if (-not (Test-Path -LiteralPath $probe -PathType Leaf)) { throw 'Missing safe perf probe in prior artifact' }
+          $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $probe).Hash.ToLowerInvariant()
+          if ($hash -ne 'f6d1a7d2747b400994d1a54ef1659d6c3fe01e50fd433b652dd8ef4feff3c6d7') {
+            throw 'Pinned diagnostic binary hash mismatch'
+          }
+          Write-Host ('PINNED_READ_ONLY_PERF_PROBE_PASS: ' + $hash)
+      - name: Build Windows distribution with separate optional perf diagnostics
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force -Path out/bundle | Out-Null
+          foreach ($name in @(
+            'TAS_ADB_Shell_Inventory.ps1',
+            'TAS_ADB_Shell_Perf_13Case.ps1',
+            'Run_TAS_ADB_Shell_Inventory.cmd',
+            'Run_TAS_ADB_Shell_Perf13.cmd',
+            'README_CN.md'
+          )) {
+            Copy-Item -LiteralPath ('emui11-tas/windows-adb/' + $name) -Destination 'out/bundle/'
+          }
+          Copy-Item -LiteralPath (Join-Path $env:RUNNER_TEMP 'tas-prior-perf/tas_batchprobe_arm64') -Destination 'out/bundle/'
+          $hashes = Get-ChildItem -LiteralPath 'out/bundle' -File | ForEach-Object {
+            $h = Get-FileHash -Algorithm SHA256 -LiteralPath $_.FullName
+            '{0} *{1}' -f $h.Hash.ToLowerInvariant(),$_.Name
+          }
+          $hashes | Set-Content -LiteralPath 'out/bundle/SHA256SUMS.txt' -Encoding UTF8
+          if ((Get-ChildItem -LiteralPath out/bundle -File).Count -ne 7) { throw 'Missing distribution files' }
+          Write-Host 'TAS_WINDOWS_ADB_BUNDLE_V2_CREATED'
+      - name: Publish self-tested Windows batch ADB tool kit
+        uses: actions/upload-artifact@v4
+        with:
+          name: TAS-AN00-Windows-ADB-Shell-Batch-v2
+          path: out/bundle/
+          if-no-files-found: error
+          retention-days: 14

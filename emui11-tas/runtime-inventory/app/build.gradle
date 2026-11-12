@@ -1,0 +1,14 @@
+plugins { id 'com.android.application' }
+android {
+    namespace 'io.github.tasaudit.runtimeinventory'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'io.github.tasaudit.runtimeinventory.stage1v14'
+        minSdk 29
+        targetSdk 27
+        versionCode 5
+        versionName '1.4.0-stage1-readonly'
+    }
+    buildTypes { debug { minifyEnabled false } }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}
