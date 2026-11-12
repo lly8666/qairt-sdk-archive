@@ -11,6 +11,8 @@ public final class NativeRunner {
     public interface Listener { void onLog(String text); }
     private static final String EXEC_ASSET="ghostlock_tas_an00_arm64";
     private static final String HASH_ASSET="ghostlock_tas.sha256";
+    private static final String BATCH_EXEC_ASSET="tas_batchprobe_arm64";
+    private static final String BATCH_HASH_ASSET="tas_batchprobe.sha256";
     private static final int LIMIT_BYTES=1024*1024;
     private NativeRunner() {}
 
@@ -29,17 +31,20 @@ public final class NativeRunner {
         }
         return out.toByteArray();
     }
-    private static File prepare(Context context) throws Exception {
+    private static File prepare(Context context, String mode) throws Exception {
+        boolean batch="--batch".equals(mode);
+        String execAsset=batch?BATCH_EXEC_ASSET:EXEC_ASSET;
+        String shaAsset=batch?BATCH_HASH_ASSET:HASH_ASSET;
         byte[] binary;
-        try(InputStream in=context.getAssets().open(EXEC_ASSET)) {binary=readAll(in);}
+        try(InputStream in=context.getAssets().open(execAsset)) {binary=readAll(in);}
         String actual=sha256(binary);
         String wanted;
-        try(InputStream in=context.getAssets().open(HASH_ASSET)) {
+        try(InputStream in=context.getAssets().open(shaAsset)) {
             wanted=new String(readAll(in),StandardCharsets.US_ASCII).trim();
         }
         if(!wanted.matches("[0-9a-f]{64}") || !wanted.equals(actual))
             throw new SecurityException("native payload SHA256 mismatch");
-        File target=new File(context.getFilesDir(),"tas_ghostlock_native");
+        File target=new File(context.getFilesDir(),batch?"tas_batchprobe_native":"tas_ghostlock_native");
         try(FileOutputStream out=new FileOutputStream(target,false)) {out.write(binary);out.getFD().sync();}
         if(!target.setExecutable(true,true))
             throw new IOException("execution permission blocked by filesystem / SELinux");
@@ -61,7 +66,7 @@ public final class NativeRunner {
         try(FileOutputStream log=new FileOutputStream(file,false)) {
             log.write(header.getBytes(StandardCharsets.UTF_8));log.getFD().sync();
             listener.onLog(header);
-            File executable=prepare(context);
+            File executable=prepare(context,mode);
             p=new ProcessBuilder(executable.getAbsolutePath(),mode)
                 .directory(context.getFilesDir()).redirectErrorStream(true).start();
             Process running=p;
