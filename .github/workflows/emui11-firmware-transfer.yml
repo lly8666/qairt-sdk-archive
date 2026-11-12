@@ -1,0 +1,45 @@
+name: EMUI 11 Mate 30 firmware transfer (read-only)
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/emui11-firmware-transfer.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  archive-firmware:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Download verified EMUI 11 release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/emui11-transfer
+          gh release download emui11_t \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern 'UPDATE.APP.zip' \
+            --dir /tmp/emui11-transfer
+          printf '%s  %s\n' \
+            'fb4cec6aa905416ede031cca602783bc1e59fdd89ee96ba1aaa54dbdaf351b0f' \
+            '/tmp/emui11-transfer/UPDATE.APP.zip' | sha256sum --check
+          python3 - <<'PY'
+          import zipfile
+          path = '/tmp/emui11-transfer/UPDATE.APP.zip'
+          with zipfile.ZipFile(path, 'r') as z:
+              for info in z.infolist():
+                  print(f'ZIP inventory: {info.filename!r} ({info.file_size} bytes)')
+          PY
+      - name: Upload original verified firmware for offline inventory
+        uses: actions/upload-artifact@v4
+        with:
+          name: emui11-mate30-verified-updateapp
+          path: /tmp/emui11-transfer/UPDATE.APP.zip
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 1
