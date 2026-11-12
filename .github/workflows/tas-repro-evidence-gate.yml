@@ -5,6 +5,7 @@ on:
     paths:
       - 'emui11-tas/tools/tas_repro_evidence_gate.py'
       - 'emui11-tas/tools/tas_context_decision.py'
+      - 'emui11-tas/tools/tas_mrx235_to_tas185_static_gate.py'
       - 'emui11-tas/tools/tas_kernel_patch_status.py'
       - 'emui11-tas/tools/tas_public_ghostlock_apk_gate.py'
       - '.github/workflows/tas-repro-evidence-gate.yml'
@@ -25,6 +26,8 @@ jobs:
           mkdir -p out
           python3 -m py_compile emui11-tas/tools/tas_repro_evidence_gate.py
           python3 -m py_compile emui11-tas/tools/tas_context_decision.py
+          python3 -m py_compile emui11-tas/tools/tas_mrx235_to_tas185_static_gate.py
+          python3 emui11-tas/tools/tas_mrx235_to_tas185_static_gate.py --selftest | tee out/MRX235_TAS185_STATIC_GATE_SELFTEST.txt
           python3 emui11-tas/tools/tas_context_decision.py --selftest | tee out/CONTEXT_SCOPE_SELFTEST.txt
           python3 emui11-tas/tools/tas_context_decision.py --out out/CONTEXT_SCOPE_NO_EXTRA_LOGS.json
           python3 -m py_compile emui11-tas/tools/tas_kernel_patch_status.py
@@ -54,6 +57,16 @@ jobs:
           assert scope['evidence']['tas_bugreportz_client']=='NOT_A_PROOF_OF_PRESTAGE_IMPOSSIBILITY'
           assert not any('optional read-only shell comparison remains useful' in x for x in scope['recommendations'])
           print('APP_BASELINE_NOT_POST_STAGE_EVIDENCE_PASS')
+          from pathlib import Path
+          import sys
+          sys.path.insert(0,'emui11-tas/tools')
+          import tas_mrx235_to_tas185_static_gate as gate
+          try:
+              gate.require_pinned(Path('emui11-tas/tools/tas_mrx235_to_tas185_static_gate.py'), '0'*64,'negative_fixture')
+          except ValueError:
+              print('MRX235_TAS185_REJECT_WRONG_INPUT_PASS')
+          else:
+              raise AssertionError('Wrong hash accepted')
           assert data['root_status']=='NOT_VERIFIED'
           assert data['root_claim_allowed'] is False
           assert data['evidence']['mali_api']=='NOT_PROVIDED'
