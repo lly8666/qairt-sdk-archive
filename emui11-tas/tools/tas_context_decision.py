@@ -69,7 +69,7 @@ def decide(app_context=None,adb=None,perf_shell=None):
     elif evidence.get("shell_perf_diagnostic")=="POSSIBLE_SUCCESS":
         recommendation.append("SHELL_PERF_MAY_WORK: independently validate perf sample count and kernel-IP availability; no Root conclusion.")
     else:
-        recommendation.append("SHELL_PERF_UNVERIFIED: owner requires APK-only; do not request ADB or infer privileged-stage failure.")
+        recommendation.append("SHELL_PERF_UNVERIFIED: user now authorizes Windows ADB shell read-only comparison; shell evidence still does not prove elevated service access.")
     elf=evidence.get("adb_dumpstate_elf",{})
     if elf.get("sha256"):
         recommendation.append("DUMPSTATE_ELF_EXACT_HASH_AVAILABLE: compare service executable identity to actual firmware and process label.")
