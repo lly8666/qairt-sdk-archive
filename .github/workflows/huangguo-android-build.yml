@@ -1,0 +1,113 @@
+name: HuangGuo Android 0.3.0 preflight and APK
+on:
+  push:
+    branches: [huangguo-apk-build-20261113]
+    paths:
+      - .github/workflows/huangguo-android-build.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    env:
+      UPSTREAM_SHA: e90b8346816a72f575d801adcbbebb530f688e4a
+    steps:
+      - name: Check out CI scripts
+        uses: actions/checkout@v4
+
+      - name: Check out exact upstream source revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch master https://github.com/colin4k/HuangguoAPP-for-Andriod.git "$RUNNER_TEMP/huangguo"
+          actual="$(git -C "$RUNNER_TEMP/huangguo" rev-parse HEAD)"
+          test "$actual" = "$UPSTREAM_SHA"
+          echo "SOURCE_DIR=$RUNNER_TEMP/huangguo" >> "$GITHUB_ENV"
+          echo "Upstream commit: $actual"
+
+      - name: Static syntax and source-configuration checks (before building)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/huangguo"
+          node --check app/src/main/assets/app.js
+          node --check app/src/main/assets/card-transition.js
+          node --check app/src/main/assets/hot-runtime.js
+          node --check app/src/main/assets/runtime.js
+          python3 -m json.tool app/src/main/assets/site-default.json > /dev/null
+          python3 -m json.tool app/src/main/assets/tags.json > /dev/null
+          grep -F 'android.permission.INTERNET' app/src/main/AndroidManifest.xml
+          grep -F "versionName '0.3.0'" app/build.gradle
+          mkdir -p "$GITHUB_WORKSPACE/build-results"
+          echo 'Static checks passed.' > "$GITHUB_WORKSPACE/build-results/STATIC-CHECKS.txt"
+
+      - name: Probe site, categories, metadata and HLS (before building)
+        shell: bash
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          python3 -m venv "$RUNNER_TEMP/site-venv"
+          "$RUNNER_TEMP/site-venv/bin/pip" -q install 'requests>=2.31,<3' 'beautifulsoup4>=4.12,<5'
+          "$RUNNER_TEMP/site-venv/bin/python" audit/huangguo-preflight.py "$SOURCE_DIR" "$GITHUB_WORKSPACE/build-results/SITE-PREFLIGHT.json" \
+            | tee "$GITHUB_WORKSPACE/build-results/SITE-PREFLIGHT.log"
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android API 37 and Build Tools 36
+        shell: bash
+        run: |
+          set -euo pipefail
+          yes | sdkmanager --licenses > /dev/null || true
+          sdkmanager --install "platforms;android-37" "build-tools;36.0.0"
+          sdkmanager --list_installed | grep -E 'platforms;android-37|build-tools;36.0.0'
+
+      - name: Compile installable debug-signed APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$SOURCE_DIR"
+          chmod +x ./gradlew
+          ./gradlew --no-daemon --max-workers=2 --stacktrace :app:assembleDebug
+          test -s app/build/outputs/apk/debug/app-debug.apk
+          cp app/build/outputs/apk/debug/app-debug.apk "$GITHUB_WORKSPACE/build-results/HuangGuo-Android-v0.3.0-tested-debug.apk"
+
+      - name: Verify APK signing and required app assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk="$GITHUB_WORKSPACE/build-results/HuangGuo-Android-v0.3.0-tested-debug.apk"
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs --min-sdk-version 26 "$apk" \
+            | tee "$GITHUB_WORKSPACE/build-results/APK-SIGNATURE.txt"
+          python3 - "$apk" <<'PY'
+          import sys, zipfile
+          with zipfile.ZipFile(sys.argv[1]) as apk:
+              files=set(apk.namelist())
+              expected=('assets/app.js','assets/app.html','assets/site-default.json','assets/tags.json','classes.dex')
+              missing=[x for x in expected if x not in files]
+              assert not missing, f"Missing APK content: {missing}"
+              print("Validated embedded assets and bytecode.")
+          PY
+          (cd "$GITHUB_WORKSPACE/build-results" && sha256sum '*.apk' 2>/dev/null || sha256sum ./*.apk) \
+            > "$GITHUB_WORKSPACE/build-results/SHA256SUMS.txt"
+          stat -c '%n %s bytes' "$apk" | tee "$GITHUB_WORKSPACE/build-results/APK-SIZE.txt"
+
+      - name: Upload compiled APK and audit results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: HuangGuo-Android-0.3.0-preflight-debug
+          path: build-results/
+          if-no-files-found: warn
+          retention-days: 14
+          compression-level: 0
