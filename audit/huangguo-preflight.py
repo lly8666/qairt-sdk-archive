@@ -69,6 +69,15 @@ for name in ("home", "recommend", "category:ai-duanju", "category:ai-manju"):
     try:
         data = json.loads(node.string or node.get_text())
         source_url = str(data.get("videoSrc") or "")
+        def shape(v):
+            if isinstance(v, str):
+                return {"type": "string", "length": len(v), "https": v.startswith("https://"), "host": urlsplit(v).hostname if v.startswith("https://") else None}
+            if isinstance(v, list):
+                return {"type": "list", "length": len(v), "first_type": type(v[0]).__name__ if v else None, "first_keys": sorted(v[0].keys())[:20] if v and isinstance(v[0], dict) else None}
+            if isinstance(v, dict):
+                return {"type": "object", "length": len(v), "keys": list(v.keys())[:14], "first_type": type(next(iter(v.values()))).__name__ if v else None}
+            return {"type": type(v).__name__}
+        record("playback-shapes:" + name, "observed", shapes={k: shape(data.get(k)) for k in ("videoSrc", "videoSrcHevc", "epPlaySrcs", "epPlaySrcsHevc", "videoApi", "cdnM3u8Enabled")})
         record("fields:" + name, "observed", data_keys=sorted(data.keys())[:35],
                playback_keys=[k for k in data if any(part in k.lower() for part in ("video", "play", "url", "source"))],
                videoSrc_length=len(source_url))
