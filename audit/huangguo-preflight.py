@@ -69,6 +69,9 @@ for name in ("home", "recommend", "category:ai-duanju", "category:ai-manju"):
     try:
         data = json.loads(node.string or node.get_text())
         source_url = str(data.get("videoSrc") or "")
+        record("fields:" + name, "observed", data_keys=sorted(data.keys())[:35],
+               playback_keys=[k for k in data if any(part in k.lower() for part in ("video", "play", "url", "source"))],
+               videoSrc_length=len(source_url))
         linked_eps = []
         for link in soup.select('a[href]'):
             m = re.match(r"/video/" + re.escape(vid) + r"/(?:ep-(\d+)/)?$", urlsplit(urljoin(origin, link.get("href", ""))).path)
