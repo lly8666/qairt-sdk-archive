@@ -66,13 +66,19 @@ jobs:
         with:
           packages: platform-tools
 
-      - name: Install Android API 37 and Build Tools 36
+      - name: Install stable Android API 36 and Build Tools 36
         shell: bash
         run: |
           set -euo pipefail
           yes | sdkmanager --licenses > /dev/null || true
-          sdkmanager --install "platforms;android-37" "build-tools;36.0.0"
-          sdkmanager --list_installed | grep -E 'platforms;android-37|build-tools;36.0.0'
+          sdkmanager --install "platforms;android-36" "build-tools;36.0.0"
+          sdkmanager --list_installed | grep -E 'platforms;android-36|build-tools;36.0.0'
+          # Upstream compiles against android-37, which is not in hosted SDK channels.
+          # Build-only fallback: compile against API 36, preserving minSdk/targetSdk.
+          cp "$SOURCE_DIR/app/build.gradle" "$GITHUB_WORKSPACE/build-results/UPSTREAM-app-build.gradle"
+          sed -i 's/compileSdk 37/compileSdk 36/' "$SOURCE_DIR/app/build.gradle"
+          grep -F 'compileSdk 36' "$SOURCE_DIR/app/build.gradle"
+          echo 'Build-only change: compileSdk 37 -> 36; targetSdk is unchanged (36).' > "$GITHUB_WORKSPACE/build-results/SDK-FALLBACK.txt"
 
       - name: Compile installable debug-signed APK
         shell: bash
