@@ -5,6 +5,7 @@ import sqlite3, sys
 db = sqlite3.connect(sys.argv[1])
 db.execute("PRAGMA foreign_keys=ON")
 checks = {
+    'latest retrofit rating contains superseded reviews': """SELECT a.assessment_id FROM v_membrane_retrofit_rating a WHERE NOT EXISTS (SELECT 1 FROM v_latest_membrane_reviews r WHERE r.review_id=a.review_id)""",
     'diagram evidence cross-site': """SELECT e.evidence_id FROM process_diagram_evidence e
         JOIN process_diagrams d USING(diagram_id) JOIN wastewater w USING(water_id)
         WHERE d.site_id<>w.site_id""",

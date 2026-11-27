@@ -18,3 +18,6 @@ python catalyst-research/export_dossiers.py /tmp/catalyst-new.sqlite /tmp/cataly
 ```
 
 公开仓库只保存公开产业信息和明确标注的待核线索。所有研究只提交 catalyst-wastewater 分支，不修改 main 或其他项目。图表/档案派生物以最新可重建数据为准。
+
+### 技术经济参考与可下载产物
+`technical_benchmarks` / `v_technical_benchmarks` 存放无法定位具体厂商但有文献依据的独立技术经济案例，不进入逐厂统计。`v_membrane_retrofit_rating` 只取最新审查版本；历史查询使用 `v_membrane_retrofit_rating_history`。专用CI增量等价验证后提供SQLite和档案ZIP，保留7天；以实际成功运行及其Artifacts为准。

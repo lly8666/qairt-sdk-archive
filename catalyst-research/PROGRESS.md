@@ -117,3 +117,9 @@ GitHub 保存完整8张基线CSV、重建程序、schema及增量SQL；本地生
 ## 2026-11-27 W01-B10 / W11-B11（020）
 - 新增CN0249山东鹏达（1500t/a废剂、1392t/a再生载体，42999.695m³/a酸洗水、100m³/h共享站UF/ED/RO/三效、5837.68m³/a纯水排水另纳管）；CN0250新疆润林（10000m³/a SCR设计、50m³/d，管式膜/ED/RO/真空结晶；管式膜类型未明，不把旧HW48验收当SCR验收）。国能龙源乌海新转移方案补钒钨回收及许可、2025泰州电厂21批568.62t单客户实际量。长汀官网30m³/h微球线与旧20t/h保留冲突，非增线。按V0.7保存关键参数，PDF图表摘录无标签的不猜；实际水量和运行状态仍待核。
 - 修正v_membrane_retrofit_rating重复计入旧审查版本，历史查询保留v_membrane_retrofit_rating_history；不删旧评估。新增 {"sites":2,"sources":4,"tasks":2,"capacity":3,"projects":2,"wastewater":6,"water_metrics":10,"evidence_notes":6,"claims":3,"process_diagrams":3,"process_diagram_evidence":6,"membrane_reviews":3,"membrane_units":6,"membrane_retrofits":3,"search_log":4}，等待全库验证。
+
+- 020实际验证通过：提交 4f1d6af55e193107f2bcbcc7fa3630f099d7a9bc；[Actions 45997152233](https://github.com/lly8666/qairt-sdk-archive/actions/runs/45997152233)，job 140499298798 成功。250主体、428废水、252产能、464来源、398指标、21经济、249任务、104项目、256主张、524摘要、265检索；110图/审查/评估版本，107最新范围，256图关联，57膜单元；80主体有图、170无图，96工艺线索、36部分、115缺失、3设计无水；130主体有水、68有数值。250档案、252 ZIP条目。完整性通过、FK=0、8项审计0；最新评估105条件未知难度、2不适用，排除3旧审查版本。
+
+## 2026-11-27 W01-B11 / W11-B12（021）
+- 补天津南化官网近5000t/a及装置数量、湖北项目2026—2028建设期；海螺提取树脂属物料工艺，未充当污水膜；昕立表158已有湿法回收摘要结构化，并补独立制备盐源强和外排环境限值；铁岭贵鑫补纯水回用与三四厂分图；泉州丰鹏、浙江微通、江苏绿合安、锦州宏亚按原证据图谱回填，不伪称新调查。微通600吨回收技改环评采购线索不计在产。新增独立technical_benchmarks表记录匿名上海催化剂重金属废水工业试验30元/t，不虚构厂名，不进入逐厂成本。
+- 新增 {"sources":5,"capacity":1,"evidence_notes":6,"claims":2,"search_log":9,"wastewater":2,"water_metrics":12,"process_diagrams":8,"process_diagram_evidence":13,"membrane_reviews":8,"membrane_retrofits":8,"membrane_units":1,"technical_benchmarks":1}。新增验证：最新评分只取最新审查版本；独立从019重建后增量迁移与完整重建的所有表/视图逐行多重集双向比较；专用CI输出数据库及档案ZIP（7天保留），等待实际结果。未核实际膜价/现场成本；没有获得有效细节的厂继续保留缺口。
