@@ -1,0 +1,39 @@
+name: Catalyst research database validation
+on:
+  push:
+    branches: [catalyst-wastewater]
+    paths: ['catalyst-research/**', '.github/workflows/catalyst-research-validate.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    if: github.ref == 'refs/heads/catalyst-wastewater'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: catalyst-research
+          persist-credentials: false
+      - name: Rebuild and audit
+        run: |
+          python catalyst-research/build.py /tmp/catalyst.sqlite
+          python catalyst-research/audit_process_membrane.py /tmp/catalyst.sqlite
+          python catalyst-research/export_dossiers.py /tmp/catalyst.sqlite /tmp/catalyst-dossiers
+          python - <<'PY'
+          import sqlite3,pathlib,zipfile
+          db=sqlite3.connect('/tmp/catalyst.sqlite')
+          for (table,) in db.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"):
+              print(table,db.execute('SELECT count(*) FROM "'+table+'"').fetchone()[0])
+          print('water coverage',db.execute('SELECT water_level,count(*) FROM sites GROUP BY 1').fetchall())
+          print('diagrams by stage',db.execute('SELECT stage,count(*) FROM v_latest_process_diagrams GROUP BY 1').fetchall())
+          print('water sites',db.execute('SELECT count(DISTINCT site_id),count(DISTINCT CASE WHEN flow IS NOT NULL THEN site_id END) FROM wastewater').fetchone())
+          root=pathlib.Path('/tmp/catalyst-dossiers')
+          assert len(list(root.glob('CN*.md')))==db.execute('SELECT count(*) FROM sites').fetchone()[0]
+          with zipfile.ZipFile('/tmp/catalyst-dossiers.zip','w',zipfile.ZIP_DEFLATED) as z:
+              for p in sorted(root.iterdir()): z.write(p,p.name)
+          with zipfile.ZipFile('/tmp/catalyst-dossiers.zip') as z:
+              assert z.testzip() is None
+              print('ZIP entries',len(z.namelist()))
+          PY
