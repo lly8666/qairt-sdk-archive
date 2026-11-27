@@ -4,7 +4,7 @@ import sqlite3, pathlib, sys, csv, zipfile
 def main():
     db=sqlite3.connect(sys.argv[1]); db.row_factory=sqlite3.Row
     out=pathlib.Path(sys.argv[2]); out.mkdir(parents=True,exist_ok=True)
-    tables=[('capacity','产能及规模'),('wastewater','逐股废水处理'),('water_metrics','水质及回收指标'),('projects','建设及改造项目'),('claims','字段级主张'),('evidence_notes','详细证据摘录'),('search_log','调查检索日志'),('tasks','未完成任务')]
+    tables=[('capacity','产能及规模'),('wastewater','逐股废水处理'),('water_metrics','水质及回收指标'),('water_economics','污水投资与运行成本'),('projects','建设及改造项目'),('claims','字段级主张'),('evidence_notes','详细证据摘录'),('search_log','调查检索日志'),('tasks','未完成任务')]
     names={r['source_id']:dict(r) for r in db.execute('SELECT * FROM sources')}
     def val(v): return '未记录' if v is None or v=='' else str(v)
     def entries(rows):
