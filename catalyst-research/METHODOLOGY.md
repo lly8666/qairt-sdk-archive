@@ -18,7 +18,7 @@
 - 对照 search_log 的具体查询与失败原因，重复检索只在有新信息、不同引擎、不同入口、不同时间窗口、报告版本、检索目标或附件可访问性时执行。记录为什么重查；不能把同一次检索拆成多个对象虚增工作量。历史日志过于泛化是遗留缺陷，以后必须记录真实关键词、检索渠道、日期、实际命中/失败及下一检索路径。
 - 样例查询（可按目标变更）：
   SELECT * FROM sites WHERE name LIKE '%关键词%' OR address LIKE '%园区%';
-  SELECT * FROM site_relations WHERE site_id_a=? OR site_id_b=?; -- 列名先 PRAGMA 核对，历史版本可能不同
+  SELECT * FROM site_relations WHERE site_id=? OR other_site_id=?; -- 两个参数绑定同一 site_id
   SELECT * FROM search_log WHERE site_id=? ORDER BY 1;
   SELECT * FROM v_water_dossier WHERE site_id=?;
   SELECT * FROM v_evidence_detail WHERE site_id=?;
