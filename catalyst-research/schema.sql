@@ -1,0 +1,10 @@
+PRAGMA foreign_keys=ON;
+CREATE TABLE sites(site_id TEXT PRIMARY KEY,name TEXT NOT NULL,province TEXT,city TEXT,address TEXT,category TEXT,status TEXT,record_type TEXT,capacity_summary TEXT,water_summary TEXT,water_level TEXT,priority TEXT,permit_id TEXT,source_status TEXT,as_of TEXT,notes TEXT);
+CREATE TABLE sources(source_id TEXT PRIMARY KEY,title TEXT,url TEXT,source_type TEXT,document_date TEXT,scope TEXT,access_date TEXT);
+CREATE TABLE site_sources(site_id TEXT REFERENCES sites,source_id TEXT REFERENCES sources,PRIMARY KEY(site_id,source_id));
+CREATE TABLE capacity(capacity_id TEXT PRIMARY KEY,site_id TEXT REFERENCES sites,product TEXT,value REAL,unit TEXT,basis TEXT,period TEXT,scope TEXT,source_id TEXT REFERENCES sources,notes TEXT);
+CREATE TABLE wastewater(water_id TEXT PRIMARY KEY,site_id TEXT REFERENCES sites,stream TEXT,stage TEXT,flow REAL,flow_unit TEXT,flow_basis TEXT,pollutants TEXT,process TEXT,destination TEXT,residuals TEXT,source_id TEXT REFERENCES sources,confidence TEXT,notes TEXT);
+CREATE TABLE projects(project_id TEXT PRIMARY KEY,site_id TEXT REFERENCES sites,project TEXT,status TEXT,date TEXT,capacity_note TEXT,water_change TEXT,source_id TEXT REFERENCES sources);
+CREATE TABLE tasks(task_id TEXT PRIMARY KEY,site_id TEXT REFERENCES sites,priority TEXT,missing TEXT,next_query TEXT,state TEXT);
+CREATE TABLE coverage(dimension TEXT,scope TEXT,state TEXT,evidence TEXT,next_step TEXT,PRIMARY KEY(dimension,scope));
+CREATE VIEW v_water_priority AS SELECT s.site_id,s.name,s.province,s.city,s.category,s.status,s.priority,s.water_level,s.water_summary,w.stream,w.stage,w.flow,w.flow_unit,w.flow_basis,w.process,w.destination,w.confidence,e.url FROM sites s LEFT JOIN wastewater w ON s.site_id=w.site_id LEFT JOIN sources e ON w.source_id=e.source_id;
