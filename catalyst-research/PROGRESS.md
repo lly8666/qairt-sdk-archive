@@ -93,3 +93,8 @@ GitHub 保存完整8张基线CSV、重建程序、schema及增量SQL；本地生
 
 ## 2026-11-27 W01-B6/W11-B7（016）
 依V0.7直接提取关键资料；新增中海油天化高科CN0247（2026-11-20官方披露建成5000吨/年，投用待核），天津含银回收1200吨在建；中触媒年度低温干燥、现有MBR、含镍验收与拟建站独立；惠城董家口许可和2024氨氮实绩；齐鲁200m³/h开工膜浓缩（类型未知，不套匿名案例）；鼎际得罐车转运；思凯瑞最终批复、绿园ED/RO、两中自基地、鲁西共享分盐及分质项目图；恒申、富基旧数据图谱回填；南化湖北、奥达、上海一期分项补证。新增 {"sites":1,"sources":21,"capacity":7,"projects":3,"tasks":1,"wastewater":15,"evidence_notes":6,"claims":5,"search_log":16,"water_metrics":6,"process_diagrams":15,"process_diagram_evidence":27,"membrane_reviews":15,"membrane_retrofits":15,"membrane_units":8}。共享、设计、历史及实际报告期边界保留，不以原PDF文件为交付。缺失主要仍是厂级实测流量、运行状态、成本及浓水去向；待CI验证。
+
+- 016实际验证通过：提交 63ae0760249cc609221bb64d589aa31fdd7c72ab；[Actions 45991893709](https://github.com/lly8666/qairt-sdk-archive/actions/runs/45991893709)，job 140481498572 成功。247主体、395废水、231产能、431来源、341指标、18经济记录、246任务、96项目、247主张、489摘要、236日志；88图/审查/评估版本，85最新范围，214关联、45膜单元；65主体有图，182无图；88工艺线索、36部分、120缺失、3设计无水；123主体有水，66有数值。247逐厂档案、249 ZIP条目，integrity ok、FK 0、8项膜审计为0。既有APK工作流失败，与研究验证无关。
+
+## 2026-11-27 W01-B7/W11-B8（017）
+按新证据规则继续六个既有主体分质补证/图谱回填：凯立历史酸/一般/含氨及全环保费用边界；神马高盐MVR与高氨分流、纯水RO不计污水膜；金陵石化混合项目四套处理能力、65/35%支路与共享UF/RO；虹彩历史摘要取得政府来源并补2026安全设计状态；南京化工研究院600t/a技改不新增排水量；高化学历史铜系与拟扩建MBR分开。新记录 {"wastewater":10,"evidence_notes":6,"process_diagrams":9,"process_diagram_evidence":18,"membrane_reviews":9,"membrane_retrofits":9,"search_log":6,"sources":3,"membrane_units":3}。旧源复用，不将共用能力、历史环保费用或设计值认作厂级水处理实绩；没有充分实际工程参数不评分。等待远程验证。
