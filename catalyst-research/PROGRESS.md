@@ -129,3 +129,8 @@ GitHub 保存完整8张基线CSV、重建程序、schema及增量SQL；本地生
 
 ## 2026-11-27 批量施工022 W01-B12/W11-B13
 - 分组查缺失制造企业和新项目：新增CN0251淄博飞源（100t/a历史设计、2026 150t/a技改公示；2025既有ED浓缩、2024Q4 DW005六项范围、独立R32 12m³/d），CN0252安徽迪诺载体（2021外排110.2万t、实际载体31519t，酸水类别量92220t口径差异保留；载体不计新剂）。青岛联信淄博、湖北荟煌、江西申麦由缺口获得纳管/设施与数量证据。浙能母液干化设备62.35万元中标，独立膜标段金额未知；宁波康纳补许可。嘉虹、润驰及迅凯旧资料经去重不重复。新增 {"sites":2,"sources":12,"tasks":2,"capacity":6,"projects":2,"wastewater":10,"water_metrics":19,"evidence_notes":8,"claims":2,"process_diagrams":6,"process_diagram_evidence":10,"membrane_reviews":6,"membrane_units":2,"membrane_retrofits":6,"search_log":17,"water_economics":1}。飞源PDF截图失败，但文本表明确；荟煌p73截图成功。既有水量和设计不混，膜种不推断，废水进出量冲突留待核。等待验证。
+
+- 022实际验证通过：提交 ebfe5827bd490a97e69c3e91adca1a8d5ffcff76；Actions 45999533448，job 140507327581。252主体、440废水、259产能、481来源、429指标、22经济、251任务、106项目、260主张、538摘要、291检索、124图/审查/评估、279关联、60膜单元。90主体有图、162无图；98工艺线索、38部分、113缺失、3设计无水；135主体有水、70有数值。31表/视图增量与完整重建一致、9项审计0、FK=0、完整性ok。252档案及ZIP254条目。产物 https://github.com/lly8666/qairt-sdk-archive/actions/runs/45999533448/artifacts/15196199947 。旧APK工作流失败非研究工作流。
+
+## 2026-11-27 批量施工023 W01-B13/W11-B14
+- 新增CN0253南通泰禾12吨既有和150吨替换设计，2026一期批复明确排除150吨；共享400m³/d物化与1200m³/d生化分开。新增CN0254尚正中试绿色有机与DMC各2t/a，单股3.583m³/a，电芬顿非膜证据，混合中试1018.943m³/a、总排5033.703m³/a、共享800m³/d及电芬顿450m³/d分别保留；设计浓度非实测。补齐嘉虹、易门贵研、清远恒德、CN0226-28及江苏斯德瑞克的历史/设计边界图；既有记录不重复录入，同行类比不当原厂验收。新增 {"sites":2,"sources":5,"capacity":4,"projects":2,"tasks":2,"wastewater":7,"evidence_notes":2,"claims":2,"process_diagrams":11,"process_diagram_evidence":18,"membrane_reviews":11,"membrane_retrofits":11,"search_log":9,"water_metrics":27,"membrane_units":1}。两份PDF截图分别因过大、超时失败，文本可读，按V0.7提取关键参数；实际工况及吨水成本仍缺。待CI验证。
