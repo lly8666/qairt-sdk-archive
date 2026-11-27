@@ -20,6 +20,23 @@ def main():
         chunks=['# '+d['name']+'（'+ident+'）','本档案为数据库自动导出。设计、历史、拟建与实际运行不能混用；缺失不等于零。证据摘录非原文全文。','## 基本信息',entries([d])]
         for table, title in tables:
             rows=db.execute(f'SELECT * FROM {table} WHERE site_id=? ORDER BY 1',(ident,)).fetchall();chunks+=['## '+title,entries(rows)]
+        if db.execute("SELECT 1 FROM sqlite_master WHERE name='process_diagrams'").fetchone():
+            chunks+=['## 污水处理流程图（事实图，分阶段和范围）']
+            diagrams=db.execute('SELECT * FROM process_diagrams WHERE site_id=? ORDER BY scope_key,stage,period,revision',(ident,)).fetchall()
+            if not diagrams: chunks+=['暂无证据流程图；待施工，不代表无废水。']
+            for diagram in diagrams:
+                details=dict(diagram)
+                mermaid=details.pop('mermaid')
+                chunks += [entries([details]),'~~~mermaid\n'+mermaid+'\n~~~',
+                           '### 图中证据',entries(db.execute('SELECT * FROM process_diagram_evidence WHERE diagram_id=? ORDER BY 1',(diagram['diagram_id'],)).fetchall())]
+            chunks+=['## 膜技术审查（事实与状态）']
+            reviews=db.execute('SELECT * FROM membrane_reviews WHERE site_id=? ORDER BY scope_key,stage,period,revision',(ident,)).fetchall()
+            if not reviews: chunks+=['尚未进行专门膜审查；不能认为未使用膜。']
+            for review in reviews:
+                chunks += [entries([review]),'### 膜设备及具体类型',
+                           entries(db.execute('SELECT * FROM membrane_units WHERE review_id=? ORDER BY 1',(review['review_id'],)).fetchall())]
+            chunks+=['## 膜改造与优化（工程推断，非现行工艺）',entries(db.execute('SELECT * FROM v_membrane_retrofit_rating WHERE site_id=? ORDER BY 1',(ident,)).fetchall()),
+                     '### 改造评估历次版本',entries(db.execute('SELECT * FROM membrane_retrofits WHERE site_id=? ORDER BY 1',(ident,)).fetchall())]
         rows=db.execute('SELECT e.* FROM site_sources a JOIN sources e USING(source_id) WHERE a.site_id=? ORDER BY e.source_id',(ident,)).fetchall()
         chunks+=['## 来源索引',entries(rows)]
         (out/(ident+'.md')).write_text('\n\n'.join(chunks),encoding='utf-8')

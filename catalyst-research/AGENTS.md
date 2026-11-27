@@ -1,0 +1,25 @@
+# AGENTS.md — 中国催化剂生产与工业废水研究接续入口
+
+本目录属于 `catalyst-wastewater` 专用分支。任何接手本研究的 Agent 都必须先读本文件；不需要、也不得假定能访问前任聊天记忆。上级安全指令、用户最新目标与权限优先于本文件。不得在本任务中修改 main 或 QAIRT SDK 无关内容。
+
+## 接手的第一件事：恢复状态，不从头重做
+1. 读取当前远程分支 HEAD 和本目录文件清单。读 README.md、METHODOLOGY.md、PROCESS_MEMBRANE.md、WORKPLAN.md、EVIDENCE_POLICY.md、PROGRESS.md（至少最近若干工作包），再检查 data/、schema.sql、migrations/、build.py、export_dossiers.py、audit_process_membrane.py。若能使用 git，检出此分支并 pull --ff-only；不能 clone 时，用授权 GitHub 接口逐文件读取，不能假装已取得本地文件。
+2. 用最新八张基线 CSV、schema.sql 和所有编号 SQL 迁移重建新 SQLite 文件，禁止覆盖原始数据库；核对表结构、数量、外键和最新进度；数值不一致以实际查询为准，记录偏差。示例（在仓库根目录）：
+   - python catalyst-research/build.py /tmp/catalyst-NEW.sqlite
+   - python catalyst-research/audit_process_membrane.py /tmp/catalyst-NEW.sqlite
+   - python catalyst-research/export_dossiers.py /tmp/catalyst-NEW.sqlite /tmp/catalyst-dossiers
+3. 先查 sites、capacity、projects、site_relations、sources、site_sources、search_log、tasks、coverage、wastewater、water_metrics、claims、evidence_notes、water_economics；再查 v_process_membrane_queue 与相关新表。以现有 site_id 为锚，检查企业别名、原名、母子公司、厂址、信用代码、许可证、项目期次及已搜过的具体来源，再选择任务。
+4. 不重复搜集同一事实、不重复入库同一厂、不重复上传同一文档。已查失败的查询有新角度/日期/附件/来源才值得重试；已存在同类事实时只补新字段、不同时间证据或纠错，并保留旧版本。需要确认旧结论时明确标为复核，不冒充首次发现。
+5. 每次用户说“继续”，直接从最新任务队列与进度施工；不要只写计划、等待用户再次催促，也不要许诺后台施工。先完成可完成部分；持续增加有效覆盖和证据质量，而非追求虚增记录条数。
+
+## 交接检查点（2026-11-27，非永久常量）
+远程 V0.8 数据迁移 001—008，HEAD a9022e8a8f188f5a747046c77b55dc3225456b30。PROGRESS.md 记载：244主体/项目、312废水（120主体，59有数值水量或能力）、205产能、388来源、88项目、219主张、185检索日志、243待办、220水质、456摘要、6经济指标；81有工艺线索、3设计无生产废水、39部分、121缺失。主体数并非独立在产工厂数，历史进度不等于重新核证。009 迁移增加流程图、膜技术与改造结构，不自动生成事实数据。
+- 121缺失及39部分优先按真实制造基地、规模和湿法废水价值选择；先处理大厂、聚合/加氢/分子筛/铜镍等，SCR新剂继续查；回收厂和载体另列。
+- 81工艺线索＋3无生产废水设计是流程图首批回填候选，不代表已有84张完整实际流程图。先用已有废水、来源、摘要，不重新搜全套资料；部分资料可画有限边界图，缺失则列任务。新来源与既有来源必须区分。
+- 重点遗漏与历史冲突：迅凯、齐茂、润和各厂、中科催化大连、西南化工各基地、康纳、凯立、双雄等详见 tasks/search_log；集团产能、设计和投产、吨与立方米、浓水与全量不能相加。
+- 本轮只做工程交接和结构建设，没有新增企业调查。沙盒无法直接 clone；009 已做隔离 SQLite 样例测试，未全库重建或运行远程 CI。下一 Agent 首先做全库重建和新增审计。
+
+## 每轮必须交付
+从最新 HEAD 建编号迁移（不改历史基线/迁移），保留所有新证据和失败日志，填写来源与字段级主张，更新 PROGRESS.md 及实际覆盖/待办，运行完整重建、语义/去重检查、导出、检查 ZIP；有 GitHub 权限时提交专用分支，使用非强制更新和预期 HEAD，回读验证文件哈希与提交。没有成功就如实报告，并保留可应用的本地补丁。不要声称未执行的测试通过。
+
+新增硬要求：每厂流程图、膜技术识别、无膜改造评估（已用膜亦分析优化机会），按照 PROCESS_MEMBRANE.md 实施。未知不是没有，改造推断不是已建工艺。用户要求所有实质细节入库，详见 METHODOLOGY.md。
