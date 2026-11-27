@@ -3,7 +3,7 @@ CREATE TABLE claims(claim_id TEXT PRIMARY KEY,site_id TEXT NOT NULL REFERENCES s
 CREATE TABLE search_log(log_id TEXT PRIMARY KEY,site_id TEXT REFERENCES sites,work_package TEXT NOT NULL,query TEXT NOT NULL,source_id TEXT REFERENCES sources,result TEXT NOT NULL,next_action TEXT,search_date TEXT NOT NULL);
 CREATE TABLE site_relations(relation_id TEXT PRIMARY KEY,site_id TEXT NOT NULL REFERENCES sites,other_site_id TEXT NOT NULL REFERENCES sites,relation TEXT NOT NULL,status TEXT NOT NULL,source_id TEXT REFERENCES sources,notes TEXT);
 INSERT INTO sources VALUES
-('W01S01','中触媒特种分子筛和环保催化新材料研发及产业化项目（改建）竣工验收意见','https://cn.china-catalyst.com/wp-content/uploads/2025/05/03%E9%AA%8C%E6%94%B6%E6%84%8F%E8%A7%81%E5%85%AC%E7%89%BA%E7%89%881.pdf','企业验收意见','2025-05-27','第1-4页：项目产能、许可证、含镍废水沉淀预处理、排放去向；第2-3页截图复核','2026-11-27'),
+('W01S01','中触媒特种分子筛和环保催化新材料研发及产业化项目（改建）竣工验收意见','https://cn.china-catalyst.com/wp-content/uploads/2025/05/03%E9%AA%8C%E6%94%B6%E6%84%8F%E8%A7%81%E5%85%AC%E7%A4%BA%E7%89%881.pdf','企业验收意见','2025-05-27','第1-4页：项目产能、许可证、含镍废水沉淀预处理、排放去向；第2-3页截图复核','2026-11-27'),
 ('W01S02','天门市生态环境局：湖北润驰10万吨废矿物油技改首次公示','https://www.tianmen.gov.cn/zwgk/bmhxzxxgkml/bm/ssthjj/zfxxgk/fdzdgknr/gysyjs/shzz/hpgzcy/202402/t20240229_5101487.shtml','政府环评公示','2024-02-29','工程概况：2017批复、分期调整、二期催化剂线未建；全厂已有污水站','2026-11-27'),
 ('W01S03','迅凯催化企业简介','https://www.sun-chem.com/about.html','企业官网',NULL,'安徽基地2023投产；11000吨/年混合产品包含载体','2026-11-27'),
 ('W01S04','铜陵市2026年度环境监管重点单位名录','https://sthjj.tl.gov.cn/tlssthjj/c00006/pc/content/content_2038510479770181632.html','政府监管名录','2026','第109项迅凯；许可证号、水环境监管','2026-11-27'),
