@@ -22,3 +22,6 @@
 
 ## 071补强
 先查v_research_pending_events：不要求已有尝试轨道，事件独立可见；旧hold仍须人工复核。事件必须绑定同一主体、范围、缺口、路径且检查日不早于事件日的尝试才能消费。相同事件类型与来源不得反复插入；索引新发现与附件真正取得分开。每轮运行test_research_revisit.py验证（合成事件事务回滚）。
+
+## 073调度实测补充
+每轮先查v_research_dispatch_audit、v_research_document_tracks（全部复核轨道，含独立scope及非当前gap）与v_research_document_dispatch。候选显示review_prior_tracks_before_new_gap时，先核旧定位，明确新缺口/新章节再访问，不重复原章节；独立轨道partial立即可提取剩余内容，但旧站级hold须人工核。blocked仅限制原访问路径，section_done仅限制原章节。不得以缺口变化自动清除历史复核，也不得跨gap把一份报告全部封死。审计统计并非工时或效率实测；23轨道尚不足覆盖全库。运行test_document_dispatch.py <重建库>；另继续071事件测试。每轮记录实际跳过的低收益轨道及真实新收益，未到期不得以同路径复查凑数。
