@@ -295,3 +295,8 @@ GitHub 保存完整8张基线CSV、重建程序、schema及增量SQL；本地生
 
 ## 2026-11-28 施工050 W01-B38/W11-B39
 - 起点e9b20a5256689c99eb80a035ad889a1fb019d515；本地049产物 integrity ok，读取AGENTS、PUBLIC_RESEARCH_CLOSURE、CONTACT_POLICY及核心队列、目标旧来源。新疆德创CN0248新取原环评表3.6-3/4，26m³/d、7204m³/a、四股洗水及类比水质，2024许可证正式核发；类比广东新盈信而非实测，报告回用/纳管异文保留。华电哈密CN0070同源表3.8-6八分股及水质，300m³/d既有设计不重复，2026-11现场生产证据不等于污水单元投运；邻厂高盐氯化钙及近2000万元处置采购成本均非本厂污水费用。河南锦壕CN0234正式批复称锦壤，同项目不另建主体；补公辅与生活外排支路，非全厂零排放。迅凯11000t/a含载体产能和2023投产官网自述，赢创处罚摘要未见具体排口、皇马专利不当作实际。新增{"sources":11,"site_sources":11,"wastewater":21,"water_metrics":111,"capacity":4,"projects":2,"evidence_notes":9,"process_diagrams":2,"process_diagram_evidence":8,"membrane_reviews":2,"membrane_application_classification":1,"membrane_units":1,"membrane_retrofits":2,"business_contacts":7,"search_log":13}，13检索对象含无增益，2图是深化非首图，未得新实际监测及吨水成本。7公开业务渠道，未拨打核实；截图失败用正文，Mermaid未独立渲染。待专项验证。优先有完整原表及实际验收，未达用户大批量目标，不以重复记录充数。
+
+- 050专项验证通过：Actions 46100815411；产物15245203280 SHA256 9dc11021b075f3737ccb8fd9f8864436f9ada698ee353cdaa9dc9984c6f0d4fd，SQLite integrity ok/FK0。复核发现S050-06与W01S03同URL，C050-04与旧C0031同产能；051归并，不虚增来源和产能。
+
+## 2026-11-28 施工051 W01-B39/W11-B40（同一用户轮第二批）
+- 高化学江苏既有报告恢复可读，录入2019两天四组验收逐次数据（含ND不作0），2024引用后评价源强、已建设备能力和报告时点实际处理量，铝/铈/铅异文保留；华茂招股历史综合环保费用及共享项目设计单列，不当实际污水成本；铜川凯立11-27验收转载新增二阶段与累计产能，主体用项目名与上市披露匹配，原文设计/实际列未核不画运行图；新增云南弘盛铂业CN0304回收主体，建设收尾不当投运；官网渠道新增7。湖南先导、恒优、天辰旧资料复查不重复。{"sources":5,"sites":1,"site_sources":5,"tasks":1,"wastewater":19,"water_metrics":296,"capacity":5,"projects":3,"evidence_notes":5,"business_contacts":7,"search_log":8}；净扣1重复来源和1重复产能，8检索对象含无增益；未新增首次图和实际污水运行成本。待专项验证。
