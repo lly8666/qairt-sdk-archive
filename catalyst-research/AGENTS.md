@@ -66,3 +66,6 @@
 
 ## 073补充：独立报告轨道及机制实测
 接续时同时查v_research_dispatch_audit、v_research_document_tracks、v_research_document_dispatch；review_prior_tracks_before_new_gap先查旧scope/gap/章节，不以新首要gap触发已读章节重复检索。partial可继续指定剩余章节；独立新报告/事件仍可提前处理，原hold不自动解除。记录实际跳过及增益；运行test_document_dispatch.py及test_research_revisit.py。具体见RESEARCH_REVISIT_POLICY.md。
+
+## 074起：更大并行施工批次（用户最新要求）
+目标每轮分组批量筛查约50–60互异候选、争取至少30个不同主体/项目的实质新增；按工程原报告指定章节、独立产品/许可漏厂、近期审批验收及采购、企业公开工作渠道分组并行，先查旧库和调度轨道，再批量检索；同源同项目重复不计有效任务。一次失败不得全站冷却，真实记录工程新增、专项新增、重复/无增益、访问阻断、未完成以及实际互异主体；用户要求规模不等于完成量承诺。优先工程量化、实际处理、膜和处置费用，不用弱索引或状态更新替代工程增益。沿用073机制与065资料覆盖优先，不做商业界面重构。
