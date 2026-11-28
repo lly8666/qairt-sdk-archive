@@ -42,6 +42,7 @@ with connect(db) as c:
     assert n("SELECT count(*) FROM market_treatment_systems WHERE site_id='CN0184' AND source_id='S109-01'")==4
     assert n("SELECT count(*) FROM market_stream_system_links WHERE site_id='CN0184' AND source_id='S109-01'")==4
     assert n("SELECT count(*) FROM process_diagrams WHERE diagram_id='D109-HER'")==1
+    assert n("SELECT count(*) FROM process_diagram_evidence WHERE diagram_id='D109-HER'")==4
     assert n("SELECT count(*) FROM membrane_retrofits WHERE assessment_id='A109-HER'")==1
     assert n("SELECT count(*) FROM market_ownership_observations WHERE observation_id='OW0021' AND controlling_entity_id='MO0036'")==1
     with tempfile.TemporaryDirectory() as tmp:
