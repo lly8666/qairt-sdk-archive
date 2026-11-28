@@ -16,6 +16,11 @@ with connect(db) as c:
     assert o['signal_hits']==n('SELECT count(*) FROM v_workbench_water_signals')
     assert o['signals']==n('SELECT count(*) FROM v_workbench_candidates')
     assert n("SELECT count(*) FROM market_ownership_observations WHERE observation_id IN ('OW0018','OW0019','OW0020')")==3
+    assert n("SELECT count(*) FROM sources WHERE url LIKE '%2026-11/20/nw.D110000zgzqb_20261120_1-B015.htm'")==1
+    assert n("SELECT count(*) FROM market_identity_links WHERE link_id='ML0061'")==0
+    assert n("SELECT count(*) FROM capacity WHERE site_id='CN0184' AND source_id='S108-02'")==4
+    assert c.execute("SELECT sum(value) FROM capacity WHERE site_id='CN0184' AND source_id='S108-02'").fetchone()[0]==500
+    assert c.execute("SELECT address FROM market_entities WHERE entity_id='MF0011'").fetchone()[0]=='南京化学工业园区赵桥河南路139号'
     assert n("SELECT count(*) FROM v_market_ownership_review WHERE site_id='CN0184' AND ownership_class='foreign_controlled' AND evidence_state='evidence_linked'")>0
     assert n("SELECT count(*) FROM v_market_ownership_review WHERE site_id='CN0308' AND ownership_class='private_controlled' AND effective_period='2026-06-30报告期末'")>0
     assert n("SELECT count(*) FROM v_market_ownership_review WHERE site_id='CN0026' AND effective_period='2026-11-20股份过户完成'")>0
