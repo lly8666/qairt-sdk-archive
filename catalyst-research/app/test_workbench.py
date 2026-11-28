@@ -11,7 +11,9 @@ with connect(db) as c:
     def n(q):return c.execute(q).fetchone()[0]
     o=overview(c)
     assert o['subjects']==n('SELECT count(*) FROM sites')==375
-    assert o['water_records']==n('SELECT count(*) FROM wastewater')==1387
+    assert o['water_records']==n('SELECT count(*) FROM wastewater')
+    assert n("SELECT count(*) FROM wastewater WHERE source_id='S109-01'")==4
+    assert n("SELECT count(*) FROM market_streams WHERE source_id='S109-01'")==4
     assert o['signal_streams']==n('SELECT count(DISTINCT water_id) FROM v_workbench_water_signals')
     assert o['signal_hits']==n('SELECT count(*) FROM v_workbench_water_signals')
     assert o['signals']==n('SELECT count(*) FROM v_workbench_candidates')
