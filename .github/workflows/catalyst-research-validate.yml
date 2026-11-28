@@ -18,6 +18,7 @@ jobs:
           persist-credentials: false
       - name: Rebuild and audit
         run: |
+          python catalyst-research/check_handoff.py
           python catalyst-research/build.py /tmp/catalyst.sqlite
           python catalyst-research/audit_process_membrane.py /tmp/catalyst.sqlite
           python catalyst-research/verify_incremental.py /tmp/catalyst.sqlite 19
