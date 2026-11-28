@@ -454,3 +454,7 @@ GitHub 保存完整8张基线CSV、重建程序、schema及增量SQL；本地生
 
 ## 2026-11-28 088 原始验收图及生产耗用、分期接管、厂区补漏
 087实库排重：新昌公盛64单次监测、10万元投资、监测日产量均038已录，纠正初步新增判断；图4-1/2本轮截图成功，细化芬顿及物化生化、污泥压滤，增加3个历史核算水量（3770.6/1756/5526.6非全年计量）。龙净2018调试产量与全生产线耗用，非污水专项电药耗；江苏中润泽2个审批接管量上限、10个污染物年总量，非工业水量或实测。新增山西华星、中催、广东金正龙3主体（许可综合、建设项目、工程竣工均不当实际产量）；星铂同证号第三方线索保留在铂盛历史待核，不增厂区；有道20t转移批准非实收。17轨道10互异主体8有增益，其中3工程主体、11专项轨道、1重复、2受阻，未达30有效目标。没有新增实测水质或真实吨水成本，工作耗时未独立计量，不能声称节省或扩大实际时长。新增{"sources":11,"sites":3,"site_sources":13,"site_relations":1,"capacity":10,"projects":3,"wastewater":5,"water_metrics":10,"process_diagrams":1,"process_diagram_evidence":5,"membrane_reviews":1,"membrane_retrofits":1,"evidence_notes":15,"tasks":3,"search_log":17,"research_revisit_attempts":17,"research_document_review":3}；待CI及本地核验。
+
+- 088 CI 46119839728 success，产物15253575265实际下载SHA256 fc4c51a2c0b38c0449dc630592409ff76d0bab6002e0da20a4c422a53db8932e一致；integrity ok/FK0/非空URL重复0/任务优先级正常/档案ZIP364项。实数361主体、993来源、724规模、253项目、1250废水、4868指标、296图/审查/改造、1123笔记、46经济、1073日志、218复查、72文档轨道。
+## 2026-11-28 089 追加正式环评批复截图核查
+润和浙江二期正式批复p2原图确认高硅及高氨氮预处理后归含盐水排放支路，闭合历史待核分流，1号蒸发后未知保留；4废剂分项13000/3000/1500/12500构成30000不叠加。南京扬子环保扫描批复p2及p6取证，旧33/150站规模不重复，新增接管水量上限61560t/a及接管/环境年总量12项，非实际。湖南先导及浙江德创原件受阻登记。089 5轨道4互异2工程增益，1重复2受阻；088+089合计22轨道14互异10增益（5工程主体），未达30目标。新增{"capacity":4,"wastewater":1,"water_metrics":12,"process_diagrams":1,"process_diagram_evidence":5,"membrane_reviews":1,"membrane_retrofits":1,"evidence_notes":2,"search_log":5,"research_revisit_attempts":5,"research_document_review":5}，另更新2废水去向。待CI本地核验，无新增实测及真实吨水成本。
