@@ -89,9 +89,13 @@ INSERT INTO market_screen_terms VALUES
 ('membrane_optimization','process','电渗析','direct'),
 ('membrane_optimization','process','双极膜','direct'),
 ('membrane_optimization','process','BMED','direct'),
-('membrane_optimization','process','ED','contextual'),
-('membrane_optimization','process','UF','contextual'),
-('membrane_optimization','process','RO','contextual');
+('membrane_optimization','process','ED系统','direct'),
+('membrane_optimization','process','UF膜','direct'),
+('membrane_optimization','process','RO系统','direct'),
+('membrane_optimization','process','DTRO','direct'),
+('membrane_optimization','process','STRO','direct'),
+('membrane_optimization','process','NF膜','direct'),
+('membrane_optimization','process','反渗透系统','direct');
 CREATE VIEW v_workbench_water_signals AS
 SELECT w.site_id,w.water_id,t.direction,w.source_id,w.stage,w.stream,w.flow,w.flow_unit,w.flow_basis,w.pollutants,w.process,w.destination,w.residuals,
  group_concat(t.term,'、') AS matched_terms,

@@ -27,6 +27,7 @@ with connect(db) as c:
     assert n("SELECT count(*) FROM market_procurement_observations WHERE procurement_id='PR0012' AND procurement_stage='solicitation_historical'")==1
     assert n("SELECT count(*) FROM v_workbench_contact_routes WHERE site_id='CN0127' AND channel_type='supplier_portal' AND public_work_channel IS NOT NULL")==1
     assert n("SELECT count(*) FROM v_workbench_water_signals WHERE direction='external_disposal' AND water_id='W0001'")==0
+    assert n("SELECT count(*) FROM market_screen_terms WHERE term IN ('ED','UF','RO')")==0
     assert n("SELECT count(*) FROM v_workbench_equipment WHERE technology_family='pressure_membrane'")>0
     assert n("SELECT count(*) FROM v_workbench_economics WHERE economics_group<>'other_reference'")>0
     assert browse(c,owner='private_controlled')['total']>0
