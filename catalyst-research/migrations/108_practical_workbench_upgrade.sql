@@ -93,7 +93,7 @@ INSERT INTO market_screen_terms VALUES
 ('membrane_optimization','process','RO','contextual');
 CREATE VIEW v_workbench_water_signals AS
 SELECT w.site_id,w.water_id,t.direction,w.source_id,w.stage,w.stream,w.flow,w.flow_unit,w.flow_basis,w.pollutants,w.process,w.destination,w.residuals,
- group_concat(DISTINCT t.term,'、') AS matched_terms,
+ group_concat(t.term,'、') AS matched_terms,
  CASE WHEN max(CASE WHEN t.signal_strength='direct' THEN 1 ELSE 0 END)=1 THEN 'direct' ELSE 'contextual' END AS signal_strength
 FROM wastewater w JOIN market_screen_terms t ON
  CASE t.field_scope

@@ -56,7 +56,7 @@ with connect(db) as c:
             req=urllib.request.Request(url+'/work/observations',data=json.dumps({'site_id':'CN0015','water_id':'W0102','parameter':'pH','value':7,'unit':'','scope':'feed','basis':'synthetic'}).encode(),headers={'Content-Type':'application/json'})
             # Blank units are intentionally rejected by the UI/service.
             try:urllib.request.urlopen(req);raise AssertionError('blank unit accepted')
-            except Exception:pass
+            except urllib.error.HTTPError as e:assert e.code==400
             req=urllib.request.Request(url+'/work/economics',data=json.dumps({'annual_volume':1000,'volume_unit':'m3/a','scope':'same','period':'2026','volume_basis':'synthetic','cost_boundary':'same','old_cost':10,'new_cost':8,'incremental_recovery':0,'capex':10000}).encode(),headers={'Content-Type':'application/json'})
             assert json.load(urllib.request.urlopen(req))['payback_years']==5
         finally:srv.shutdown();srv.server_close();t.join()

@@ -1,14 +1,3 @@
-# Practical local workbench
-Build the public SQLite database with the repository's standard build script. Start:
-```bash
-python catalyst-research/app/workbench.py /path/to/catalyst.sqlite --workspace /path/outside/repository/workspace.sqlite
-```
-Open http://127.0.0.1:8765. Without --workspace the market browser is read-only.
-- Business desk: customer search, ownership evidence, procurement route, public business channels and follow-up.
-- Technical desk: original wastewater streams, process and membrane evidence; record private stream measurements and compare them with versioned capability ranges.
-- Capability: save new technology versions and rescan candidate streams. Numeric fit is conditional screening only; unknown parameters remain unknown.
-- Tasks: overdue, today, next seven days and undated follow-ups.
-- Economics: same-scope, same-period scenario calculator; no automatic unit conversion or real quote.
-- Market: distinguish original water records, unique streams matched, direction hits and company-direction candidates.
-Workspace SQLite contains internal notes/measurements and must remain outside this public repository. This is a local single-user trial, not network production or authenticated multi-user deployment. Do not put real customer/private company data in GitHub or CI.
-Keyword directions are navigation hints; direct/contextual signal strength is shown separately. A stream may appear in several directions. Ownership is dated and not procurement authority. Procurement stages distinguish historical closed tenders from open tenders. Equipment view normalizes membrane family but retains source wording and application boundary.
+# B0003 application slice
+12 independently testable deliverables: (1) 11 priority/related legal subjects and 10 facility scopes plus 2 group entities, (2) six dated ownership observations, (3) three procurement observations, (4) 26 evidence-bound streams, (5) seven treatment systems and 24 evidence-bound connections, (6) full reported-point grouping (not physical points), (7) full production/project read-only observations, (8) paginated search with direct legal ownership evidence filter, (9) evidence-linked site detail/metrics API, (10) responsive local browser, (11) synthetic version-aware capability matcher, (12) bounded economics and explicit cashflow calculation. See migration 106 and app tests.
+Run from repo root: python catalyst-research/app/app.py /path/to/rebuilt.sqlite ; open http://127.0.0.1:8765 . Localhost-only, no authentication, no private data or write operations. Not deployable to company network as-is. Public contact metadata only, no contact values shown; authorized outreach channels and internal roles follow. Ownership filter is any dated direct evidence, not current status; group evidence is shown separately. No actual case parameters loaded. Graph edges are evidence scope, not hydraulic validation. Production observations are not normalized lines. No actual customer ranking, quote, confirmed technical suitability or annual eligible volume. 
