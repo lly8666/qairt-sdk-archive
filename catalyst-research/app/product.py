@@ -41,6 +41,7 @@ def graph(text):
     for line in text.splitlines():
         line=line.strip()
         if not line or line.startswith(('flowchart ','graph ')):continue
+        line=re.sub(r'-\.\s*"([^"]*)"\s*\.\->',lambda m:'-.->|'+m[1]+'|',line)
         parts=ARROW.split(line)
         if len(parts)==1:
             if n(line) is None:unparsed.append(line)

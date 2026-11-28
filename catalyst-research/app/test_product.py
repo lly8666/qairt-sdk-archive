@@ -18,6 +18,7 @@ with connect(db) as c:
     for (s,) in c.execute('SELECT mermaid FROM v_latest_process_diagrams'):
         g=graph(s);total+=1;unparsed+=bool(g['unparsed'])
     print('graphs',total,'with unparsed lines',unparsed)
+    assert unparsed==0
     with tempfile.TemporaryDirectory() as tmp:
         path=Path(tmp)/'workspace.sqlite'
         with open_workspace(path) as w:
