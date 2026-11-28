@@ -11,7 +11,7 @@ ROOT=Path(__file__).resolve().parent
 def browse(c,q='',province='',direction='',owner='',queue='',limit=40,offset=0,prefer_private=True,prefer_channels=True):
     where=[];args=[]
     if q:
-        where.append("(instr(lower(s.name||' '||coalesce(s.category,'')||' '||coalesce(s.city,'')),lower(?))>0 OR EXISTS(SELECT 1 FROM market_identity_links l JOIN market_entities e USING(entity_id) WHERE l.site_id=s.site_id AND instr(lower(e.name),lower(?))>0)")
+        where.append("(instr(lower(s.name||' '||coalesce(s.category,'')||' '||coalesce(s.city,'')),lower(?))>0 OR EXISTS(SELECT 1 FROM market_identity_links l JOIN market_entities e USING(entity_id) WHERE l.site_id=s.site_id AND instr(lower(e.name),lower(?))>0))")
         args.extend([q,q])
     if province:where.append('s.province=?');args.append(province)
     if direction:where.append('EXISTS(SELECT 1 FROM v_workbench_candidates x WHERE x.site_id=s.site_id AND x.direction=?)');args.append(direction)
