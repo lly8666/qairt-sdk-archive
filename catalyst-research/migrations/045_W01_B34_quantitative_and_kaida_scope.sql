@@ -1,5 +1,7 @@
 PRAGMA foreign_keys=ON;
 BEGIN;
+-- Transfer diagram, review and retrofit compound references atomically.
+PRAGMA defer_foreign_keys=ON;
 INSERT INTO sources (source_id,title,url,source_type,document_date,scope,access_date) VALUES ('S045-01','山东虹彩12000吨高端催化剂及助剂环评','https://epb.zibo.gov.cn/gongkai/channel_c_5f9fa491ab327f36e4c13066_n_1605682663.2363/doc_62e9e6d3063b00d4ea4ee1dc_42527daf3ec354417c55638454cc5f43.pdf','政府公开环评','2022-07','4.5-7至11；与2025项目分开','2026-11-28');
 INSERT INTO sources (source_id,title,url,source_type,document_date,scope,access_date) VALUES ('S045-02','虹彩32000吨石化助剂正式批复淄环审〔2025〕16号','https://epb.zibo.gov.cn/gongkai/channel_c_5f9fa491ab327f36e4c13066_n_1605682666.2475/doc_67d92f209aaab7eb974b4e2b_fae1a0b86f33f5deec8941ed61b41d24.pdf','政府批复','2025-03-12','2025项目，非验收','2026-11-28');
 INSERT INTO sources (source_id,title,url,source_type,document_date,scope,access_date) VALUES ('S045-03','凯大催化招股说明书','https://money.finance.sina.com.cn/corp/view/vCB_AllBulletinDetail.php?id=8839638&stockid=920974','交易所披露转载','2023-02','江西凯大工艺，浙江投产、康桥停产','2026-11-28');
