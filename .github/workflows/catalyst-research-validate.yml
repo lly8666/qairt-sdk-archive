@@ -24,6 +24,7 @@ jobs:
           python catalyst-research/market/test_market_identity.py /tmp/catalyst.sqlite
           python catalyst-research/market/test_market_105.py /tmp/catalyst.sqlite
           python catalyst-research/app/test_app.py /tmp/catalyst.sqlite
+          python catalyst-research/app/test_workbench.py /tmp/catalyst.sqlite
           python catalyst-research/market/audit_market.py /tmp/catalyst.sqlite /tmp/market-audit
           python catalyst-research/test_research_revisit.py /tmp/catalyst.sqlite
           python catalyst-research/test_document_dispatch.py /tmp/catalyst.sqlite
