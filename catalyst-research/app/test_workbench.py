@@ -40,6 +40,8 @@ with connect(db) as c:
     assert n("SELECT count(*) FROM capacity WHERE site_id='CN0184' AND source_id='S109-01'")==12
     assert c.execute("SELECT sum(value) FROM capacity WHERE site_id='CN0184' AND source_id='S109-01'").fetchone()[0]==3852.5
     assert n("SELECT count(*) FROM market_treatment_systems WHERE site_id='CN0184' AND source_id='S109-01'")==4
+    assert '压缩机1' in c.execute("SELECT boundary FROM market_treatment_systems WHERE system_id='TS109-04'").fetchone()[0]
+    assert '12000万美元' in c.execute("SELECT boundary FROM market_entities WHERE entity_id='MO0019'").fetchone()[0]
     assert n("SELECT count(*) FROM market_stream_system_links WHERE site_id='CN0184' AND source_id='S109-01'")==4
     assert n("SELECT count(*) FROM process_diagrams WHERE diagram_id='D109-HER'")==1
     assert n("SELECT count(*) FROM process_diagram_evidence WHERE diagram_id='D109-HER'")==4
