@@ -84,7 +84,14 @@ def make_handler(database,workspace=None):
                         finally:
                             if w is not None:w.close()
                     if u.path=='/work/templates':return self.answer(templates(get('direction')))
-                    if u.path=='/work/cards':return self.answer(action_cards(c,get('id') or None))
+                    if u.path=='/work/cards':
+                        a=action_cards(c,get('id') or None)
+                        if workspace:
+                            with open_workspace(workspace) as w:
+                                relations={r['site_id']:r['relationship'] for r in records(w,'SELECT site_id,relationship FROM customer_relationships')}
+                            for r in a:
+                                r['relationship']=relations.get(r['site_id'],'未标记')
+                        return self.answer(a)
                     if u.path=='/work/report':return self.send(200,report(c,get('id')).encode('utf-8'),'text/plain; charset=utf-8')
                     if u.path=='/work/brief':return self.answer(brief(c,get('id')))
                     if u.path=='/work/diagrams':return self.answer(diagrams(c,get('id')))
