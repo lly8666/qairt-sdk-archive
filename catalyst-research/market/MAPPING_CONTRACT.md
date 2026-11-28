@@ -1,0 +1,25 @@
+# A01 mapping contract and data dictionary (B0001)
+Authoritative source: 103 rebuilt artifact 15263318784 (CI 46146080794). SQLite 31 tables/38 views before 104. Data dictionary is generated from actual SQLite DDL, PRAGMA columns/PK, FK, indexes and counts by audit_market.py; run it on the 104+ rebuilt database. It exports data_dictionary.json, market_audit.json, identity_slots.csv, identity_review_queue.csv, legacy_relations.csv, seed_opportunities.csv. The output is derived and not a new source of facts.
+
+## Field mapping and identity
+| Legacy | Target/contract |
+|---|---|
+| sites.site_id/name/record_type/status/address/permit_id/as_of | v_market_identity_slots retains exactly one legacy anchor; record_type is a review hint, not proof. All anchors included. market_entities represents separately evidenced organization/facility/project; market_identity_links M:N mapping with period, source and scope. Address, permit, alias and group relationship alone do not imply identity. |
+| site_relations + sources/site_sources | v_market_legacy_relations retains all rows; market_entity_relations is selective explicit evidence mapping, not automatic current corporate tree. |
+| claims, evidence_notes, sources, source_aliases | preserve source ID/alias, evidence class, scope, locator, document/observation time; link to observations later; source URL not proof of current state. |
+| capacity | future production_lines + capacity observations; preserve capacity_id, product,value,unit,basis,period,scope,source_id. No grouping across period, product, design/actual or company/plant. |
+| projects | future project mapping by project_id; date/status/capacity_note/water_change/source_id unchanged; project not factory. |
+| wastewater | future stream observations keyed by water_id, with stage, flow, unit, basis, pollutants, process/destination/residuals/source and confidence; same stream label not equivalence; shared-station hits need review. |
+| water_metrics | observations anchored to metric_id, water_id if available, site, point, metric, value, unit, kind, statistic, period, limits, source. NULL water_id stays unresolved. Never treat upper limits as measurements. |
+| water_economics | cost_id/water_id/item/value/unit/basis/period/source; no calculation across unmatched streams or times. |
+| process_diagrams, process_diagram_evidence, membrane_reviews/units/retrofits, membrane_application_classification | retain scoped stage/period/revision, evidence and explicit application boundary; topology derived only on reviewed scope; proposals separate. |
+| business_contacts | scoped work channels only; do not treat all as outreach or person identity; no private data. |
+| commercial_opportunity_screen | v_market_seed_opportunities: deterministic LEGACY-site_id, original anchor water and source, no verified buyer intent/fit; future one-to-many opportunities. |
+| search_log, tasks, coverage, task_triage, research_* | historical queue/attempts/reopen events/independent tracks preserved, not sales activity. |
+| technical_benchmarks, water_quantity_review_095, commercial_economic_scenarios | preserve original comparison boundary and provenance; no automatic private case/quote. |
+
+## Review and migration rules
+104 uses four additive market tables and six views in canonical SQLite, no duplicated raw facts. No automatic ownership assignments: market_ownership_observations stores evidence-based time-scoped classification independently of listing and controller; procurement to follow. IDs are stable opaque keys; correction creates evidence/state revision, not deletion or changing kind. Current mapping incomplete even where evidence-linked. Relation state historical/design does not confirm 2026 operation. Initial cases: same historic legal subject two distinct Shanghai facilities; north/south planned replacement, separate project; parent/child organizations without facility mapping. Unresolved same-address Tianmen records remain separate. Actual shared-station topology, current ownership and procurement unimplemented; no forced merges.
+
+Audit 103 source: 375 anchors, 24 distinct record_type values, 71 blank addresses, 320 blank permit IDs, 8 exact province/city/address groups (not physical duplicates); 21 legacy relationships; 30 commercial seeds, metric and commercial cross-site mismatches 0; source URL duplicate check via script. All 375 remain addressable, 6 evidence-mapped anchors, 369 unlinked at seed; ownership observations 0. 104 creates 4 organizations, 4 facility/site entities (one explicitly design), 1 project, 11 links, 7 relations. No confirmed new facility/current operations.
+Scope for A02 next: import review assertions idempotently, preserve multiple candidate links and conflicts; check both-end provenance, evidence-backed ownership/actual purchasing entity; prioritize original 30 seeds; do not auto-label names or research types. A03 normalization requires per-stream and shared system mapping, not copying all rows into one generic stream.

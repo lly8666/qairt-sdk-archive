@@ -21,6 +21,10 @@ jobs:
           python catalyst-research/check_handoff.py
           python catalyst-research/build.py /tmp/catalyst.sqlite
           python catalyst-research/audit_process_membrane.py /tmp/catalyst.sqlite
+          python catalyst-research/market/test_market_identity.py /tmp/catalyst.sqlite
+          python catalyst-research/market/audit_market.py /tmp/catalyst.sqlite /tmp/market-audit
+          python catalyst-research/test_research_revisit.py /tmp/catalyst.sqlite
+          python catalyst-research/test_document_dispatch.py /tmp/catalyst.sqlite
           python catalyst-research/verify_incremental.py /tmp/catalyst.sqlite 19
           python catalyst-research/export_dossiers.py /tmp/catalyst.sqlite /tmp/catalyst-dossiers
           python - <<'PY'
@@ -47,5 +51,6 @@ jobs:
           path: |
             /tmp/catalyst.sqlite
             /tmp/catalyst-dossiers.zip
+            /tmp/market-audit
           retention-days: 7
           if-no-files-found: error
