@@ -35,14 +35,14 @@ with connect(db) as c:
     assert browse(c,owner='private_controlled')['total']>0
     assert browse(c,direction='evaporation')['total']>0
     assert full_detail(c,'CN0184')['equipment']==[]
-    assert any(x['review_id']=='R027-04' and x['presence']=='not_identified' for x in full_detail(c,'CN0184')['membrane_reviews'])
+    assert any(x['review_id']=='R109-HER' and x['presence']=='not_identified' for x in full_detail(c,'CN0184')['membrane_reviews'])
     assert browse(c,q='贺利氏')['total']>0
     assert n("SELECT count(*) FROM capacity WHERE site_id='CN0184' AND source_id='S109-01'")==12
     assert c.execute("SELECT sum(value) FROM capacity WHERE site_id='CN0184' AND source_id='S109-01'").fetchone()[0]==3852.5
     assert n("SELECT count(*) FROM market_treatment_systems WHERE site_id='CN0184' AND source_id='S109-01'")==4
     assert n("SELECT count(*) FROM market_stream_system_links WHERE site_id='CN0184' AND source_id='S109-01'")==4
-    assert n("SELECT count(*) FROM process_diagrams WHERE diagram_id='D027-04'")==1
-    assert n("SELECT count(*) FROM membrane_retrofits WHERE assessment_id='A027-04'")==1
+    assert n("SELECT count(*) FROM process_diagrams WHERE diagram_id='D109-HER'")==1
+    assert n("SELECT count(*) FROM membrane_retrofits WHERE assessment_id='A109-HER'")==1
     assert n("SELECT count(*) FROM market_ownership_observations WHERE observation_id='OW0021' AND controlling_entity_id='MO0036'")==1
     with tempfile.TemporaryDirectory() as tmp:
         path=Path(tmp)/'workspace.sqlite'
