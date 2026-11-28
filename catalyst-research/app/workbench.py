@@ -7,6 +7,7 @@ from app import connect,rows,detail,metrics,handler
 from workspace import open_workspace,records,save_capability,capabilities,add_followup,match_market,compare_versions,save_stream_observation,stream_observations,task_list,complete_followup
 from capability import evaluate
 from economics import calc,cashflow
+from practical import sales_list,sales_csv,gaps,templates,management,scenarios
 ROOT=Path(__file__).resolve().parent
 def browse(c,q='',province='',direction='',owner='',queue='',limit=40,offset=0,prefer_private=True,prefer_channels=True):
     where=[];args=[]
@@ -20,11 +21,11 @@ def browse(c,q='',province='',direction='',owner='',queue='',limit=40,offset=0,p
     elif owner:
         where.append("EXISTS(SELECT 1 FROM v_market_ownership_review o WHERE o.site_id=s.site_id AND o.link_role='legal_subject' AND o.evidence_state='evidence_linked' AND o.ownership_class=?)");args.append(owner)
     clause=' WHERE '+' AND '.join(where) if where else ''
-    total=c.execute('SELECT count(*) FROM v_workbench_priority s'+clause,args).fetchone()[0]
+    total=c.execute('SELECT count(*) FROM v_workbench_sales_scope s'+clause,args).fetchone()[0]
     order="CASE research_queue WHEN 'seed_review' THEN 0 WHEN 'signal_and_channel' THEN 1 WHEN 'signal_review' THEN 2 WHEN 'scope_review' THEN 3 ELSE 4 END"
     if prefer_private:order+=", CASE WHEN EXISTS(SELECT 1 FROM v_market_ownership_review o WHERE o.site_id=s.site_id AND o.link_role='legal_subject' AND o.ownership_class='private_controlled' AND o.evidence_state='evidence_linked') THEN 0 ELSE 1 END"
-    if prefer_channels:order+=', contact_count DESC'
-    items=rows(c,'SELECT * FROM v_workbench_priority s'+clause+' ORDER BY '+order+',site_id LIMIT ? OFFSET ?',args+[min(max(limit,1),100),max(offset,0)])
+    if prefer_channels:order+=', usable_channels DESC'
+    items=rows(c,'SELECT * FROM v_workbench_sales_scope s'+clause+' ORDER BY '+order+',site_id LIMIT ? OFFSET ?',args+[min(max(limit,1),100),max(offset,0)])
     for r in items:
         r['directions']=rows(c,'SELECT direction,water_records,direct_water_records,contextual_water_records,priority_band FROM v_workbench_candidates WHERE site_id=? ORDER BY priority_band IS NULL,direction',(r['site_id'],))
         r['ownership']=rows(c,"SELECT DISTINCT ownership_class,effective_period,link_role FROM v_market_ownership_review WHERE site_id=? AND evidence_state='evidence_linked' ORDER BY link_role,effective_period",(r['site_id'],))
@@ -48,7 +49,7 @@ def full_detail(c,sid):
     if d is None:return None
     for key,query in {
       'directions':'SELECT * FROM v_workbench_candidates WHERE site_id=? ORDER BY priority_band IS NULL,direction',
-      'signals':'SELECT * FROM v_workbench_water_signals WHERE site_id=? ORDER BY direction,water_id',
+      'signals':'SELECT * FROM v_workbench_signal_evidence WHERE site_id=? ORDER BY direction,water_id',
       'equipment':'SELECT * FROM v_workbench_equipment WHERE site_id=?',
       'costs':'SELECT * FROM v_workbench_economics WHERE site_id=?',
       'legacy_relations':'SELECT * FROM v_workbench_relations WHERE site_id=? OR other_site_id=?',
@@ -69,6 +70,17 @@ def make_handler(database,workspace=None):
                 with connect(database) as c:
                     if u.path=='/work/overview':return self.answer(dict(overview(c),workspace=bool(workspace)))
                     if u.path=='/work/sites':return self.answer(browse(c,get('q'),get('province'),get('direction'),get('owner'),get('queue'),int(get('limit','40')),int(get('offset','0')),get('private','1')=='1',get('channels','1')=='1'))
+                    if u.path in ('/work/sales','/work/export','/work/gaps'):
+                        w=open_workspace(workspace) if workspace and u.path!='/work/export' else None
+                        try:
+                            if u.path=='/work/gaps':return self.answer(gaps(c,w,get('site_id'),get('direction')))
+                            filters=(get('owner'),get('direction'),get('stage') if w is not None else '',get('route'),get('province'))
+                            result=sales_list(c,w,*filters)
+                            if u.path=='/work/export':return self.send(200,('\ufeff'+sales_csv(result)).encode('utf-8'),'text/csv; charset=utf-8')
+                            return self.answer(result)
+                        finally:
+                            if w is not None:w.close()
+                    if u.path=='/work/templates':return self.answer(templates(get('direction')))
                     if u.path=='/work/detail':
                         d=full_detail(c,get('id'))
                         if d is None:return self.answer({'error':'not found'},404)
@@ -81,6 +93,7 @@ def make_handler(database,workspace=None):
                         if u.path=='/work/matches':return self.answer(match_market(w,c,get('version') or None))
                         if u.path=='/work/compare':return self.answer(compare_versions(w,c,get('old'),get('new')))
                         if u.path=='/work/followups':return self.answer(records(w,'SELECT * FROM followups ORDER BY id DESC'))
+                        if u.path=='/work/management':return self.answer(management(w))
                         if u.path=='/work/tasks':return self.answer(task_list(w))
                         if u.path=='/work/observations':return self.answer(stream_observations(w,get('site_id'),get('water_id')))
                         if u.path=='/work/economics':return self.answer(rows(c,'SELECT * FROM v_workbench_economics WHERE site_id=? ORDER BY period,item',(get('site_id'),)))
@@ -101,6 +114,7 @@ def make_handler(database,workspace=None):
                     if self.path=='/work/evaluate':
                         v=next((r for r in capabilities(w) if r['id']==int(x['id'])),None)
                         return self.answer(evaluate(dict(version_id=str(v['id']),constraints=v['constraints']) if v else None,x.get('observations',{})))
+                    if self.path=='/work/scenarios':return self.answer(scenarios(x))
                     if self.path=='/work/economics':return self.answer(dict(calc(x),cashflow=cashflow(x.get('cash_events'))))
                 return self.answer({'error':'not found'},404)
             except (ValueError,KeyError,TypeError) as e:return self.answer({'error':str(e)},400)
