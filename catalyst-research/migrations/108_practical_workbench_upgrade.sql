@@ -103,6 +103,7 @@ FROM wastewater w JOIN market_screen_terms t ON
   WHEN 'destination' THEN instr(lower(coalesce(w.destination,'')),lower(t.term))
  END>0
 GROUP BY w.water_id,t.direction;
+DROP VIEW v_workbench_equipment;
 CREATE VIEW v_workbench_equipment AS
 SELECT r.site_id,u.unit_id,u.technology,u.unit_label,u.role,u.feed,u.permeate_destination,u.concentrate_destination,u.specification,
  r.stage,r.period,r.application_boundary,r.presence,u.source_id,u.locator,
