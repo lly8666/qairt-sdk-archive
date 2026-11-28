@@ -3,7 +3,7 @@
 用户已于2026-11-28确认从大规模公开调查转入面向小型工业水处理技术公司的技术商务协同App开发。目标：让业务员知道找谁、为何找、如何进入；技术员知道哪些流股适配、还缺哪些数据；管理者按技术资源、现金流和风险配置项目；未来技术升级可重新扫描市场。旧调查阶段的固定30/50项目、每厂完整图、资料全覆盖后才开发等要求不再是现行施工门槛。不得抹掉旧证据或把未知当不存在。
 
 ## 每个全新Agent的启动顺序
-1. 仅在 `lly8666/qairt-sdk-archive` 的 `catalyst-wastewater` 分支、`catalyst-research/` 范围及其专属CI施工；读取远程HEAD和树，确认无并发覆盖。不要修改main或无关QAIRT/App工作流。
+1. 仅在 `lly8666/qairt-sdk-archive` 的 `catalyst-wastewater` 分支、`catalyst-research/` 范围及其专属CI施工；读取远程HEAD和树，确认无并发覆盖。创建Git tree必须使用最新branch HEAD对应的tree SHA，不得用旧提交tree；提交后对比上一HEAD的文件清单，确认没有意外丢失既有迁移、后端或批次日志。不要修改main或无关QAIRT/App工作流。
 2. 必读本文件、[PROGRESS.md](PROGRESS.md)、[WORKPLAN.md](WORKPLAN.md)、[APP_DESIGN.md](APP_DESIGN.md)。涉及取证或数据建模时读[METHODOLOGY.md](METHODOLOGY.md)、[EVIDENCE_POLICY.md](EVIDENCE_POLICY.md)、[PROCESS_MEMBRANE.md](PROCESS_MEMBRANE.md)。只有具体需要才查[HISTORY.md](HISTORY.md)定位历史批次、迁移、源ID及政策；不要全量读归档。
 3. 核对PROGRESS所指最近批次、实际数据库版本、代码和待办。优先用最新成功CI产物核验SQLite；可clone则从基线+全部SQL重建，不可clone用GitHub接口及产物，不假装本地重建。以实际查询为准，修正快照偏差。
 4. 从WORKPLAN首个未通过验收的可施工任务开始，先检查已有实现、测试、迁移及日志，完成有实质增量的一批；阻塞任务写明原因、验证路径，换不依赖它的工作。用户说“继续”即执行，不只写计划，不等待、不承诺后台工作。
