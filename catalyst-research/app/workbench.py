@@ -9,6 +9,7 @@ from capability import evaluate
 from economics import calc,cashflow
 from projects import set_relationship,create_project,advance,save_sample,save_trial,save_scenarios,list_projects,project_detail,upgrade_list
 from practical import sales_list,sales_csv,gaps,templates,management,scenarios
+from product import brief,diagrams,stream_profile,cases,save_case,similar_cases
 ROOT=Path(__file__).resolve().parent
 def browse(c,q='',province='',direction='',owner='',queue='',limit=40,offset=0,prefer_private=True,prefer_channels=True):
     where=[];args=[]
@@ -82,6 +83,9 @@ def make_handler(database,workspace=None):
                         finally:
                             if w is not None:w.close()
                     if u.path=='/work/templates':return self.answer(templates(get('direction')))
+                    if u.path=='/work/brief':return self.answer(brief(c,get('id')))
+                    if u.path=='/work/diagrams':return self.answer(diagrams(c,get('id')))
+                    if u.path=='/work/stream':return self.answer(stream_profile(c,get('site_id'),get('water_id')))
                     if u.path=='/work/actual-review':return self.answer(rows(c,'SELECT * FROM v_workbench_actual_review ORDER BY site_id,water_id'))
                     if u.path=='/work/detail':
                         d=full_detail(c,get('id'))
@@ -94,6 +98,8 @@ def make_handler(database,workspace=None):
                         return self.answer(d)
                     if not workspace:return self.answer({'error':'workspace not configured'},403)
                     with open_workspace(workspace) as w:
+                        if u.path=='/work/cases':return self.answer(cases(w))
+                        if u.path=='/work/similar':return self.answer(similar_cases(w,c,get('id')))
                         if u.path=='/work/projects':return self.answer(list_projects(w,c,get('site_id')))
                         if u.path=='/work/project':return self.answer(project_detail(w,c,get('id')))
                         if u.path=='/work/upgrades':return self.answer(upgrade_list(w,c,get('old'),get('new')))
@@ -115,6 +121,7 @@ def make_handler(database,workspace=None):
             try:
                 x=json.loads(self.rfile.read(int(self.headers.get('Content-Length','0'))))
                 with open_workspace(workspace) as w,connect(database) as c:
+                    if self.path=='/work/cases':return self.answer(save_case(w,c,x),201)
                     if self.path=='/work/relationship':return self.answer(set_relationship(w,c,x))
                     if self.path=='/work/projects':return self.answer(create_project(w,c,x),201)
                     if self.path=='/work/project-advance':return self.answer(advance(w,x))

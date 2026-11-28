@@ -24,6 +24,8 @@ def open_workspace(path):
         c.execute('ALTER TABLE followups ADD COLUMN completed INTEGER NOT NULL DEFAULT 0')
     from projects import init
     init(c)
+    from product import init_cases
+    init_cases(c)
     c.commit()
     return c
 def records(c,q,p=()):return [dict(r) for r in c.execute(q,p)]

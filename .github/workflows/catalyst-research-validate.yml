@@ -28,6 +28,8 @@ jobs:
           python catalyst-research/app/test_workbench.py /tmp/catalyst.sqlite
           python catalyst-research/app/test_action_desk.py /tmp/catalyst.sqlite
           python catalyst-research/app/test_projects.py /tmp/catalyst.sqlite
+          python catalyst-research/app/test_product.py /tmp/catalyst.sqlite
+          python catalyst-research/package_trial.py /tmp/catalyst.sqlite /tmp/catalyst-market-trial.zip
           python catalyst-research/market/audit_market.py /tmp/catalyst.sqlite /tmp/market-audit
           python catalyst-research/test_research_revisit.py /tmp/catalyst.sqlite
           python catalyst-research/test_document_dispatch.py /tmp/catalyst.sqlite
@@ -58,5 +60,13 @@ jobs:
             /tmp/catalyst.sqlite
             /tmp/catalyst-dossiers.zip
             /tmp/market-audit
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Upload local market trial
+        uses: actions/upload-artifact@v4
+        with:
+          name: catalyst-market-trial
+          path: /tmp/catalyst-market-trial.zip
           retention-days: 7
           if-no-files-found: error

@@ -1,7 +1,6 @@
-# B0003 application slice
-12 independently testable deliverables: (1) 11 priority/related legal subjects and 10 facility scopes plus 2 group entities, (2) six dated ownership observations, (3) three procurement observations, (4) 26 evidence-bound streams, (5) seven treatment systems and 24 evidence-bound connections, (6) full reported-point grouping (not physical points), (7) full production/project read-only observations, (8) paginated search with direct legal ownership evidence filter, (9) evidence-linked site detail/metrics API, (10) responsive local browser, (11) synthetic version-aware capability matcher, (12) bounded economics and explicit cashflow calculation. See migration 106 and app tests.
-Run from repo root: python catalyst-research/app/app.py /path/to/rebuilt.sqlite ; open http://127.0.0.1:8765 . Localhost-only, no authentication, no private data or write operations. Not deployable to company network as-is. Public contact metadata only, no contact values shown; authorized outreach channels and internal roles follow. Ownership filter is any dated direct evidence, not current status; group evidence is shown separately. No actual case parameters loaded. Graph edges are evidence scope, not hydraulic validation. Production observations are not normalized lines. No actual customer ranking, quote, confirmed technical suitability or annual eligible volume. 
-
-B0006: 开发行动台按控制权证据、方向、内部跟进阶段、公开入口筛选；CSV只采用公开条件和字段，不含内部跟进内容。采样缺口按流股模板核对私有实测/客户提供数据；同源浓度记录不保证同一时期或可直接作膜进水。三情景与现金流为显式假设，管理概览仅统计内部跟进任务数量。备份：python catalyst-research/app/backup_workspace.py /仓库外/workspace.sqlite /仓库外/backup.sqlite；目标为新文件，恢复时停服后换用备份。不要上传内部备份。
-
-B0007: 从客户档案的客户项目页标记关系、建立项目；项目页维护阶段、样品、小试、经济三情景快照。所有项目保存在仓库外工作区；已服务客户不自动写入公开库。技术版本可选多个方向，升级差异列出具体流股及状态；结果仍是条件初筛。市场实际量审阅单列汇总、共享站及设备流量。
+# 工业水处理市场助手 — 本地试用
+## 启动
+下载专项CI的 catalyst-market-trial 产物，完整解压。安装 Python 3.10+。Windows 双击启动-Windows.bat；macOS/Linux 在解压目录执行 python3 launch_trial.py。自动打开浏览器，私有工作区在用户主目录 CatalystWaterWorkspace/workspace.sqlite，关闭控制台停止服务。也可从仓库根目录运行 python catalyst-research/app/workbench.py /path/catalyst.sqlite --workspace /仓库外/workspace.sqlite。
+## 使用
+首页进入客户/商机/技术/管理；客户档案提供公开证据、技术切入理由、原工艺图及同记录量质费；商机包含开发清单、项目、待办；技术包含版本、工程案例、经济测算；管理包含阶段、人员及市场概览。案例绑定已有技术版本，方向筛查不等于确认适配。工艺图按原Mermaid节点与箭头绘制，原文可查，不补猜连接。
+实际公司案例、参数、成本、跟进仅在私有工作区录入，试用包未预置。已有历史数据、匿名测试均保留在仓库。备份使用 app/backup_workspace.py 源文件 新备份文件。当前仅本地单用户；多人共享前须在授权公司环境实现基本登录及备份，不做复杂审批。旧版 app.py 仍为只读。
