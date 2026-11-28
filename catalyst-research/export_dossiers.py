@@ -37,12 +37,18 @@ def main():
                            entries(db.execute('SELECT * FROM membrane_units WHERE review_id=? ORDER BY 1',(review['review_id'],)).fetchall())]
             chunks+=['## 膜改造与优化（工程推断，非现行工艺）',entries(db.execute('SELECT * FROM v_membrane_retrofit_rating WHERE site_id=? ORDER BY 1',(ident,)).fetchall()),
                      '### 改造评估历次版本',entries(db.execute('SELECT * FROM membrane_retrofits WHERE site_id=? ORDER BY 1',(ident,)).fetchall())]
+        if db.execute("SELECT 1 FROM sqlite_master WHERE name='business_contacts'").fetchone():
+            chunks+=['## 公开企业业务联系渠道（用途及归属）',entries(db.execute('SELECT * FROM business_contacts WHERE site_id=? ORDER BY 1',(ident,)).fetchall())]
         rows=db.execute('SELECT e.* FROM site_sources a JOIN sources e USING(source_id) WHERE a.site_id=? ORDER BY e.source_id',(ident,)).fetchall()
         chunks+=['## 来源索引',entries(rows)]
         (out/(ident+'.md')).write_text('\n\n'.join(chunks),encoding='utf-8')
     if index:
         with (out/'index.csv').open('w',encoding='utf-8-sig',newline='') as f:
             w=csv.DictWriter(f,fieldnames=list(index[0]));w.writeheader();w.writerows(index)
+    if db.execute("SELECT 1 FROM sqlite_master WHERE name='v_business_contact_directory'").fetchone():
+        cursor=db.execute('SELECT * FROM v_business_contact_directory ORDER BY site_id,department,channel_type,contact_id')
+        with (out/'business_contacts.csv').open('w',encoding='utf-8-sig',newline='') as f:
+            w=csv.writer(f);w.writerow([x[0] for x in cursor.description]);w.writerows(cursor)
     (out/'README.md').write_text('# 逐厂档案\n\n每个 CN 编号对应数据库主体或项目，并不等同独立在产工厂。index.csv 可筛选。Markdown 文档为当前数据库内容导出，不是完整原始环评，也不表示污水工艺已核实完毕。\n',encoding='utf-8')
     print('dossiers',len(index));db.close()
 if __name__=='__main__':main()
