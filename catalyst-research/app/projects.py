@@ -86,6 +86,6 @@ def upgrade_list(w,c,old,new):
     am={key(r):r for r in a};out=[]
     for r in b:
         prev=am.get(key(r))
-        if prev is None or prev['fit']!=r['fit']:
-            out.append(dict(r,before=prev['fit'] if prev else 'not_scanned',change='new_conditional' if r['fit']=='conditional' and (not prev or prev['fit']!='conditional') else 'review'))
+        if prev is None or (prev['fit'],prev.get('reference_fit'))!=(r['fit'],r.get('reference_fit')):
+            out.append(dict(r,before=prev['fit'] if prev else 'not_scanned',reference_before=prev.get('reference_fit') if prev else None,change='new_conditional' if r['fit']=='conditional' and (not prev or prev['fit']!='conditional') else 'review'))
     return sorted(out,key=lambda x:(x['change']!='new_conditional',x['site_id'],x.get('water_id') or ''))

@@ -69,6 +69,7 @@ def save_stream_observation(c,market,x):
 def stream_observations(c,site,water):
     return records(c,'SELECT * FROM stream_observations WHERE site_id=? AND water_id=? ORDER BY observed_on DESC,id DESC',(site,water))
 def match_market(c,market,version_id=None):
+    from decision import assess
     versions=capabilities(c)
     if version_id is not None:versions=[v for v in versions if v['id']==int(version_id)]
     else:versions=current_capabilities(c)
@@ -87,9 +88,9 @@ def match_market(c,market,version_id=None):
                     for obs in obsrows:
                         key=obs['parameter']+'|'+obs['scope']
                         if key not in obsmap:obsmap[key]={'value':obs['value'],'unit':obs['unit'],'scope':obs['scope'],'basis':obs['basis']}
-                    fit=evaluate({'version_id':str(v['id']),'constraints':v['constraints']},obsmap)
+                    fit=assess(market,candidate['site_id'],sig['water_id'],v,obsmap)
                     missing=[z['parameter'] for z in fit['checks'] if z['state']=='unknown']
-                    result.append(dict(candidate,capability_id=v['id'],module=v['module'],version=v['version'],water_id=sig['water_id'],stream=sig['stream'],signal_strength=sig['signal_strength'],fit=fit['state'],checks=fit['checks'],needed=missing))
+                    result.append(dict(candidate,capability_id=v['id'],module=v['module'],version=v['version'],water_id=sig['water_id'],stream=sig['stream'],signal_strength=sig['signal_strength'],fit=fit['state'],checks=fit['checks'],needed=missing,reference_fit=fit['reference_fit'],reference_checks=fit['reference_checks']))
     return result
 def compare_versions(c,market,old,new):
     a=match_market(c,market,old);b=match_market(c,market,new)
@@ -97,5 +98,5 @@ def compare_versions(c,market,old,new):
     am={key(r):r for r in a};bm={key(r):r for r in b}
     added=sorted([list(k) for k in bm.keys()-am.keys()])
     removed=sorted([list(k) for k in am.keys()-bm.keys()])
-    changed=[{'candidate':list(k),'before':am[k]['fit'],'after':bm[k]['fit']} for k in am.keys()&bm.keys() if am[k]['fit']!=bm[k]['fit']]
+    changed=[{'candidate':list(k),'before':am[k]['fit'],'after':bm[k]['fit'],'reference_before':am[k].get('reference_fit'),'reference_after':bm[k].get('reference_fit')} for k in am.keys()&bm.keys() if (am[k]['fit'],am[k].get('reference_fit'))!=(bm[k]['fit'],bm[k].get('reference_fit'))]
     return {'before':len(a),'after':len(b),'added':added,'removed':removed,'changed':changed,'boundary':'按版本、方向、流股比较；参数不足时仍为unknown，不代表工程确认'}

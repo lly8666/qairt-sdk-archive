@@ -62,7 +62,9 @@ def graph(text):
     return {'nodes':[{'id':k,'label':v,'rank':rank[k]} for k,v in nodes.items()],'edges':edges,'unparsed':unparsed}
 def diagrams(c,sid):
     a=records(c,'SELECT * FROM v_latest_process_diagrams WHERE site_id=? ORDER BY stage,period,diagram_id',(sid,))
-    for r in a:r['graph']=graph(r['mermaid'])
+    for r in a:
+        r['graph']=graph(r['mermaid'])
+        r['stream_links']=records(c,'SELECT water_id,element_ids,locator,detail,source_id FROM process_diagram_evidence WHERE diagram_id=? AND water_id IS NOT NULL',(r['diagram_id'],))
     return a
 def stream_profile(c,sid,wid):
     r=c.execute('SELECT * FROM v_market_water_observations WHERE site_id=? AND water_id=?',(sid,wid)).fetchone()
@@ -70,9 +72,11 @@ def stream_profile(c,sid,wid):
     return {'water':dict(r),'metrics':records(c,'SELECT * FROM water_metrics WHERE site_id=? AND water_id=? ORDER BY period,point,metric_id',(sid,wid)),'costs':records(c,'SELECT * FROM water_economics WHERE site_id=? AND water_id=?',(sid,wid)),'signals':records(c,'SELECT * FROM v_workbench_water_signals WHERE site_id=? AND water_id=?',(sid,wid))}
 def init_cases(w):
     w.execute("""CREATE TABLE IF NOT EXISTS engineering_cases(id INTEGER PRIMARY KEY,title TEXT NOT NULL,site_id TEXT,water_id TEXT,capability_id INTEGER NOT NULL,directions TEXT NOT NULL,feed TEXT NOT NULL,process TEXT NOT NULL,performance TEXT NOT NULL,limits_note TEXT NOT NULL,created TEXT DEFAULT CURRENT_TIMESTAMP)""")
+    if 'profile' not in {r['name'] for r in w.execute('PRAGMA table_info(engineering_cases)')}:
+        w.execute("ALTER TABLE engineering_cases ADD COLUMN profile TEXT NOT NULL DEFAULT '{}'")
 def cases(w):
     a=records(w,'SELECT * FROM engineering_cases ORDER BY id DESC')
-    for r in a:r['directions']=json.loads(r['directions'])
+    for r in a:r['directions']=json.loads(r['directions']);r['profile']=json.loads(r['profile'])
     return a
 def save_case(w,c,x):
     title=x['title'].strip();sid=x.get('site_id') or None;wid=x.get('water_id') or None;cap=int(x['capability_id']);dirs=list(dict.fromkeys(x['directions']))
@@ -82,9 +86,11 @@ def save_case(w,c,x):
     if wid:water(c,sid,wid)
     fields=[x.get(k,'').strip() for k in ('feed','process','performance','limits_note')]
     if not all(fields):raise ValueError('填写进水、工艺、实际表现及适用限制')
-    cur=w.execute('INSERT INTO engineering_cases(title,site_id,water_id,capability_id,directions,feed,process,performance,limits_note) VALUES(?,?,?,?,?,?,?,?,?)',(title,sid,wid,cap,json.dumps(dirs))+tuple(fields));w.commit();return {'id':cur.lastrowid}
+    cur=w.execute('INSERT INTO engineering_cases(title,site_id,water_id,capability_id,directions,feed,process,performance,limits_note) VALUES(?,?,?,?,?,?,?,?,?)',(title,sid,wid,cap,json.dumps(dirs))+tuple(fields));w.execute('UPDATE engineering_cases SET profile=? WHERE id=?',(json.dumps(x.get('profile',{}),ensure_ascii=False),cur.lastrowid));w.commit();return {'id':cur.lastrowid}
 def similar_cases(w,c,case_id):
     r=next((r for r in cases(w) if r['id']==int(case_id)),None)
     if not r:raise ValueError('案例不存在')
     a=[x for x in match_market(w,c,r['capability_id']) if x['direction'] in r['directions'] and x['site_id']!=r['site_id']]
-    return sorted(a,key=lambda x:({'conditional':0,'unknown':1,'incompatible':2}.get(x['fit'],3),x['site_id'],x.get('water_id') or ''))
+    from decision import case_similarity
+    for x in a:x['case_similarity']=case_similarity(c,x['site_id'],x.get('water_id'),r['profile'])
+    return sorted(a,key=lambda x:(x['fit']=='incompatible',x['case_similarity']['similarity'] is None,-x['case_similarity']['coverage'],-(x['case_similarity']['similarity'] or 0),x['site_id'],x.get('water_id') or ''))

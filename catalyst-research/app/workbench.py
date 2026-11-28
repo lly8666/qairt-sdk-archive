@@ -10,6 +10,7 @@ from economics import calc,cashflow
 from projects import set_relationship,create_project,advance,save_sample,save_trial,save_scenarios,list_projects,project_detail,upgrade_list
 from practical import sales_list,sales_csv,gaps,templates,management,scenarios
 from product import brief,diagrams,stream_profile,cases,save_case,similar_cases
+from decision import action_cards,report,cost_compare
 ROOT=Path(__file__).resolve().parent
 def browse(c,q='',province='',direction='',owner='',queue='',limit=40,offset=0,prefer_private=True,prefer_channels=True):
     where=[];args=[]
@@ -83,6 +84,8 @@ def make_handler(database,workspace=None):
                         finally:
                             if w is not None:w.close()
                     if u.path=='/work/templates':return self.answer(templates(get('direction')))
+                    if u.path=='/work/cards':return self.answer(action_cards(c,get('id') or None))
+                    if u.path=='/work/report':return self.send(200,report(c,get('id')).encode('utf-8'),'text/plain; charset=utf-8')
                     if u.path=='/work/brief':return self.answer(brief(c,get('id')))
                     if u.path=='/work/diagrams':return self.answer(diagrams(c,get('id')))
                     if u.path=='/work/stream':return self.answer(stream_profile(c,get('site_id'),get('water_id')))
@@ -121,6 +124,10 @@ def make_handler(database,workspace=None):
             try:
                 x=json.loads(self.rfile.read(int(self.headers.get('Content-Length','0'))))
                 with open_workspace(workspace) as w,connect(database) as c:
+                    if self.path=='/work/case-cost':
+                        r=next((v for v in cases(w) if v['id']==int(x['id'])),None)
+                        if not r:raise ValueError('案例不存在')
+                        return self.answer(cost_compare(r['profile'],x.get('old'),x.get('volume'),x.get('unit'),x.get('boundary'),x.get('period')))
                     if self.path=='/work/cases':return self.answer(save_case(w,c,x),201)
                     if self.path=='/work/relationship':return self.answer(set_relationship(w,c,x))
                     if self.path=='/work/projects':return self.answer(create_project(w,c,x),201)

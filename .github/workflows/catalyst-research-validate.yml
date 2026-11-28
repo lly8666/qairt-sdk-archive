@@ -29,6 +29,7 @@ jobs:
           python catalyst-research/app/test_action_desk.py /tmp/catalyst.sqlite
           python catalyst-research/app/test_projects.py /tmp/catalyst.sqlite
           python catalyst-research/app/test_product.py /tmp/catalyst.sqlite
+          python catalyst-research/app/test_decision.py /tmp/catalyst.sqlite
           python -c "from pathlib import Path; s=Path('catalyst-research/app/workbench.html').read_text(); Path('/tmp/workbench.js').write_text(s.split('<script>',1)[1].split('</script>',1)[0])"
           node --check /tmp/workbench.js
           python catalyst-research/package_trial.py /tmp/catalyst.sqlite /tmp/catalyst-market-trial.zip
