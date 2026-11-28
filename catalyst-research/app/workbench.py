@@ -7,6 +7,7 @@ from app import connect,rows,detail,metrics,handler
 from workspace import open_workspace,records,save_capability,capabilities,add_followup,match_market,compare_versions,save_stream_observation,stream_observations,task_list,complete_followup
 from capability import evaluate
 from economics import calc,cashflow
+from projects import set_relationship,create_project,advance,save_sample,save_trial,save_scenarios,list_projects,project_detail,upgrade_list
 from practical import sales_list,sales_csv,gaps,templates,management,scenarios
 ROOT=Path(__file__).resolve().parent
 def browse(c,q='',province='',direction='',owner='',queue='',limit=40,offset=0,prefer_private=True,prefer_channels=True):
@@ -81,14 +82,21 @@ def make_handler(database,workspace=None):
                         finally:
                             if w is not None:w.close()
                     if u.path=='/work/templates':return self.answer(templates(get('direction')))
+                    if u.path=='/work/actual-review':return self.answer(rows(c,'SELECT * FROM v_workbench_actual_review ORDER BY site_id,water_id'))
                     if u.path=='/work/detail':
                         d=full_detail(c,get('id'))
                         if d is None:return self.answer({'error':'not found'},404)
                         if workspace:
-                            with open_workspace(workspace) as w:d['followups']=records(w,'SELECT * FROM followups WHERE site_id=? ORDER BY id DESC',(get('id'),))
+                            with open_workspace(workspace) as w:
+                                d['followups']=records(w,'SELECT * FROM followups WHERE site_id=? ORDER BY id DESC',(get('id'),))
+                                d['relationship']=records(w,'SELECT * FROM customer_relationships WHERE site_id=?',(get('id'),))
+                                d['private_projects']=list_projects(w,c,get('id'))
                         return self.answer(d)
                     if not workspace:return self.answer({'error':'workspace not configured'},403)
                     with open_workspace(workspace) as w:
+                        if u.path=='/work/projects':return self.answer(list_projects(w,c,get('site_id')))
+                        if u.path=='/work/project':return self.answer(project_detail(w,c,get('id')))
+                        if u.path=='/work/upgrades':return self.answer(upgrade_list(w,c,get('old'),get('new')))
                         if u.path=='/work/capabilities':return self.answer(capabilities(w))
                         if u.path=='/work/matches':return self.answer(match_market(w,c,get('version') or None))
                         if u.path=='/work/compare':return self.answer(compare_versions(w,c,get('old'),get('new')))
@@ -107,6 +115,12 @@ def make_handler(database,workspace=None):
             try:
                 x=json.loads(self.rfile.read(int(self.headers.get('Content-Length','0'))))
                 with open_workspace(workspace) as w,connect(database) as c:
+                    if self.path=='/work/relationship':return self.answer(set_relationship(w,c,x))
+                    if self.path=='/work/projects':return self.answer(create_project(w,c,x),201)
+                    if self.path=='/work/project-advance':return self.answer(advance(w,x))
+                    if self.path=='/work/sample':return self.answer(save_sample(w,c,x),201)
+                    if self.path=='/work/trial':return self.answer(save_trial(w,x),201)
+                    if self.path=='/work/project-scenarios':return self.answer(save_scenarios(w,x),201)
                     if self.path=='/work/capabilities':return self.answer(save_capability(w,x),201)
                     if self.path=='/work/followups':return self.answer(add_followup(w,c,x),201)
                     if self.path=='/work/followup-complete':return self.answer({'completed':complete_followup(w,x['id'])})

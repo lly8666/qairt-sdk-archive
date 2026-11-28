@@ -23,6 +23,7 @@ def latest_actions(w):
 
 def sales_list(c,w=None,owner='',direction='',stage='',route='',province=''):
     by_site={};by_direction={}
+    relationships={r['site_id']:r['relationship'] for r in records(w,'SELECT site_id,relationship FROM customer_relationships')} if w is not None else {}
     for f in latest_actions(w):by_site.setdefault(f['site_id'],[]).append(f)
     for d in records(c,'SELECT site_id,direction,direct_water_records,contextual_water_records,priority_band FROM v_workbench_candidates ORDER BY priority_band IS NULL,direction'):
         by_direction.setdefault(d['site_id'],[]).append(d)
@@ -49,8 +50,10 @@ def sales_list(c,w=None,owner='',direction='',stage='',route='',province=''):
         elif 'central_state_controlled' in types or 'local_state_controlled' in types:hint='建议核正式采购入口、EPC合作及准入'
         elif 'foreign_controlled' in legal.split(','):hint='建议核本地厂区技术、采购及集团审批边界'
         else:hint='先核法人、需求及采购路径'
-        out.append(dict(r,ownership_basis=basis,route_hint=hint,directions=ds,actions=fs))
-    return out
+        relation=relationships.get(r['site_id'],'未标记')
+        if relation=='已服务客户':hint='售后、扩容及案例复制；不当陌生客户'
+        out.append(dict(r,ownership_basis=basis,route_hint=hint,directions=ds,actions=fs,relationship=relation))
+    return sorted(out,key=lambda r:r['relationship']=='已服务客户')
 
 def sales_csv(items):
     fields=['site_id','name','province','city','subject_scope','legal_ownership','group_ownership','ownership_basis','usable_channels','site_channels','procurement_count','directions','route_hint']

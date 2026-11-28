@@ -27,6 +27,7 @@ jobs:
           python -m py_compile catalyst-research/app/*.py
           python catalyst-research/app/test_workbench.py /tmp/catalyst.sqlite
           python catalyst-research/app/test_action_desk.py /tmp/catalyst.sqlite
+          python catalyst-research/app/test_projects.py /tmp/catalyst.sqlite
           python catalyst-research/market/audit_market.py /tmp/catalyst.sqlite /tmp/market-audit
           python catalyst-research/test_research_revisit.py /tmp/catalyst.sqlite
           python catalyst-research/test_document_dispatch.py /tmp/catalyst.sqlite

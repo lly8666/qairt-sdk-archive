@@ -22,6 +22,8 @@ def open_workspace(path):
     """)
     if 'completed' not in {r['name'] for r in c.execute('PRAGMA table_info(followups)')}:
         c.execute('ALTER TABLE followups ADD COLUMN completed INTEGER NOT NULL DEFAULT 0')
+    from projects import init
+    init(c)
     c.commit()
     return c
 def records(c,q,p=()):return [dict(r) for r in c.execute(q,p)]

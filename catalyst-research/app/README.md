@@ -3,3 +3,5 @@
 Run from repo root: python catalyst-research/app/app.py /path/to/rebuilt.sqlite ; open http://127.0.0.1:8765 . Localhost-only, no authentication, no private data or write operations. Not deployable to company network as-is. Public contact metadata only, no contact values shown; authorized outreach channels and internal roles follow. Ownership filter is any dated direct evidence, not current status; group evidence is shown separately. No actual case parameters loaded. Graph edges are evidence scope, not hydraulic validation. Production observations are not normalized lines. No actual customer ranking, quote, confirmed technical suitability or annual eligible volume. 
 
 B0006: 开发行动台按控制权证据、方向、内部跟进阶段、公开入口筛选；CSV只采用公开条件和字段，不含内部跟进内容。采样缺口按流股模板核对私有实测/客户提供数据；同源浓度记录不保证同一时期或可直接作膜进水。三情景与现金流为显式假设，管理概览仅统计内部跟进任务数量。备份：python catalyst-research/app/backup_workspace.py /仓库外/workspace.sqlite /仓库外/backup.sqlite；目标为新文件，恢复时停服后换用备份。不要上传内部备份。
+
+B0007: 从客户档案的客户项目页标记关系、建立项目；项目页维护阶段、样品、小试、经济三情景快照。所有项目保存在仓库外工作区；已服务客户不自动写入公开库。技术版本可选多个方向，升级差异列出具体流股及状态；结果仍是条件初筛。市场实际量审阅单列汇总、共享站及设备流量。
