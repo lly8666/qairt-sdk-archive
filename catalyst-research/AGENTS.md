@@ -61,3 +61,5 @@
 
 ## 070起：检索边际收益与时效调度
 先读RESEARCH_REVISIT_POLICY.md。查询v_research_dispatch、v_research_document_dispatch、v_research_revisit_due、v_research_existing_hold_clock，先提取已有可读高质量报告的特定未取章节，再反查漏厂和新项目，按真实事件/到期才进行有界复查。每次实际检索保留search_log并补结构化attempt（主体+范围+缺口+路径+结果+实际新增字段/证据ID+检查日+下一复查日/触发）。低收益只冷却同轨道，访问失败另记，不按次数机械判定厂无价值；明确新证据可提前重开，经人工复核解除旧暂缓。下一复查日不是事实有效期，也不是后台监控。默认45/35/20研究预算（旧报告/新发现/到期事件），随资料可得性调整；每轮如实报告有效项目，保留数据覆盖优先，不做商业UI重构。
+
+071补充：先查v_research_pending_events，独立事件即使尚无attempt亦列队；保留原hold人工审核，消费后防重复触发。运行python catalyst-research/test_research_revisit.py <重建库>。
